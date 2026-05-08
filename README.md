@@ -39,7 +39,7 @@ To keep this project highly accessible, Microban relies on common hardware. Here
 | **Servo Motors** | 19 | XL330-M288-T from Dynamixel. |
 | **Microcontroller**| 1 | Raspberry Pi Zero 2W. |
 | **Board Hat** | 1 | X |
-| **Power Supply** | 2 | 18650 Lithium-ion Batteries. |
+| **Power Supply** | 2 | 18650 3.7V Lithium-ion Batteries. |
 | **Battery Holder** | 1 | 2x18650 Battery Holder. |
 | **USB-C Charger** | 1 | Standard USB-C charger. |
 | **BMS** | 1 | Battery Management System for 2x18650 batteries. |
