@@ -1,4 +1,4 @@
-# Microban: A Small, Fully Open-Source Humanoid Robot
+# Microban: A Compact, Fully 3D-Printable Open-Source Humanoid
 
 [![License: CERN-OHL-S-2.0](https://img.shields.io/badge/Hardware-CERN--OHL--S--2.0-blue.svg)](LICENSE)
 
