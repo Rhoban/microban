@@ -13,7 +13,7 @@ setup: sync
 	ssh microban "bash -l -c 'cd microban && uv sync'"
 
 run: sync
-	ssh microban "bash -l -c 'cd microban && uv run src/main.py'"
+	ssh -tt microban "bash -l -c 'cd microban && uv run src/main.py'"
 
 stop:
-	ssh microban "bash -l -c 'cd microban && uv run src/stop.py'"
+	ssh -tt microban "bash -l -c 'cd microban && uv run src/stop.py'"

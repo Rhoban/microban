@@ -1,27 +1,53 @@
-from rustypot import Xl330PyController
+import time
 import numpy as np
-import time 
+import os
+from pathlib import Path
+
+from rustypot import Xl330PyController
 
 from constants import motor_id_dict
+from scheduler import Scheduler
 
-controller = Xl330PyController(serial_port='/dev/ttyAMA0', baudrate=1000000, timeout=0.1)
+PID_FILE = Path("/tmp/microban_scheduler.pid")
 
-controller.sync_write_torque_enable(list(motor_id_dict.values()), [True] * len(list(motor_id_dict.values())))
-controller.sync_write_status_return_level(list(motor_id_dict.values()), [1] * len(list(motor_id_dict.values())))
 
-# Slowly move all motors to their initial positions (0 radians)
-duration = 2
-motor_init_pos = np.array([controller.read_present_position(id) for id in motor_id_dict.values()])
-print("Initializing all motors to 0 radians...")
+def ramp_to_neutral(controller: Xl330PyController, duration_s: float = 2.0) -> None:
+    """Ramp all motors smoothly to 0 radians before starting the control loop."""
+    motor_ids = list(motor_id_dict.values())
+    initial_positions = np.array(controller.sync_read_present_position(motor_ids))
 
-t = 0
-start_time = time.perf_counter()
-while t < duration:
-    t = time.perf_counter() - start_time
-    motor_pos = motor_init_pos + t * (0 - motor_init_pos) / duration
-    controller.sync_write_goal_position(list(motor_id_dict.values()), list(motor_pos.flatten()))
-controller.sync_write_goal_position(list(motor_id_dict.values()), [0] * len(list(motor_id_dict.values())))
-print("All motors initialized to 0 radians.")
+    print("Ramping all motors to neutral position...")
+    start_time = time.perf_counter()
+    elapsed_time = 0.0
 
-for id in motor_id_dict.values():
-    print(f"Motor {id} position: {controller.read_present_position(id)}")
+    while elapsed_time < duration_s:
+        elapsed_time = time.perf_counter() - start_time
+        progress = min(elapsed_time / duration_s, 1.0)
+        target_positions = initial_positions + progress * (0.0 - initial_positions)
+        controller.sync_write_goal_position(motor_ids, target_positions.flatten().tolist())
+
+    controller.sync_write_goal_position(motor_ids, [0.0] * len(motor_ids))
+    print("All motors reached neutral position.")
+
+
+def main() -> None:
+    PID_FILE.write_text(f"{os.getpid()}\n", encoding="ascii")
+
+    controller = Xl330PyController(serial_port="/dev/ttyAMA0", baudrate=1000000, timeout=0.1)
+    motor_ids = list(motor_id_dict.values())
+    controller.sync_write_torque_enable(motor_ids, [True] * len(motor_ids))
+    controller.sync_write_status_return_level(motor_ids, [1] * len(motor_ids))
+
+    try:
+        ramp_to_neutral(controller)
+        time.sleep(0.5)
+
+        scheduler = Scheduler(frequency_hz=50.0, controller=controller)
+        scheduler.run()
+    finally:
+        if PID_FILE.exists():
+            PID_FILE.unlink()
+
+
+if __name__ == "__main__":
+    main()
