@@ -1,11 +1,14 @@
-import math
 import onnxruntime as ort
 
-from observer import RobotState
-from move import MotorCommand, Move
+from observer import Observation
+from moves.move import MotorCommand, Move
+
 
 class WalkMove(Move):
     """Walk using a RL policy trained in simulation."""
 
     def __init__(self) -> None:
-        return
+        pass
+
+    def apply(self, obs: Observation, command: MotorCommand) -> None:
+        pass

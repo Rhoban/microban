@@ -7,6 +7,7 @@ from rustypot import Xl330PyController
 
 from constants import motor_id, neutral_pose, motor_sign
 from scheduler import Scheduler
+from input.keyboard_input import KeyboardInputSource
 
 PID_FILE = Path("/tmp/microban_scheduler.pid")
 
@@ -43,7 +44,11 @@ def main() -> None:
         ramp_to_neutral(controller)
         time.sleep(0.5)
 
-        scheduler = Scheduler(frequency_hz=50.0, controller=controller)
+        scheduler = Scheduler(
+            frequency_hz=50.0,
+            controller=controller,
+            input_source=KeyboardInputSource(move_keys={"h": "head", "w": "walk"}),
+        )
         scheduler.run()
     finally:
         if PID_FILE.exists():

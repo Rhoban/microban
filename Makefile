@@ -1,4 +1,4 @@
-.PHONY: sync setup run
+.PHONY: sync setup run stop battery
 
 sync:
 	rsync -avz \
@@ -17,3 +17,6 @@ run: sync
 
 stop:
 	ssh -tt microban "bash -l -c 'cd microban && uv run src/stop.py'"
+
+battery: sync
+	ssh microban "bash -l -c 'cd microban && uv run src/battery.py'"
