@@ -6,5 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.4.6",
+    "onnxruntime>=1.26.0",
     "rustypot>=1.4.2",
 ]

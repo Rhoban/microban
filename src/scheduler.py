@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 from rustypot import Xl330PyController
 
-from constants import motor_id_dict
+from constants import motor_id, motor_sign
 from observer import Observer
 from moves.move import MotorCommand
 from moves.rotate_head import RotateHeadMove
@@ -21,7 +21,7 @@ class Scheduler:
         self.stop_flag_path = Path(stop_flag_path)
         self._cleanup_done = False
 
-        self.motor_name_to_id = dict(motor_id_dict)
+        self.motor_name_to_id = dict(motor_id)
         all_motor_ids = list(self.motor_name_to_id.values())
         if controller is None:
             self.controller.sync_write_torque_enable(all_motor_ids, [True] * len(all_motor_ids))
@@ -94,8 +94,7 @@ class Scheduler:
         target_positions = []
         for motor_name, target_angle in command.target_angles.items():
             motor_ids.append(self.motor_name_to_id[motor_name])
-            target_positions.append(target_angle)
-
+            target_positions.append(target_angle * motor_sign[motor_name])
 
         self.controller.sync_write_goal_position(motor_ids, target_positions)
 

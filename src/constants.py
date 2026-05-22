@@ -1,4 +1,6 @@
-motor_id_dict = {
+import numpy as np
+
+motor_id = {
     "left_hip_yaw": 11,
     "left_hip_roll": 12,
     "left_hip_pitch": 13,
@@ -18,4 +20,48 @@ motor_id_dict = {
     "right_shoulder_roll": 42,
     "right_elbow": 43,
     "head": 51,
+}
+
+neutral_pose = {
+    "left_hip_yaw": float(np.deg2rad(0.0)),
+    "left_hip_roll": float(np.deg2rad(5.0)),
+    "left_hip_pitch": float(np.deg2rad(0.0)),
+    "left_knee": float(np.deg2rad(0.0)),
+    "left_ankle_pitch": float(np.deg2rad(0.0)),
+    "left_ankle_roll": float(np.deg2rad(-5.0)),
+    "right_hip_yaw": float(np.deg2rad(0.0)),
+    "right_hip_roll": float(np.deg2rad(-5.0)),
+    "right_hip_pitch": float(np.deg2rad(0.0)),
+    "right_knee": float(np.deg2rad(0.0)),
+    "right_ankle_pitch": float(np.deg2rad(0.0)),
+    "right_ankle_roll": float(np.deg2rad(5.0)),
+    "left_shoulder_pitch": float(np.deg2rad(10.0)),
+    "left_shoulder_roll": float(np.deg2rad(10.0)),
+    "left_elbow": float(np.deg2rad(-20.0)),
+    "right_shoulder_pitch": float(np.deg2rad(10.0)),
+    "right_shoulder_roll": float(np.deg2rad(-10.0)),
+    "right_elbow": float(np.deg2rad(-20.0)),
+    "head": float(np.deg2rad(0.0)),
+}
+
+motor_sign = {
+    "left_hip_yaw": 1.0,
+    "left_hip_roll": 1.0,
+    "left_hip_pitch": -1.0,
+    "left_knee": 1.0,
+    "left_ankle_pitch": 1.0,
+    "left_ankle_roll": -1.0,
+    "right_hip_yaw": 1.0,
+    "right_hip_roll": 1.0,
+    "right_hip_pitch": 1.0,
+    "right_knee": -1.0,
+    "right_ankle_pitch": -1.0,
+    "right_ankle_roll": -1.0,
+    "left_shoulder_pitch": 1.0,
+    "left_shoulder_roll": -1.0,
+    "left_elbow": 1.0,
+    "right_shoulder_pitch": -1.0,
+    "right_shoulder_roll": -1.0,
+    "right_elbow": -1.0,
+    "head": 1.0,
 }
