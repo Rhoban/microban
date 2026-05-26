@@ -6,20 +6,24 @@ from moves.move import MotorCommand, Move, MoveState
 
 class RotateHeadMove(Move):
     """
-    Generate a sinusoidal head rotation between -45 and +45 degrees.
+    Generate a sinusoidal head rotation between +/- *amplitude_rad* with a frequency *frequency*.
 
     Transitions (on_start / on_stop) lerp the head to 0 over *lerp_duration* seconds
     so the move starts and stops smoothly.
+
+    :param frequency: Frequency of the head rotation in Hz.
+    :param amplitude_rad: Half amplitude of the head rotation in radians.
+    :param lerp_duration: Duration of the transition to/from the head rotation in seconds.
     """
 
     def __init__(
         self,
-        frequency_hz: float = 0.35,
+        frequency: float = 0.35,
         amplitude_rad: float = math.pi / 4,
         lerp_duration: float = 0.5,
     ) -> None:
         super().__init__()
-        self.frequency_hz = frequency_hz
+        self.frequency = frequency
         self.amplitude_rad = amplitude_rad
         self.lerp_duration = lerp_duration
 
@@ -43,7 +47,7 @@ class RotateHeadMove(Move):
 
     def step(self, obs: Observation, command: MotorCommand) -> None:
         t = obs.robot_state.time_s - self._active_start_time_s
-        head_angle = self.amplitude_rad * math.sin(2.0 * math.pi * self.frequency_hz * t)
+        head_angle = self.amplitude_rad * math.sin(2.0 * math.pi * self.frequency * t)
         command.target_angles["head"] = head_angle
 
     def on_stop(self, obs: Observation, command: MotorCommand) -> None:

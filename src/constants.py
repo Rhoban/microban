@@ -1,6 +1,6 @@
 import numpy as np
 
-motor_id = {
+MOTOR_ID = {
     "left_hip_yaw": 11,
     "left_hip_roll": 12,
     "left_hip_pitch": 13,
@@ -22,7 +22,7 @@ motor_id = {
     "head": 51,
 }
 
-neutral_pose = {
+NEUTRAL_POSE = {
     "left_hip_yaw": float(np.deg2rad(0.0)),
     "left_hip_roll": float(np.deg2rad(5.0)),
     "left_hip_pitch": float(np.deg2rad(0.0)),
@@ -44,7 +44,7 @@ neutral_pose = {
     "head": float(np.deg2rad(0.0)),
 }
 
-motor_sign = {
+MOTOR_SIGN = {
     "left_hip_yaw": 1.0,
     "left_hip_roll": 1.0,
     "left_hip_pitch": -1.0,

@@ -1,14 +1,15 @@
 import time
 from pathlib import Path
 from typing import Optional
-from rustypot import Xl330PyController
 
-from constants import motor_id, motor_sign
+from constants import MOTOR_ID
+from controller import ControllerProtocol
 from battery import BATTERY_WARN_V, BATTERY_CRITICAL_V, BATTERY_PROBE_IDS
 from observer import Observer, Observation
 from input.input_source import InputSource, UserInput
 from moves.move import MotorCommand, Move, MoveState
 from moves.rotate_head import RotateHeadMove
+from moves.squat import SquatMove
 from moves.walk import WalkMove
 
 
@@ -16,28 +17,22 @@ class Scheduler:
     def __init__(
         self,
         frequency_hz: float = 50.0,
-        serial_port: str = "/dev/ttyAMA0",
-        controller: Optional[Xl330PyController] = None,
+        controller: ControllerProtocol = None,
         stop_flag_path: str = "/tmp/microban_scheduler.stop",
         input_source: Optional[InputSource] = None,
     ):
         self.dt = 1.0 / frequency_hz
-        self.controller = controller or Xl330PyController(serial_port=serial_port, baudrate=1000000, timeout=0.1)
+        self.controller = controller
         self.stop_flag_path = Path(stop_flag_path)
         self._cleanup_done = False
         self.input_source = input_source
 
-        self.motor_name_to_id = dict(motor_id)
-        all_motor_ids = list(self.motor_name_to_id.values())
-        if controller is None:
-            self.controller.sync_write_torque_enable(all_motor_ids, [True] * len(all_motor_ids))
-            self.controller.sync_write_status_return_level(all_motor_ids, [1] * len(all_motor_ids))
-
-        self.observer = Observer(self.controller, self.motor_name_to_id)
+        self.observer = Observer(self.controller)
 
         # All moves are registered here. They only run when activated via user_input.active_moves.
         self.registered_moves: dict[str, Move] = {
             "head": RotateHeadMove(),
+            "squat": SquatMove(),
             "walk": WalkMove(),
         }
 
@@ -123,8 +118,8 @@ class Scheduler:
         if self.input_source:
             self.input_source.stop()
 
-        all_motor_ids = list(self.motor_name_to_id.values())
-        self.controller.sync_write_torque_enable(all_motor_ids, [False] * len(all_motor_ids))
+        motor_ids = list(MOTOR_ID.values())
+        self.controller.sync_write_torque_enable(motor_ids, [False] * len(motor_ids))
         print("Torque disabled on all motors", end="\r\n", flush=True)
 
         if self.stop_flag_path.exists():
@@ -135,15 +130,7 @@ class Scheduler:
         if not command.target_angles:
             return
 
-        motor_ids = []
-        target_positions = []
-        for motor_name, target_angle in command.target_angles.items():
-            motor_ids.append(self.motor_name_to_id[motor_name])
-            target_positions.append(target_angle * motor_sign[motor_name])
+        motor_ids = [MOTOR_ID[name] for name in command.target_angles]
+        target_positions = list(command.target_angles.values())
 
         self.controller.sync_write_goal_position(motor_ids, target_positions)
-
-
-if __name__ == "__main__":
-    robot_loop = Scheduler(frequency_hz=50.0)
-    robot_loop.run()

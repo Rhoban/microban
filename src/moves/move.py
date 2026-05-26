@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 
 from observer import Observation
-from constants import neutral_pose
+from constants import NEUTRAL_POSE
 
 
 class MoveState(Enum):
@@ -21,7 +21,7 @@ class MotorCommand:
     Initialized with the neutral pose.
     """
 
-    target_angles: dict[str, float] = field(default_factory=lambda: dict(neutral_pose))
+    target_angles: dict[str, float] = field(default_factory=lambda: dict(NEUTRAL_POSE))
 
 
 class Move(ABC):

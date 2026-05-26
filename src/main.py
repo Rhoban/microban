@@ -3,20 +3,19 @@ import numpy as np
 import os
 from pathlib import Path
 
-from rustypot import Xl330PyController
-
-from constants import motor_id, neutral_pose, motor_sign
+from constants import MOTOR_ID, NEUTRAL_POSE
+from robot_controller import RobotController
 from scheduler import Scheduler
 from input.keyboard_input import KeyboardInputSource
 
 PID_FILE = Path("/tmp/microban_scheduler.pid")
 
 
-def ramp_to_neutral(controller: Xl330PyController, duration_s: float = 2.0) -> None:
+def ramp_to_neutral(controller: RobotController, duration_s: float = 2.0) -> None:
     """Ramp all motors smoothly to neutral position before starting the control loop."""
-    motor_ids = list(motor_id.values())
+    motor_ids = list(MOTOR_ID.values())
     initial_positions = np.array(controller.sync_read_present_position(motor_ids))
-    target_neutral = np.array([neutral_pose[name] * motor_sign[name] for name in motor_id])
+    target_neutral = np.array([NEUTRAL_POSE[name] for name in MOTOR_ID])
 
     print("Ramping all motors to neutral position...")
     start_time = time.perf_counter()
@@ -35,10 +34,9 @@ def ramp_to_neutral(controller: Xl330PyController, duration_s: float = 2.0) -> N
 def main() -> None:
     PID_FILE.write_text(f"{os.getpid()}\n", encoding="ascii")
 
-    controller = Xl330PyController(serial_port="/dev/ttyAMA0", baudrate=1000000, timeout=0.1)
-    motor_ids = list(motor_id.values())
+    controller = RobotController()
+    motor_ids = list(MOTOR_ID.values())
     controller.sync_write_torque_enable(motor_ids, [True] * len(motor_ids))
-    controller.sync_write_status_return_level(motor_ids, [1] * len(motor_ids))
 
     try:
         ramp_to_neutral(controller)
