@@ -30,6 +30,9 @@ class Move(ABC):
     def __init__(self) -> None:
         self.state: MoveState = MoveState.INACTIVE
 
+    def preload(self) -> None:
+        """Called before the control loop starts. Override to load heavy resources."""
+
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
         """Called each tick while state is STARTING.
         Must set self.state = MoveState.ACTIVE when the transition is done."""

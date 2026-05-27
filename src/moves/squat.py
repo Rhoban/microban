@@ -44,6 +44,9 @@ class SquatMove(Move):
 
         self._placo_ready = False
 
+    def preload(self) -> None:
+        self._initialize()
+
     def _initialize(self) -> None:
         """Lazy initialization of placo model and IK solver (deferred to first activation)."""
         if self._placo_ready:

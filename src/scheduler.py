@@ -37,6 +37,7 @@ class Scheduler:
         }
 
         self.loop_start_time = time.perf_counter()
+        self._serial_errors = 0
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -55,7 +56,17 @@ class Scheduler:
                 start_time = time.perf_counter()
 
                 # Read robot observations and user input
-                robot_state = self.observer.read_state()
+                try:
+                    robot_state = self.observer.read_state()
+                except RuntimeError as e:
+                    self._serial_errors += 1
+                    if self._serial_errors >= 3:
+                        print(f"Serial communication error: {e}", end="\r\n", flush=True)
+                        break
+                    print(f"Warning: serial read error (attempt {self._serial_errors}/3): {e}", end="\r\n", flush=True)
+                    continue
+                self._serial_errors = 0
+                
                 robot_state.time_s = start_time - self.loop_start_time
                 user_input = self.input_source.read() if self.input_source else UserInput()
                 obs = Observation(robot_state=robot_state, user_input=user_input)

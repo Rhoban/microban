@@ -43,7 +43,6 @@ def main() -> None:
 
     try:
         ramp_to_neutral(controller)
-        time.sleep(0.5)
 
         scheduler = Scheduler(
             frequency_hz=50.0,
@@ -55,7 +54,19 @@ def main() -> None:
                 "walk": WalkMove(controller=controller),
             },
         )
+
+        for move in scheduler.registered_moves.values():
+            move.preload()
+
+        # Flush stale UART bytes accumulated during preload
+        for _ in range(10):
+            try:
+                controller.sync_read_present_position(motor_ids)
+            except RuntimeError:
+                pass
+
         scheduler.run()
+
     finally:
         if PID_FILE.exists():
             PID_FILE.unlink()
