@@ -3,7 +3,6 @@ import time
 
 from controller import ControllerProtocol
 from input.input_source import UserInput
-from battery import BATTERY_VOLTAGE_OFFSET
 from constants import MOTOR_TO_ID
 
 
@@ -40,11 +39,3 @@ class Observer:
 
         return state
 
-    def read_battery_voltage(self, probe_ids: list[int]) -> float:
-        """Return the average bus voltage in volts across all *probe_ids*."""
-        readings = []
-        for probe_id in probe_ids:
-            raw = self.controller.read_present_input_voltage(probe_id)
-            voltage_raw = raw[0] if isinstance(raw, (list, tuple)) else raw
-            readings.append(voltage_raw * 0.1)
-        return sum(readings) / len(readings) + BATTERY_VOLTAGE_OFFSET

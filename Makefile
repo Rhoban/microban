@@ -1,4 +1,4 @@
-.PHONY: sync setup run stop battery sim viewer
+.PHONY: sync setup run stop voltage sim viewer
 
 HOST ?= microban
 
@@ -21,8 +21,10 @@ run: sync
 stop:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && uv run src/stop.py'"
 
-battery: sync
-	ssh $(HOST) "bash -l -c 'cd microban && uv run src/battery.py'"
+ID ?=
+
+voltage: sync
+	ssh $(HOST) "bash -l -c 'cd microban && uv run src/voltage.py $(ID)'"
 
 sim:
 	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50

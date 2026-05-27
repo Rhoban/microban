@@ -4,7 +4,6 @@ from typing import Optional
 
 from constants import MOTOR_TO_ID
 from controller import ControllerProtocol
-from battery import BATTERY_WARN_V, BATTERY_CRITICAL_V, BATTERY_PROBE_IDS
 from observer import Observer, Observation
 from input.input_source import InputSource, UserInput
 from moves.move import MotorCommand, Move, MoveState
@@ -38,8 +37,6 @@ class Scheduler:
         }
 
         self.loop_start_time = time.perf_counter()
-        self._battery_tick = 0
-        self._battery_check_every = max(1, round(frequency_hz * 10))  # once every 10 seconds
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -82,17 +79,6 @@ class Scheduler:
 
                 # Send command to motors
                 self._send_to_motors(command)
-
-                # Battery voltage check
-                self._battery_tick += 1
-                if self._battery_tick >= self._battery_check_every:
-                    self._battery_tick = 0
-                    voltage = self.observer.read_battery_voltage(BATTERY_PROBE_IDS)
-                    if voltage < BATTERY_CRITICAL_V:
-                        print(f"CRITICAL: battery voltage {voltage:.2f} V < {BATTERY_CRITICAL_V} V — shutting down", end="\r\n", flush=True)
-                        break
-                    elif voltage < BATTERY_WARN_V:
-                        print(f"Warning: battery voltage {voltage:.2f} V < {BATTERY_WARN_V} V", end="\r\n", flush=True)
 
                 # Sleep to keep a fixed control frequency
                 elapsed_time = time.perf_counter() - start_time
