@@ -8,7 +8,6 @@ from robot_controller import RobotController
 from scheduler import Scheduler
 from input.keyboard_input import KeyboardInputSource
 from moves.rotate_head import RotateHeadMove
-from moves.squat import SquatMove
 from moves.walk import WalkMove
 
 PID_FILE = Path("/tmp/microban_scheduler.pid")
@@ -52,7 +51,6 @@ def main() -> None:
             input_source=KeyboardInputSource(move_keys={"h": "head", "w": "walk"}),
             moves={
                 "head": RotateHeadMove(),
-                "squat": SquatMove(model_path="model"),
                 "walk": WalkMove(controller=controller),
             },
         )

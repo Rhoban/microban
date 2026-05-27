@@ -23,7 +23,7 @@ def main() -> None:
 
     input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "w": "walk"})
     controller = MuJoCoController(
-        args.mjcf,
+        mjcf_path="model/scene.xml",
         key_callback=input_source.key_callback,
         reset_source=input_source,
     )

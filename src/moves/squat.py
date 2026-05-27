@@ -35,8 +35,10 @@ class SquatMove(Move):
         self.amplitude = amplitude
         self.lerp_duration = lerp_duration
 
-        self._lerp_start_time_s: float | None = None
-        self._lerp_start_angle: list[float] = []
+        self._start_lerp_time_s: float | None = None
+        self._start_lerp_angles: list[float] = []
+        self._stop_lerp_time_s: float | None = None
+        self._stop_lerp_angles: list[float] = []
         self._active_start_time_s: float = 0.0
 
         self._robot = placo.RobotWrapper(model_path, placo.Flags.mjcf)
@@ -46,6 +48,7 @@ class SquatMove(Move):
         for name, angle in NEUTRAL_POSE.items():
             self._robot.set_joint(name, angle)
         T_left_foot = np.eye(4)
+        self._T_left_foot = T_left_foot
         self._robot.set_T_world_frame("left_foot", T_left_foot)
         self._robot.update_kinematics()
 
@@ -79,10 +82,27 @@ class SquatMove(Move):
             self._solver.solve(True)
             self._robot.update_kinematics()
 
+        self._start_target_angles = [self._robot.get_joint(name) for name in _LOWER_JOINTS + _UPPER_JOINTS]
 
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
-        self._active_start_time_s = obs.robot_state.time_s
-        self.state = MoveState.ACTIVE
+        if self._start_lerp_time_s is None:
+            self._start_lerp_time_s = obs.robot_state.time_s
+            self._start_lerp_angles = [obs.robot_state.motor_angles.get(name, 0.0) for name in _LOWER_JOINTS + _UPPER_JOINTS]
+
+        t = (obs.robot_state.time_s - self._start_lerp_time_s) / self.lerp_duration
+        t = min(t, 1.0)
+        for i, name in enumerate(_LOWER_JOINTS + _UPPER_JOINTS):
+            command.target_angles[name] = self._start_lerp_angles[i] * (1.0 - t) + self._start_target_angles[i] * t
+
+        if t >= 1.0:
+            self._start_lerp_time_s = None
+            self._active_start_time_s = obs.robot_state.time_s
+            for i, name in enumerate(_LOWER_JOINTS + _UPPER_JOINTS):
+                self._robot.set_joint(name, self._start_target_angles[i])
+            self._robot.set_T_world_frame("left_foot", self._T_left_foot)
+            self._robot.update_kinematics()
+            self._com_task.target_world = self._com_initial.copy()
+            self.state = MoveState.ACTIVE
 
     def step(self, obs: Observation, command: MotorCommand) -> None:
         t = obs.robot_state.time_s - self._active_start_time_s
@@ -97,15 +117,16 @@ class SquatMove(Move):
             command.target_angles[name] = self._robot.get_joint(name)
 
     def on_stop(self, obs: Observation, command: MotorCommand) -> None:
-        if self._lerp_start_time_s is None:
-            self._lerp_start_time_s = obs.robot_state.time_s
-            self._lerp_start_angle = [obs.robot_state.motor_angles.get(name, 0.0) for name in _LOWER_JOINTS + _UPPER_JOINTS]
+        if self._stop_lerp_time_s is None:
+            self._stop_lerp_time_s = obs.robot_state.time_s
+            self._stop_lerp_angles = [obs.robot_state.motor_angles.get(name, 0.0) for name in _LOWER_JOINTS + _UPPER_JOINTS]
 
-        t = (obs.robot_state.time_s - self._lerp_start_time_s) / self.lerp_duration
+        t = (obs.robot_state.time_s - self._stop_lerp_time_s) / self.lerp_duration
         t = min(t, 1.0)
         for i, name in enumerate(_LOWER_JOINTS + _UPPER_JOINTS):
-            command.target_angles[name] = self._lerp_start_angle[i] * (1.0 - t) + NEUTRAL_POSE[name] * t
+            command.target_angles[name] = self._stop_lerp_angles[i] * (1.0 - t) + NEUTRAL_POSE[name] * t
 
         if t >= 1.0:
-            self._lerp_start_time_s = None
+            self._stop_lerp_time_s = None
+            self._start_lerp_time_s = None
             self.state = MoveState.INACTIVE
