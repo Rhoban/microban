@@ -1,12 +1,12 @@
 """Local simulation entry point — never deployed to the robot.
 
 Usage:
-    uv run --group sim src/sim/sim_main.py --mjcf path/to/robot.xml
-    make sim                          # uses default model/scene.xml
-    make sim MJCF=path/to/robot.xml
+    uv run --group sim src/sim/sim_main.py --hz 50
+    make sim 
 """
 
 import argparse
+import pathlib
 
 from scheduler import Scheduler
 from sim.mujoco_input import MuJoCoInputSource
@@ -18,11 +18,10 @@ from moves.walk import WalkMove
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run microban scheduler in MuJoCo simulation.")
-    parser.add_argument("--mjcf", metavar="PATH", required=True, help="Path to the MJCF scene file")
     parser.add_argument("--hz", type=float, default=50.0, metavar="FREQ", help="Scheduler frequency in Hz (default: 50)")
     args = parser.parse_args()
 
-    input_source = MuJoCoInputSource(move_keys={"h": "head", "w": "walk"})
+    input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "w": "walk"})
     controller = MuJoCoController(
         args.mjcf,
         key_callback=input_source.key_callback,
@@ -35,7 +34,7 @@ def main() -> None:
         input_source=input_source,
         moves={
             "head": RotateHeadMove(),
-            "squat": SquatMove(),
+            "squat": SquatMove(model_path="model"),
             "walk": WalkMove(controller=controller),
         },
     )

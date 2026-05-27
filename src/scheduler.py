@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from constants import MOTOR_ID
+from constants import MOTOR_TO_ID
 from controller import ControllerProtocol
 from battery import BATTERY_WARN_V, BATTERY_CRITICAL_V, BATTERY_PROBE_IDS
 from observer import Observer, Observation
@@ -119,7 +119,7 @@ class Scheduler:
         if self.input_source:
             self.input_source.stop()
 
-        motor_ids = list(MOTOR_ID.values())
+        motor_ids = list(MOTOR_TO_ID.values())
         self.controller.sync_write_torque_enable(motor_ids, [False] * len(motor_ids))
         print("Torque disabled on all motors", end="\r\n", flush=True)
 
@@ -131,7 +131,7 @@ class Scheduler:
         if not command.target_angles:
             return
 
-        motor_ids = [MOTOR_ID[name] for name in command.target_angles]
+        motor_ids = [MOTOR_TO_ID[name] for name in command.target_angles]
         target_positions = list(command.target_angles.values())
 
         self.controller.sync_write_goal_position(motor_ids, target_positions)

@@ -1,7 +1,6 @@
-.PHONY: sync setup run stop battery sim
+.PHONY: sync setup run stop battery sim viewer
 
 HOST ?= microban
-MJCF ?= model/scene.xml
 
 sync:
 	rsync -avz \
@@ -26,4 +25,7 @@ battery: sync
 	ssh $(HOST) "bash -l -c 'cd microban && uv run src/battery.py'"
 
 sim:
-	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --mjcf $(MJCF)
+	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50
+
+viewer:
+	PYTHONPATH=src uv run src/sim/viewer_main.py --hz 25

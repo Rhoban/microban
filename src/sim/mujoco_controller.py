@@ -9,10 +9,7 @@ import mujoco.viewer
 if TYPE_CHECKING:
     from sim.mujoco_input import MuJoCoInputSource
 
-from constants import MOTOR_ID, NEUTRAL_POSE
-
-
-_ID_TO_NAME: dict[int, str] = {v: k for k, v in MOTOR_ID.items()}
+from constants import MOTOR_TO_ID, ID_TO_MOTOR, NEUTRAL_POSE
 
 
 class MuJoCoController:
@@ -37,7 +34,7 @@ class MuJoCoController:
 
         self._name_to_actuator_idx: dict[str, int] = {}
         self._name_to_qpos_idx: dict[str, int] = {}
-        for name in MOTOR_ID:
+        for name in MOTOR_TO_ID:
             actuator_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)
             joint_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_JOINT, name)
             if actuator_id < 0:
@@ -91,14 +88,14 @@ class MuJoCoController:
 
     def sync_read_kp(self, ids: list[int]) -> list[int]:
         return [
-            self._kp_to_register(float(self._model.actuator_gainprm[self._name_to_actuator_idx[_ID_TO_NAME[motor_id]], 0]))
+            self._kp_to_register(float(self._model.actuator_gainprm[self._name_to_actuator_idx[ID_TO_MOTOR[motor_id]], 0]))
             for motor_id in ids
         ]
 
     def sync_write_kp(self, ids: list[int], gains: list[int]) -> None:
         for motor_id, gain in zip(ids, gains):
             kp = self._register_to_kp(gain)
-            idx = self._name_to_actuator_idx[_ID_TO_NAME[motor_id]]
+            idx = self._name_to_actuator_idx[ID_TO_MOTOR[motor_id]]
             self._model.actuator_gainprm[idx, 0] = kp
             self._model.actuator_biasprm[idx, 1] = -kp
 
@@ -114,7 +111,7 @@ class MuJoCoController:
             return
 
         for motor_id, pos in zip(ids, positions):
-            name = _ID_TO_NAME[motor_id]
+            name = ID_TO_MOTOR[motor_id]
             self._data.ctrl[self._name_to_actuator_idx[name]] = pos
 
         for _ in range(self._steps_per_tick):
@@ -127,10 +124,10 @@ class MuJoCoController:
         self._viewer.sync()
 
     def sync_read_present_position(self, ids: list[int]) -> list[float]:
-        return [self._data.qpos[self._name_to_qpos_idx[_ID_TO_NAME[motor_id]]] for motor_id in ids]
+        return [self._data.qpos[self._name_to_qpos_idx[ID_TO_MOTOR[motor_id]]] for motor_id in ids]
 
     def read_present_position(self, motor_id: int) -> float:
-        name = _ID_TO_NAME[motor_id]
+        name = ID_TO_MOTOR[motor_id]
         return float(self._data.qpos[self._name_to_qpos_idx[name]])
 
     def read_present_input_voltage(self, motor_id: int) -> float:

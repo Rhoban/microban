@@ -4,7 +4,7 @@ import time
 from controller import ControllerProtocol
 from input.input_source import UserInput
 from battery import BATTERY_VOLTAGE_OFFSET
-from constants import MOTOR_ID
+from constants import MOTOR_TO_ID
 
 
 @dataclass
@@ -33,9 +33,10 @@ class Observer:
         """Read current motor positions from the controller."""
         state = RobotState(time_s=time.perf_counter())
 
-        for motor_name, motor_id in MOTOR_ID.items():
-            raw = self.controller.read_present_position(motor_id)
-            state.motor_angles[motor_name] = raw[0] if isinstance(raw, (list, tuple)) else float(raw)
+        motor_names = list(MOTOR_TO_ID.keys())
+        motor_ids = list(MOTOR_TO_ID.values())
+        angles = self.controller.sync_read_present_position(motor_ids)
+        state.motor_angles = dict(zip(motor_names, angles))
 
         return state
 

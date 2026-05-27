@@ -23,9 +23,6 @@ http://www.apache.org/licenses/LICENSE-2.0
         <geom group="3"/>
       </default>
     </default>
-  </default>
-  <!-- Additional additional.xml -->
-  <default>
     <default class="xml330_actuator">
       <joint damping="0.044" frictionloss="0.013" armature="0.0017"/>
       <position kp="1.38" kv="0.0" forcerange="-0.75 0.75"/>

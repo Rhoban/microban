@@ -3,7 +3,7 @@ import numpy as np
 import os
 from pathlib import Path
 
-from constants import MOTOR_ID, NEUTRAL_POSE
+from constants import MOTOR_TO_ID, NEUTRAL_POSE
 from robot_controller import RobotController
 from scheduler import Scheduler
 from input.keyboard_input import KeyboardInputSource
@@ -16,9 +16,9 @@ PID_FILE = Path("/tmp/microban_scheduler.pid")
 
 def ramp_to_neutral(controller: RobotController, duration_s: float = 2.0) -> None:
     """Ramp all motors smoothly to neutral position before starting the control loop."""
-    motor_ids = list(MOTOR_ID.values())
+    motor_ids = list(MOTOR_TO_ID.values())
     initial_positions = np.array(controller.sync_read_present_position(motor_ids))
-    target_neutral = np.array([NEUTRAL_POSE[name] for name in MOTOR_ID])
+    target_neutral = np.array([NEUTRAL_POSE[name] for name in MOTOR_TO_ID])
 
     print("Ramping all motors to neutral position...")
     start_time = time.perf_counter()
@@ -38,7 +38,7 @@ def main() -> None:
     PID_FILE.write_text(f"{os.getpid()}\n", encoding="ascii")
 
     controller = RobotController()
-    motor_ids = list(MOTOR_ID.values())
+    motor_ids = list(MOTOR_TO_ID.values())
     controller.sync_write_torque_enable(motor_ids, [True] * len(motor_ids))
     print(controller.sync_read_kp(motor_ids))
 
@@ -52,7 +52,7 @@ def main() -> None:
             input_source=KeyboardInputSource(move_keys={"h": "head", "w": "walk"}),
             moves={
                 "head": RotateHeadMove(),
-                "squat": SquatMove(),
+                "squat": SquatMove(model_path="model"),
                 "walk": WalkMove(controller=controller),
             },
         )

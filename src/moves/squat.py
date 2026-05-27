@@ -1,27 +1,34 @@
 import math
+import placo
+
+import numpy as np
 
 from observer import Observation
 from moves.move import MotorCommand, Move, MoveState
-from constants import MOTOR_ID
+from constants import NEUTRAL_POSE
+
+_LOWER_JOINTS = [
+    "left_hip_yaw", "left_hip_roll", "left_hip_pitch",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
+    "right_hip_yaw", "right_hip_roll", "right_hip_pitch",
+    "right_knee", "right_ankle_pitch", "right_ankle_roll",
+]
+
+_UPPER_JOINTS = [
+    "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
+    "right_shoulder_pitch", "right_shoulder_roll", "right_elbow",
+]
 
 
 class SquatMove(Move):
-    """
-    Generate a squat motion of frequency *frequency* starting from the neutral pose and lowering the body DoFs by *amplitude*.
-    
-    Transitions (on_start / on_stop) lerp the body DoFs to 0 over *lerp_duration* seconds
-    so the move starts and stops smoothly.
-
-    :param frequency: Frequency of the squat motion in Hz.
-    :param amplitude: Amplitude of the squat motion in meters.
-    :param lerp_duration: Duration of the transition to/from the squat motion in seconds.
-    """
+    """Squat motion using placo IK."""
 
     def __init__(
         self,
-        frequency: float = 1.0,
-        amplitude: float = 0.1,
-        lerp_duration: float = 0.5,
+        model_path: str,
+        frequency: float = 0.3,
+        amplitude: float = 0.02,
+        lerp_duration: float = 1.0,
     ) -> None:
         super().__init__()
         self.frequency = frequency
@@ -29,41 +36,76 @@ class SquatMove(Move):
         self.lerp_duration = lerp_duration
 
         self._lerp_start_time_s: float | None = None
-        self._lerp_start_angle: list[float] = [0.0] * 18
+        self._lerp_start_angle: list[float] = []
         self._active_start_time_s: float = 0.0
 
+        self._robot = placo.RobotWrapper(model_path, placo.Flags.mjcf)
+        self._solver = placo.KinematicsSolver(self._robot)
+
+        # Set the robot to the neutral pose
+        for name, angle in NEUTRAL_POSE.items():
+            self._robot.set_joint(name, angle)
+        T_left_foot = np.eye(4)
+        self._robot.set_T_world_frame("left_foot", T_left_foot)
+        self._robot.update_kinematics()
+
+        self._trunk_z_initial = self._robot.get_T_world_frame("trunk")[2, 3]
+        self._com_initial = self._robot.com_world()
+        T_right_foot = self._robot.get_T_world_frame("right_foot").copy()
+
+        # Create IK tasks
+        self._left_foot_task = self._solver.add_frame_task("left_foot", T_left_foot)
+        self._left_foot_task.configure("left_foot", "hard", 1.0)
+        self._right_foot_task = self._solver.add_frame_task("right_foot", T_right_foot)
+        self._right_foot_task.configure("right_foot", "hard", 1.0)
+
+        self._com_task = self._solver.add_com_task(self._com_initial)
+        self._com_task.configure("com", "soft", 100.0)
+
+        trunk_task = self._solver.add_orientation_task("trunk", np.eye(3))
+        trunk_task.configure("trunk_orient", "soft", 1.0)
+
+        joints_task = self._solver.add_joints_task()
+        joints_task.set_joints({name: NEUTRAL_POSE[name] for name in _UPPER_JOINTS})
+        joints_task.configure("upper_body", "soft", 1.0)
+
+        joints_task = self._solver.add_joints_task()
+        joints_task.set_joints({name: NEUTRAL_POSE[name] for name in _LOWER_JOINTS})
+        joints_task.configure("lower_body", "soft", 1e-3)
+
+        self._solver.add_regularization_task(1e-6)
+
+        for _ in range(50):
+            self._solver.solve(True)
+            self._robot.update_kinematics()
+
+
+    def on_start(self, obs: Observation, command: MotorCommand) -> None:
+        self._active_start_time_s = obs.robot_state.time_s
+        self.state = MoveState.ACTIVE
+
     def step(self, obs: Observation, command: MotorCommand) -> None:
-        pass
+        t = obs.robot_state.time_s - self._active_start_time_s
+        p_com = self._com_initial.copy()
+        p_com[2] -= self.amplitude * (1.0 - math.cos(2.0 * math.pi * self.frequency * t))
+        self._com_task.target_world = p_com
 
-    # def on_start(self, obs: Observation, command: MotorCommand) -> None:
-    #     if self._lerp_start_time_s is None:
-    #         self._lerp_start_time_s = obs.robot_state.time_s
-    #         for 
-    #         self._lerp_start_angle = obs.robot_state.motor_angles.get("head", 0.0)
+        self._solver.solve(True)
+        self._robot.update_kinematics()
 
-    #     t = (obs.robot_state.time_s - self._lerp_start_time_s) / self.lerp_duration
-    #     t = min(t, 1.0)
-    #     command.target_angles["head"] = self._lerp_start_angle * (1.0 - t)
+        for name in _LOWER_JOINTS + _UPPER_JOINTS:
+            command.target_angles[name] = self._robot.get_joint(name)
 
-    #     if t >= 1.0:
-    #         self._lerp_start_time_s = None
-    #         self._active_start_time_s = obs.robot_state.time_s
-    #         self.state = MoveState.ACTIVE
+    def on_stop(self, obs: Observation, command: MotorCommand) -> None:
+        if self._lerp_start_time_s is None:
+            self._lerp_start_time_s = obs.robot_state.time_s
+            self._lerp_start_angle = [obs.robot_state.motor_angles.get(name, 0.0) for name in _LOWER_JOINTS + _UPPER_JOINTS]
 
-    # def step(self, obs: Observation, command: MotorCommand) -> None:
-    #     t = obs.robot_state.time_s - self._active_start_time_s
-    #     head_angle = self.amplitude_rad * math.sin(2.0 * math.pi * self.frequency_hz * t)
-    #     command.target_angles["head"] = head_angle
+        t = (obs.robot_state.time_s - self._lerp_start_time_s) / self.lerp_duration
+        t = min(t, 1.0)
+        for i, name in enumerate(_LOWER_JOINTS + _UPPER_JOINTS):
+            command.target_angles[name] = self._lerp_start_angle[i] * (1.0 - t) + NEUTRAL_POSE[name] * t
 
-    # def on_stop(self, obs: Observation, command: MotorCommand) -> None:
-    #     if self._lerp_start_time_s is None:
-    #         self._lerp_start_time_s = obs.robot_state.time_s
-    #         self._lerp_start_angle = obs.robot_state.motor_angles.get("head", 0.0)
-
-    #     t = (obs.robot_state.time_s - self._lerp_start_time_s) / self.lerp_duration
-    #     t = min(t, 1.0)
-    #     command.target_angles["head"] = self._lerp_start_angle * (1.0 - t)
-
-    #     if t >= 1.0:
-    #         self._lerp_start_time_s = None
-    #         self.state = MoveState.INACTIVE
+        if t >= 1.0:
+            self._lerp_start_time_s = None
+            self.state = MoveState.INACTIVE

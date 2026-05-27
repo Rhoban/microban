@@ -5,9 +5,9 @@ description = "Microban project"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=2.4.6",
+    "numpy",
     "onnxruntime>=1.26.0",
-    "placo>=0.9.3",
+    "placo>=0.9.23",
     "rustypot>=1.4.2",
 ]
 
