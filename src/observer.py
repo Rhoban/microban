@@ -11,8 +11,9 @@ class RobotState:
     """Hardware sensor readings for one scheduler iteration."""
 
     time_s: float = 0.0
-    imu: list[float] = field(default_factory=list)
+    acc: list[float] = field(default_factory=list)
     gyro: list[float] = field(default_factory=list)
+    quat: list[float] = field(default_factory=list)
     motor_angles: dict[str, float] = field(default_factory=dict)
 
 
@@ -36,6 +37,13 @@ class Observer:
         motor_ids = list(MOTOR_TO_ID.values())
         angles = self.controller.sync_read_present_position(motor_ids)
         state.motor_angles = dict(zip(motor_names, angles))
+
+        try:
+            state.acc = list(self.controller.read_acc())
+            state.gyro = list(self.controller.read_gyro())
+            state.quat = list(self.controller.read_quat())
+        except Exception:
+            pass
 
         return state
 

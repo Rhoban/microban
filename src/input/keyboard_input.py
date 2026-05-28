@@ -54,6 +54,7 @@ class KeyboardInputSource(InputSource):
             return UserInput(
                 active_moves=set(self._state.active_moves),
                 velocity=dict(self._state.velocity),
+                show_imu=self._state.show_imu,
             )
 
     # ------------------------------------------------------------------
@@ -100,6 +101,11 @@ class KeyboardInputSource(InputSource):
         elif key in ("q", "\x03"):  # q or Ctrl+C
             self._stop_flag_path.write_text("stop\n", encoding="ascii")
             print("Stop requested", end="\r\n", flush=True)
+        elif key == "i":
+            with self._lock:
+                self._state.show_imu = not self._state.show_imu
+            status = "enabled" if self._state.show_imu else "disabled"
+            print(f"IMU display {status}", end="\r\n", flush=True)
         elif key == _ARROW_UP:
             self._adjust_velocity("vx", +VELOCITY_STEP)
         elif key == _ARROW_DOWN:
@@ -127,6 +133,7 @@ class KeyboardInputSource(InputSource):
         lines = [
             "Keyboard controls:",
             *(f"  [{key}]      toggle move '{name}'" for key, name in self._move_keys.items()),
+            "  [i]      toggle IMU/gyro display",
             "  [arrows] vx (up/down), vtheta (left/right)",
             "  [x]      reset velocity to zero",
             "  [q]      stop scheduler",

@@ -1,6 +1,7 @@
-.PHONY: sync setup run stop voltage sim viewer
+.PHONY: sync setup run run-no-sync stop voltage voltage-no-sync imu imu-no-sync gyro gyro-no-sync sim viewer
 
 HOST ?= microban
+ID ?=
 
 sync:
 	rsync -avz \
@@ -16,19 +17,35 @@ sync:
 setup: sync
 	ssh $(HOST) "bash -l -c 'cd microban && uv sync'"
 
-run: sync
-	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/main.py'"
-
-stop:
-	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/stop.py'"
-
-ID ?=
-
-voltage: sync
-	ssh $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/voltage.py $(ID)'"
-
 sim:
 	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50
 
 viewer:
 	PYTHONPATH=src uv run src/sim/viewer_main.py --hz 25
+
+run: sync
+	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/main.py'"
+
+run-no-sync:
+	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/main.py'"
+
+stop:
+	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/stop.py'"
+
+voltage: sync
+	ssh $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/voltage.py $(ID)'"
+
+voltage-all: sync
+	ssh $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/voltage.py all'"
+
+imu: sync
+	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/imu.py'"
+
+imu-no-sync:
+	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/imu.py'"
+
+gyro: sync
+	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/gyro.py'"
+
+gyro-no-sync:
+	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/gyro.py'"

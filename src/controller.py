@@ -2,11 +2,7 @@ from typing import Protocol
 
 
 class ControllerProtocol(Protocol):
-    """Structural interface shared by RobotController, FakeController, and MuJoCoController.
-
-    All positions are expressed in radians. Implementations are
-    responsible for any hardware-level sign or unit conversion internally.
-    """
+    """Structural interface shared by RobotController, FakeController, and MuJoCoController."""
 
     def sync_write_torque_enable(self, ids: list[int], values: list[bool]) -> None: ...
 
@@ -23,3 +19,9 @@ class ControllerProtocol(Protocol):
     def sync_read_kp(self, ids: list[int]) -> list[int]: ...
 
     def sync_write_kp(self, ids: list[int], gains: list[int]) -> None: ...
+
+    def read_acc(self) -> tuple[float, float, float]: ...
+
+    def read_gyro(self) -> tuple[float, float, float]: ...
+
+    def read_quat(self) -> tuple[float, float, float, float]: ...

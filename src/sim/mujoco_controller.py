@@ -60,6 +60,14 @@ class MuJoCoController:
             self._model, self._data, key_callback=key_callback
         )
 
+        # Sensor indices for IMU readout
+        self._sensor_orientation = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_SENSOR, "orientation")
+        self._sensor_gyro = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_SENSOR, "angular-velocity")
+
+    @property
+    def viewer_opt(self) -> mujoco.MjvOption:
+        return self._viewer.opt
+
     @staticmethod
     def _register_to_kp(register_val: int) -> float:
         """Convert Dynamixel Position P Gain register value to MuJoCo kp [Nm/rad]."""
@@ -132,6 +140,34 @@ class MuJoCoController:
 
     def read_present_input_voltage(self, motor_id: int) -> float:
         return 80.0
+
+    def read_acc(self) -> tuple[float, float, float]:
+        """Return pseudo-accelerometer (ax, ay, az) in g from the 'orientation' sensor."""
+        if self._sensor_orientation < 0:
+            return 0.0, 0.0, -1.0
+        adr = self._model.sensor_adr[self._sensor_orientation]
+        w, x, y, z = self._data.sensordata[adr:adr + 4]
+        # Gravity in world is (0, 0, -1) g; rotate into IMU frame using conjugate quat
+        gx = 2 * (x * z - w * y)
+        gy = 2 * (y * z + w * x)
+        gz = w * w - x * x - y * y + z * z
+        return float(gx), float(gy), float(-gz)
+
+    def read_gyro(self) -> tuple[float, float, float]:
+        """Return (gx, gy, gz) in rad/s from the 'angular-velocity' gyro sensor."""
+        if self._sensor_gyro < 0:
+            return 0.0, 0.0, 0.0
+        adr = self._model.sensor_adr[self._sensor_gyro]
+        gx, gy, gz = self._data.sensordata[adr:adr + 3]
+        return float(gx), float(gy), float(gz)
+
+    def read_quat(self) -> tuple[float, float, float, float]:
+        """Return orientation quaternion (w, x, y, z) from the 'orientation' framequat sensor."""
+        if self._sensor_orientation < 0:
+            return 1.0, 0.0, 0.0, 0.0
+        adr = self._model.sensor_adr[self._sensor_orientation]
+        w, x, y, z = self._data.sensordata[adr:adr + 4]
+        return float(w), float(x), float(y), float(z)
 
     def reset(self) -> None:
         """Reset the simulation to the initial neutral standing pose."""

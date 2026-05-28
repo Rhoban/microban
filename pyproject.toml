@@ -8,10 +8,16 @@ dependencies = [
     "numpy",
     "onnxruntime>=1.26.0",
     "placo>=0.9.23",
+    "pollen_bmi088_imu_library==1.0.0rc1",
     "rustypot>=1.4.2",
 ]
 
 [dependency-groups]
 sim = [
     "mujoco>=3.8.1",
+]
+
+[tool.uv]
+override-dependencies = [
+    "numpy>=2.3",
 ]

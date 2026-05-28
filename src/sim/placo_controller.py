@@ -1,5 +1,7 @@
 """MeshCat viewer controller using placo kinematics — never deployed to the robot."""
 
+import math
+
 import numpy as np
 import placo
 from placo_utils.visualization import robot_viz
@@ -57,6 +59,49 @@ class PlacoViewerController:
 
     def sync_write_torque_enable(self, ids: list[int], values: list[bool]) -> None:
         pass
+
+    def read_acc(self) -> tuple[float, float, float]:
+        """Return pseudo-accelerometer (ax, ay, az) in g from IMU site gravity direction via FK."""
+        R = self._robot.get_T_world_frame("imu")[:3, :3]
+        # gravity in world frame is (0, 0, -1) g; express in IMU frame
+        g_imu = R.T @ [0.0, 0.0, -1.0]
+        return float(g_imu[0]), float(g_imu[1]), float(g_imu[2])
+
+    def read_gyro(self) -> tuple[float, float, float]:
+        """No gyro available in the MeshCat viewer — return zeros."""
+        return 0.0, 0.0, 0.0
+
+    def read_quat(self) -> tuple[float, float, float, float]:
+        """Return orientation quaternion (w, x, y, z) from the IMU site frame via FK."""
+        T = self._robot.get_T_world_frame("imu")
+        R = T[:3, :3]
+        # Rotation matrix to quaternion
+        trace = R[0, 0] + R[1, 1] + R[2, 2]
+        if trace > 0:
+            s = 0.5 / math.sqrt(trace + 1.0)
+            w = 0.25 / s
+            x = (R[2, 1] - R[1, 2]) * s
+            y = (R[0, 2] - R[2, 0]) * s
+            z = (R[1, 0] - R[0, 1]) * s
+        elif R[0, 0] > R[1, 1] and R[0, 0] > R[2, 2]:
+            s = 2.0 * math.sqrt(1.0 + R[0, 0] - R[1, 1] - R[2, 2])
+            w = (R[2, 1] - R[1, 2]) / s
+            x = 0.25 * s
+            y = (R[0, 1] + R[1, 0]) / s
+            z = (R[0, 2] + R[2, 0]) / s
+        elif R[1, 1] > R[2, 2]:
+            s = 2.0 * math.sqrt(1.0 + R[1, 1] - R[0, 0] - R[2, 2])
+            w = (R[0, 2] - R[2, 0]) / s
+            x = (R[0, 1] + R[1, 0]) / s
+            y = 0.25 * s
+            z = (R[1, 2] + R[2, 1]) / s
+        else:
+            s = 2.0 * math.sqrt(1.0 + R[2, 2] - R[0, 0] - R[1, 1])
+            w = (R[1, 0] - R[0, 1]) / s
+            x = (R[0, 2] + R[2, 0]) / s
+            y = (R[1, 2] + R[2, 1]) / s
+            z = 0.25 * s
+        return float(w), float(x), float(y), float(z)
 
     def sync_write_status_return_level(self, ids: list[int], levels: list[int]) -> None:
         pass

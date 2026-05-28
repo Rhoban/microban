@@ -1,6 +1,8 @@
 import time
+import math
 from pathlib import Path
 from typing import Optional
+
 
 from constants import MOTOR_TO_ID
 from controller import ControllerProtocol
@@ -38,6 +40,7 @@ class Scheduler:
 
         self.loop_start_time = time.perf_counter()
         self._serial_errors = 0
+        self._last_imu_print_s: float = 0.0
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -90,6 +93,22 @@ class Scheduler:
 
                 # Send command to motors
                 self._send_to_motors(command)
+
+                # IMU / gyro terminal display
+                if obs.user_input.show_imu and (start_time - self._last_imu_print_s) >= 0.5:
+                    acc = obs.robot_state.acc
+                    gyro = obs.robot_state.gyro
+                    quat = obs.robot_state.quat
+                    if quat:
+                        w, x, y, z = quat
+                        roll = math.degrees(math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)))
+                        pitch = math.degrees(math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x)))))
+                        yaw = math.degrees(math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)))
+                        print(f"IMU:  roll={roll:+.1f}°  pitch={pitch:+.1f}°  yaw={yaw:+.1f}°", end="\r\n", flush=True)
+                    if gyro:
+                        gx, gy, gz = gyro
+                        print(f"Gyro: gx={gx:+.3f}  gy={gy:+.3f}  gz={gz:+.3f} rad/s", end="\r\n", flush=True)
+                    self._last_imu_print_s = start_time
 
                 # Sleep to keep a fixed control frequency
                 elapsed_time = time.perf_counter() - start_time

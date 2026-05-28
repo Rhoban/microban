@@ -1,7 +1,13 @@
 import threading
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+import mujoco
 
 from input.input_source import InputSource, UserInput
+
+if TYPE_CHECKING:
+    from mujoco import MjvOption
 
 # GLFW key codes (no glfw import needed — values are stable)
 _GLFW_KEY_UP = 265
@@ -34,6 +40,11 @@ class MuJoCoInputSource(InputSource):
         self._state = UserInput()
         self._lock = threading.Lock()
         self._reset_requested = threading.Event()
+        self._viewer_opt: "MjvOption | None" = None
+
+    def set_viewer_opt(self, opt: "MjvOption") -> None:
+        """Bind the viewer MjvOption so [i] can toggle the IMU site frame."""
+        self._viewer_opt = opt
 
     def consume_reset(self) -> bool:
         """Return True (and clear the flag) if a reset was requested since last call."""
@@ -43,6 +54,7 @@ class MuJoCoInputSource(InputSource):
         print("MuJoCo viewer keyboard controls:")
         for char, name in self._move_keys_display.items():
             print(f"  [{char}]      toggle move '{name}'")
+        print("  [i]       toggle IMU frame + terminal display")
         print("  [arrows]  vx (up/down), vtheta (left/right)")
         print("  [x]       reset velocity")
         print("  [r]       reset robot to initial pose")
@@ -56,6 +68,7 @@ class MuJoCoInputSource(InputSource):
             return UserInput(
                 active_moves=set(self._state.active_moves),
                 velocity=dict(self._state.velocity),
+                show_imu=self._state.show_imu,
             )
 
     def key_callback(self, keycode: int) -> None:
@@ -77,6 +90,17 @@ class MuJoCoInputSource(InputSource):
         elif keycode == ord("R"):
             self._reset_requested.set()
             print("Robot reset to initial pose")
+
+        elif keycode == ord("I"):
+            with self._lock:
+                self._state.show_imu = not self._state.show_imu
+                show = self._state.show_imu
+            if self._viewer_opt is not None:
+                self._viewer_opt.frame = (
+                    mujoco.mjtFrame.mjFRAME_SITE if show else mujoco.mjtFrame.mjFRAME_NONE
+                )
+            status = "enabled" if show else "disabled"
+            print(f"IMU display {status}")
 
         elif keycode == ord("Q"):
             self._stop_flag_path.write_text("stop\n", encoding="ascii")

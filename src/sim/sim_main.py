@@ -27,6 +27,7 @@ def main() -> None:
         key_callback=input_source.key_callback,
         reset_source=input_source,
     )
+    input_source.set_viewer_opt(controller.viewer_opt)
 
     scheduler = Scheduler(
         frequency_hz=args.hz,
