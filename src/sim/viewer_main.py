@@ -19,7 +19,7 @@ def main() -> None:
     parser.add_argument("--hz", type=float, default=50.0, metavar="FREQ", help="Scheduler frequency in Hz (default: 50)")
     args = parser.parse_args()
 
-    controller = PlacoViewerController(model_path="model")
+    controller = PlacoViewerController(model_path="model/mjcf")
     input_source = KeyboardInputSource(move_keys={"h": "head", "s": "squat"})
 
     scheduler = Scheduler(
@@ -28,7 +28,7 @@ def main() -> None:
         input_source=input_source,
         moves={
             "head": RotateHeadMove(),
-            "squat": SquatMove(model_path="model"),
+            "squat": SquatMove(),
         },
     )
     scheduler.run()

@@ -50,7 +50,7 @@ def main() -> None:
             input_source=KeyboardInputSource(move_keys={"h": "head", "s": "squat", "w": "walk"}),
             moves={
                 "head": RotateHeadMove(),
-                "squat": SquatMove(model_path="model"),
+                "squat": SquatMove(),
                 "walk": WalkMove(controller=controller),
             },
         )

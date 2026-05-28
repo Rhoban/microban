@@ -35,7 +35,7 @@ def main() -> None:
         input_source=input_source,
         moves={
             "head": RotateHeadMove(),
-            "squat": SquatMove(model_path="model"),
+            "squat": SquatMove(),
             "walk": WalkMove(controller=controller),
         },
     )

@@ -25,13 +25,12 @@ class SquatMove(Move):
 
     def __init__(
         self,
-        model_path: str,
         frequency: float = 0.3,
         amplitude: float = 0.02,
         lerp_duration: float = 1.0,
     ) -> None:
         super().__init__()
-        self._model_path = model_path
+        self._model_path = "model/urdf"
         self.frequency = frequency
         self.amplitude = amplitude
         self.lerp_duration = lerp_duration
@@ -52,7 +51,7 @@ class SquatMove(Move):
         if self._placo_ready:
             return
 
-        self._robot = placo.RobotWrapper(self._model_path, placo.Flags.mjcf)
+        self._robot = placo.RobotWrapper(self._model_path)
         self._solver = placo.KinematicsSolver(self._robot)
 
         for name, angle in NEUTRAL_POSE.items():

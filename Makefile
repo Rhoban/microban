@@ -12,6 +12,7 @@ sync:
 		--exclude='cad' \
 		--exclude='docs' \
 		--exclude='src/sim' \
+		--exclude='model/mjcf' \
 		./ $(HOST):microban
 
 setup: sync
@@ -43,9 +44,3 @@ imu: sync
 
 imu-no-sync:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/imu.py'"
-
-gyro: sync
-	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/gyro.py'"
-
-gyro-no-sync:
-	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/gyro.py'"
