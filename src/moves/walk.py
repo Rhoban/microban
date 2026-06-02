@@ -12,7 +12,7 @@ class WalkMove(Move):
     def __init__(self, controller: ControllerProtocol | None = None) -> None:
         super().__init__()
         self._controller = controller
-        self._last_action = [0.0] * len(MOTOR_TO_ID)
+        self._last_action = [0.0] * len(OBSERVATION_DOF_ORDER)
 
         # Load ONNX policy
         self._ort_session = ort.InferenceSession("src/agents/walk.onnx")

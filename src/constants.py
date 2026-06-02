@@ -81,7 +81,6 @@ IMU_MOUNT_QUAT: tuple[float, float, float, float] = (0.5, -0.5, -0.5, 0.5)
 
 # Observation DoF ordering
 OBSERVATION_DOF_ORDER = [
-    "head",
     "right_shoulder_pitch",
     "right_shoulder_roll",
     "right_elbow",
