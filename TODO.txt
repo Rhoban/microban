@@ -1,3 +1,2 @@
 - Fix squat motion to respect feet spacing
-- Implement simulation walk with RL 
-    - Observations in correct format
+- Fix poweroff due to voltage drop

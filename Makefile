@@ -11,6 +11,7 @@ sync:
 		--exclude='__pycache__' \
 		--exclude='cad' \
 		--exclude='docs' \
+		--exclude='TODO.txt' \
 		--exclude='src/sim' \
 		--exclude='src/model/mjcf' \
 		./ $(HOST):microban
