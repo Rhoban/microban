@@ -23,9 +23,9 @@ http://www.apache.org/licenses/LICENSE-2.0
         <geom group="3"/>
       </default>
     </default>
-    <default class="xml330_actuator">
-      <joint damping="0.044" frictionloss="0.013" armature="0.0017"/>
-      <position kp="1.38" kv="0.0" forcerange="-0.75 0.75"/>
+    <default class="xl330">
+      <joint damping="0.041" frictionloss="0.013" armature="0.0018"/>
+      <position kp="0.886" kv="0.0" forcerange="-0.77 0.77"/>
     </default>
   </default>
   <sensor>
@@ -112,7 +112,7 @@ http://www.apache.org/licenses/LICENSE-2.0
       <!-- Link head -->
       <body name="head" pos="-0.00204165 -0 0.126" quat="0.707107 0 0 0.707107">
         <!-- Joint from trunk to head -->
-        <joint axis="0 0 1" name="head" type="hinge" range="-1.5707963267949783 1.5707963267948148" class="xml330_actuator"/>
+        <joint axis="0 0 1" name="head" type="hinge" range="-1.5707963267949783 1.5707963267948148" class="xl330"/>
         <inertial pos="5.1303e-08 -0.0074561 0.0161837" mass="0.0166215" fullinertia="2.92963e-06 3.58354e-06 4.24694e-06 -1.6e-11 4e-12 2.61187e-07"/>
         <!-- Part stp39__configuration__2x6 -->
         <!-- Part stp39__configuration__2x6_2 -->
@@ -124,7 +124,7 @@ http://www.apache.org/licenses/LICENSE-2.0
       <!-- Link shoulder -->
       <body name="shoulder" pos="0 -0.0505 0.081" quat="0.707107 -0.707107 -0 0">
         <!-- Joint from trunk to shoulder -->
-        <joint axis="0 0 1" name="right_shoulder_pitch" type="hinge" range="-3.141592653589793 3.141592653589793" class="xml330_actuator"/>
+        <joint axis="0 0 1" name="right_shoulder_pitch" type="hinge" range="-3.141592653589793 3.141592653589793" class="xl330"/>
         <inertial pos="4.19e-10 2.814e-09 -0.00850029" mass="0.00898451" fullinertia="1.06003e-06 1.78233e-06 1.86739e-06 0 0 -0"/>
         <!-- Part stp39__configuration__2x6_5 -->
         <!-- Part stp39__configuration__2x6_6 -->
@@ -143,7 +143,7 @@ http://www.apache.org/licenses/LICENSE-2.0
         <!-- Link humerus__configuration_right -->
         <body name="humerus__configuration_right" pos="0.0145 0 -0.0195" quat="0 0.707107 0 0.707107">
           <!-- Joint from shoulder to humerus__configuration_right -->
-          <joint axis="0 0 1" name="right_shoulder_roll" type="hinge" range="-3.1415926535897922 8.881784197001252e-16" class="xml330_actuator"/>
+          <joint axis="0 0 1" name="right_shoulder_roll" type="hinge" range="-3.1415926535897922 8.881784197001252e-16" class="xl330"/>
           <inertial pos="-0.000309872 -0.0252784 -0.0143918" mass="0.0416867" fullinertia="1.76899e-05 3.95132e-06 1.75854e-05 -3.03216e-07 -2.278e-09 -7.8184e-08"/>
           <!-- Part stp39__configuration__2_2x8_19 -->
           <!-- Part stp39__configuration__2_2x8_20 -->
@@ -162,7 +162,7 @@ http://www.apache.org/licenses/LICENSE-2.0
           <!-- Link radius -->
           <body name="radius" pos="-0.0145 -0.0515 -0.0145" quat="0.707107 0 0.707107 -0">
             <!-- Joint from humerus__configuration_right to radius -->
-            <joint axis="0 0 1" name="right_elbow" type="hinge" range="-2.181661564992912 2.181661564992912" class="xml330_actuator"/>
+            <joint axis="0 0 1" name="right_elbow" type="hinge" range="-2.181661564992912 2.181661564992912" class="xl330"/>
             <inertial pos="-4.0628e-08 -0.0310611 0.0130165" mass="0.0115415" fullinertia="5.26775e-06 1.21602e-06 4.45903e-06 -4e-12 -1.2e-11 1.7157e-07"/>
             <!-- Part stp39__configuration__2x6_17 -->
             <!-- Part stp39__configuration__2x6_18 -->
@@ -182,7 +182,7 @@ http://www.apache.org/licenses/LICENSE-2.0
       <!-- Link hip -->
       <body name="hip" pos="0 -0.036 0" quat="1 -0 -0 0">
         <!-- Joint from trunk to hip -->
-        <joint axis="0 0 1" name="right_hip_yaw" type="hinge" range="-4.188790204786353 1.047197551196635" class="xml330_actuator"/>
+        <joint axis="0 0 1" name="right_hip_yaw" type="hinge" range="-4.188790204786353 1.047197551196635" class="xl330"/>
         <inertial pos="0.00421822 1.46909e-07 -0.00948697" mass="0.00884451" fullinertia="9.36719e-07 4.32505e-06 4.03697e-06 -3.3e-11 1.95496e-07 0"/>
         <!-- Part hip__configuration_right -->
         <geom type="mesh" class="visual" pos="0.00575 -0 -0.0484" quat="0.707107 0 0 0.707107" mesh="hip__configuration_right" material="hip__configuration_right_material"/>
@@ -201,7 +201,7 @@ http://www.apache.org/licenses/LICENSE-2.0
         <!-- Link hip_block__configuration_right -->
         <body name="hip_block__configuration_right" pos="-0.02 0 -0.0214" quat="0.5 -0.5 0.5 -0.5">
           <!-- Joint from hip to hip_block__configuration_right -->
-          <joint axis="0 0 1" name="right_hip_roll" type="hinge" range="-0.610865238197994 0.6108652381980366" class="xml330_actuator"/>
+          <joint axis="0 0 1" name="right_hip_roll" type="hinge" range="-0.610865238197994 0.6108652381980366" class="xl330"/>
           <inertial pos="-5.75932e-05 0.00982795 0.0271518" mass="0.04763" fullinertia="1.64064e-05 1.33088e-05 7.85889e-06 -9.153e-09 7.8745e-08 6.63067e-07"/>
           <!-- Part stp39__configuration__2_2x8_27 -->
           <!-- Part xl330_2 -->
@@ -227,7 +227,7 @@ http://www.apache.org/licenses/LICENSE-2.0
           <!-- Link femur__configuration_right -->
           <body name="femur__configuration_right" pos="-0.0145 -0 0.0385" quat="0 0.707107 0 -0.707107">
             <!-- Joint from hip_block__configuration_right to femur__configuration_right -->
-            <joint axis="0 0 1" name="right_hip_pitch" type="hinge" range="-1.5707963267948974 1.5707963267948957" class="xml330_actuator"/>
+            <joint axis="0 0 1" name="right_hip_pitch" type="hinge" range="-1.5707963267948974 1.5707963267948957" class="xl330"/>
             <inertial pos="-0.0109472 -0.0366847 -0.0147025" mass="0.014726" fullinertia="1.12665e-05 4.38335e-06 8.95932e-06 -1.12592e-06 1.333e-09 -4.521e-09"/>
             <!-- Part stp39__configuration__2x6_33 -->
             <!-- Part femur__configuration_right -->
@@ -253,7 +253,7 @@ http://www.apache.org/licenses/LICENSE-2.0
             <!-- Link tibia__configuration_right -->
             <body name="tibia__configuration_right" pos="-0.005 -0.062 -0" quat="1 -0 0 -0">
               <!-- Joint from femur__configuration_right to tibia__configuration_right -->
-              <joint axis="0 0 1" name="right_knee" type="hinge" range="-0.7853981633977201 2.356194490192073" class="xml330_actuator"/>
+              <joint axis="0 0 1" name="right_knee" type="hinge" range="-0.7853981633977201 2.356194490192073" class="xl330"/>
               <inertial pos="0.00276278 -0.0196679 -0.0144621" mass="0.0300463" fullinertia="1.53882e-05 5.3311e-06 1.38581e-05 2.25674e-06 7.6682e-08 -1.37001e-07"/>
               <!-- Part stp39__configuration__2x6_49 -->
               <!-- Part stp39__configuration__2x6_50 -->
@@ -278,7 +278,7 @@ http://www.apache.org/licenses/LICENSE-2.0
               <!-- Link ankle_block__configuration_left -->
               <body name="ankle_block__configuration_left" pos="0.008 -0.0612131 -0" quat="0 -0 -0 1">
                 <!-- Joint from tibia__configuration_right to ankle_block__configuration_left -->
-                <joint axis="0 0 1" name="right_ankle_pitch" type="hinge" range="-1.5707963267948077 0.6108652381981041" class="xml330_actuator"/>
+                <joint axis="0 0 1" name="right_ankle_pitch" type="hinge" range="-1.5707963267948077 0.6108652381981041" class="xl330"/>
                 <inertial pos="-0.0110676 -0.00979852 -0.0144015" mass="0.04722" fullinertia="7.83993e-06 1.29837e-05 1.60971e-05 -6.00742e-07 -4.9782e-08 -6.127e-09"/>
                 <!-- Part stp39__configuration__2_2x8_37 -->
                 <!-- Part xl330_4 -->
@@ -304,7 +304,7 @@ http://www.apache.org/licenses/LICENSE-2.0
                 <!-- Link foot -->
                 <body name="foot" pos="-0.0385 0 -0.0145" quat="0 -0.707107 0 -0.707107">
                   <!-- Joint from ankle_block__configuration_left to foot -->
-                  <joint axis="0 0 1" name="right_ankle_roll" type="hinge" range="-0.610865238197748 0.6108652381982826" class="xml330_actuator"/>
+                  <joint axis="0 0 1" name="right_ankle_roll" type="hinge" range="-0.610865238197748 0.6108652381982826" class="xl330"/>
                   <inertial pos="-0 -0.0168869 0.0347422" mass="0.016823" fullinertia="1.15605e-05 1.2167e-05 2.53496e-06 0 -0 5.67932e-07"/>
                   <!-- Part stp39__configuration__2x6_57 -->
                   <!-- Part stp39__configuration__2x6_58 -->
@@ -333,7 +333,7 @@ http://www.apache.org/licenses/LICENSE-2.0
       <!-- Link shoulder_2 -->
       <body name="shoulder_2" pos="-0 0.0505 0.081" quat="0 0 -0.707107 -0.707107">
         <!-- Joint from trunk to shoulder_2 -->
-        <joint axis="0 0 1" name="left_shoulder_pitch" type="hinge" range="-3.141592653589793 3.141592653589793" class="xml330_actuator"/>
+        <joint axis="0 0 1" name="left_shoulder_pitch" type="hinge" range="-3.141592653589793 3.141592653589793" class="xl330"/>
         <inertial pos="-4.19e-10 2.814e-09 0.00850029" mass="0.00898451" fullinertia="1.06003e-06 1.78233e-06 1.86739e-06 -0 0 0"/>
         <!-- Part stp39__configuration__2x6_65 -->
         <!-- Part stp39__configuration__2x6_66 -->
@@ -352,7 +352,7 @@ http://www.apache.org/licenses/LICENSE-2.0
         <!-- Link humerus__configuration_left -->
         <body name="humerus__configuration_left" pos="-0.0145 0 0.0195" quat="0 -0.707107 -0 0.707107">
           <!-- Joint from shoulder_2 to humerus__configuration_left -->
-          <joint axis="0 0 1" name="left_shoulder_roll" type="hinge" range="0.0 3.141592653589793" class="xml330_actuator"/>
+          <joint axis="0 0 1" name="left_shoulder_roll" type="hinge" range="0.0 3.141592653589793" class="xl330"/>
           <inertial pos="-0.000313281 0.0252784 -0.0143884" mass="0.0416867" fullinertia="1.76899e-05 3.9512e-06 1.75853e-05 3.01684e-07 -5.77e-10 7.6531e-08"/>
           <!-- Part stp39__configuration__2_2x8_43 -->
           <!-- Part stp39__configuration__2_2x8_44 -->
@@ -371,7 +371,7 @@ http://www.apache.org/licenses/LICENSE-2.0
           <!-- Link radius_2 -->
           <body name="radius_2" pos="-0.0145 0.0515 -0.0145" quat="0.707107 0 -0.707107 0">
             <!-- Joint from humerus__configuration_left to radius_2 -->
-            <joint axis="0 0 1" name="left_elbow" type="hinge" range="-2.1816615649929156 2.1816615649929085" class="xml330_actuator"/>
+            <joint axis="0 0 1" name="left_elbow" type="hinge" range="-2.1816615649929156 2.1816615649929085" class="xl330"/>
             <inertial pos="-4.0628e-08 0.0310611 -0.0130165" mass="0.0115415" fullinertia="5.26775e-06 1.21602e-06 4.45903e-06 4e-12 1.2e-11 1.7157e-07"/>
             <!-- Part stp39__configuration__2x6_77 -->
             <!-- Part stp39__configuration__2x6_78 -->
@@ -391,7 +391,7 @@ http://www.apache.org/licenses/LICENSE-2.0
       <!-- Link hip_2 -->
       <body name="hip_2" pos="-0 0.036 0" quat="0 -0 0 -1">
         <!-- Joint from trunk to hip_2 -->
-        <joint axis="0 0 1" name="left_hip_yaw" type="hinge" range="-1.0471975511965976 4.1887902047863905" class="xml330_actuator"/>
+        <joint axis="0 0 1" name="left_hip_yaw" type="hinge" range="-1.0471975511965976 4.1887902047863905" class="xl330"/>
         <inertial pos="-0.00421822 -1.46909e-07 -0.00948697" mass="0.00884451" fullinertia="9.36719e-07 4.32505e-06 4.03697e-06 -3.3e-11 -1.95496e-07 -0"/>
         <!-- Part hip__configuration_right_2 -->
         <geom type="mesh" class="visual" pos="-0.00575 -0 -0.0484" quat="0.707107 -0 -0 -0.707107" mesh="hip__configuration_right" material="hip__configuration_right_material"/>
@@ -410,7 +410,7 @@ http://www.apache.org/licenses/LICENSE-2.0
         <!-- Link hip_block__configuration_left -->
         <body name="hip_block__configuration_left" pos="0.02 0 -0.0214" quat="0.5 -0.5 -0.5 0.5">
           <!-- Joint from hip_2 to hip_block__configuration_left -->
-          <joint axis="0 0 1" name="left_hip_roll" type="hinge" range="-0.6108652381980162 0.6108652381980144" class="xml330_actuator"/>
+          <joint axis="0 0 1" name="left_hip_roll" type="hinge" range="-0.6108652381980162 0.6108652381980144" class="xl330"/>
           <inertial pos="6.0554e-05 0.00982795 0.0271548" mass="0.04763" fullinertia="1.64096e-05 1.3312e-05 7.85888e-06 8.495e-09 -7.6959e-08 6.62404e-07"/>
           <!-- Part stp39__configuration__2_2x8_51 -->
           <!-- Part xl330_6 -->
@@ -436,7 +436,7 @@ http://www.apache.org/licenses/LICENSE-2.0
           <!-- Link femur__configuration_left -->
           <body name="femur__configuration_left" pos="-0.0145 -0 0.0385" quat="0.707107 -0 -0.707107 0">
             <!-- Joint from hip_block__configuration_left to femur__configuration_left -->
-            <joint axis="0 0 1" name="left_hip_pitch" type="hinge" range="-1.5707963267948974 1.5707963267948957" class="xml330_actuator"/>
+            <joint axis="0 0 1" name="left_hip_pitch" type="hinge" range="-1.5707963267948974 1.5707963267948957" class="xl330"/>
             <inertial pos="0.0109472 0.0366847 -0.0142975" mass="0.014726" fullinertia="1.12665e-05 4.38335e-06 8.95932e-06 -1.12592e-06 1.333e-09 -4.521e-09"/>
             <!-- Part stp39__configuration__2x6_93 -->
             <!-- Part femur__configuration_left -->
@@ -462,7 +462,7 @@ http://www.apache.org/licenses/LICENSE-2.0
             <!-- Link tibia__configuration_left -->
             <body name="tibia__configuration_left" pos="0.005 0.062 0" quat="1 -0 -0 -0">
               <!-- Joint from femur__configuration_left to tibia__configuration_left -->
-              <joint axis="0 0 1" name="left_knee" type="hinge" range="-0.7853981633974314 2.3561944901923617" class="xml330_actuator"/>
+              <joint axis="0 0 1" name="left_knee" type="hinge" range="-0.7853981633974314 2.3561944901923617" class="xl330"/>
               <inertial pos="-0.00275805 0.0196679 -0.0145379" mass="0.0300463" fullinertia="1.53882e-05 5.33188e-06 1.38589e-05 2.25747e-06 7.7561e-08 -1.37001e-07"/>
               <!-- Part stp39__configuration__2x6_109 -->
               <!-- Part stp39__configuration__2x6_110 -->
@@ -487,7 +487,7 @@ http://www.apache.org/licenses/LICENSE-2.0
               <!-- Link ankle_block__configuration_right -->
               <body name="ankle_block__configuration_right" pos="-0.008 0.0612131 -0" quat="0 0 -0 1">
                 <!-- Joint from tibia__configuration_left to ankle_block__configuration_right -->
-                <joint axis="0 0 1" name="left_ankle_pitch" type="hinge" range="-1.5707963267948744 0.6108652381980375" class="xml330_actuator"/>
+                <joint axis="0 0 1" name="left_ankle_pitch" type="hinge" range="-1.5707963267948744 0.6108652381980375" class="xl330"/>
                 <inertial pos="0.0110706 0.00979852 -0.0145955" mass="0.04722" fullinertia="7.83996e-06 1.29805e-05 1.6094e-05 -6.01409e-07 -5.1613e-08 -6.789e-09"/>
                 <!-- Part stp39__configuration__2_2x8_61 -->
                 <!-- Part xl330_8 -->
@@ -513,7 +513,7 @@ http://www.apache.org/licenses/LICENSE-2.0
                 <!-- Link foot_2 -->
                 <body name="foot_2" pos="0.0385 0 -0.0145" quat="0.707107 -0 -0.707107 0">
                   <!-- Joint from ankle_block__configuration_right to foot_2 -->
-                  <joint axis="0 0 1" name="left_ankle_roll" type="hinge" range="-0.6108652381980109 0.6108652381980197" class="xml330_actuator"/>
+                  <joint axis="0 0 1" name="left_ankle_roll" type="hinge" range="-0.6108652381980109 0.6108652381980197" class="xl330"/>
                   <inertial pos="-0 -0.0168869 0.0347422" mass="0.016823" fullinertia="1.15605e-05 1.2167e-05 2.53496e-06 0 -0 5.67932e-07"/>
                   <!-- Part stp39__configuration__2x6_117 -->
                   <!-- Part stp39__configuration__2x6_118 -->
@@ -594,25 +594,25 @@ http://www.apache.org/licenses/LICENSE-2.0
     <material name="tibia__configuration_left_material" rgba="0.501961 0.501961 0.501961 1"/>
   </asset>
   <actuator>
-    <position class="xml330_actuator" name="head" joint="head" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_shoulder_pitch" joint="right_shoulder_pitch" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_shoulder_roll" joint="right_shoulder_roll" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_elbow" joint="right_elbow" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_hip_yaw" joint="right_hip_yaw" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_hip_roll" joint="right_hip_roll" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_hip_pitch" joint="right_hip_pitch" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_knee" joint="right_knee" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_ankle_pitch" joint="right_ankle_pitch" inheritrange="1"/>
-    <position class="xml330_actuator" name="right_ankle_roll" joint="right_ankle_roll" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_shoulder_pitch" joint="left_shoulder_pitch" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_shoulder_roll" joint="left_shoulder_roll" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_elbow" joint="left_elbow" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_hip_yaw" joint="left_hip_yaw" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_hip_roll" joint="left_hip_roll" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_hip_pitch" joint="left_hip_pitch" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_knee" joint="left_knee" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_ankle_pitch" joint="left_ankle_pitch" inheritrange="1"/>
-    <position class="xml330_actuator" name="left_ankle_roll" joint="left_ankle_roll" inheritrange="1"/>
+    <position class="xl330" name="head" joint="head" inheritrange="1"/>
+    <position class="xl330" name="right_shoulder_pitch" joint="right_shoulder_pitch" inheritrange="1"/>
+    <position class="xl330" name="right_shoulder_roll" joint="right_shoulder_roll" inheritrange="1"/>
+    <position class="xl330" name="right_elbow" joint="right_elbow" inheritrange="1"/>
+    <position class="xl330" name="right_hip_yaw" joint="right_hip_yaw" inheritrange="1"/>
+    <position class="xl330" name="right_hip_roll" joint="right_hip_roll" inheritrange="1"/>
+    <position class="xl330" name="right_hip_pitch" joint="right_hip_pitch" inheritrange="1"/>
+    <position class="xl330" name="right_knee" joint="right_knee" inheritrange="1"/>
+    <position class="xl330" name="right_ankle_pitch" joint="right_ankle_pitch" inheritrange="1"/>
+    <position class="xl330" name="right_ankle_roll" joint="right_ankle_roll" inheritrange="1"/>
+    <position class="xl330" name="left_shoulder_pitch" joint="left_shoulder_pitch" inheritrange="1"/>
+    <position class="xl330" name="left_shoulder_roll" joint="left_shoulder_roll" inheritrange="1"/>
+    <position class="xl330" name="left_elbow" joint="left_elbow" inheritrange="1"/>
+    <position class="xl330" name="left_hip_yaw" joint="left_hip_yaw" inheritrange="1"/>
+    <position class="xl330" name="left_hip_roll" joint="left_hip_roll" inheritrange="1"/>
+    <position class="xl330" name="left_hip_pitch" joint="left_hip_pitch" inheritrange="1"/>
+    <position class="xl330" name="left_knee" joint="left_knee" inheritrange="1"/>
+    <position class="xl330" name="left_ankle_pitch" joint="left_ankle_pitch" inheritrange="1"/>
+    <position class="xl330" name="left_ankle_roll" joint="left_ankle_roll" inheritrange="1"/>
   </actuator>
   <equality/>
 </mujoco>
