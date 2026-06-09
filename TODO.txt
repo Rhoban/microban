@@ -1,2 +1,2 @@
 - Fix squat motion to respect feet spacing
-- Fix poweroff due to voltage drop
+- Implement BAM actuator in sim mode
