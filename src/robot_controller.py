@@ -1,4 +1,5 @@
 from rustypot import Xl330PyController
+import numpy as np
 
 from constants import MOTOR_TO_ID, MOTOR_SIGN, IMU_I2C_BUS
 from imu_reader import ThreadedIMUReader
@@ -29,17 +30,15 @@ class RobotController:
 
     def read_present_position(self, motor_id: int) -> float:
         raw = self._controller.read_present_position(motor_id)
-        value = raw[0] if isinstance(raw, (list, tuple)) else float(raw)
-        return value * self._id_to_sign[motor_id]
+        return raw * self._id_to_sign[motor_id]
 
     def sync_read_present_velocity(self, ids: list[int]) -> list[float]:
-        raw = self._controller.sync_read_present_velocity(ids)
+        raw = np.array(self._controller.sync_read_present_velocity(ids)) * 0.229 * np.pi / 30
         return [r * self._id_to_sign[motor_id] for motor_id, r in zip(ids, raw)]
     
     def read_present_velocity(self, motor_id: int) -> float:
-        raw = self._controller.read_present_velocity(motor_id)
-        value = raw[0] if isinstance(raw, (list, tuple)) else float(raw)
-        return value * self._id_to_sign[motor_id]
+        raw = self._controller.read_present_velocity(motor_id) * 0.229 * np.pi / 30
+        return raw * self._id_to_sign[motor_id]
 
     def read_present_input_voltage(self, motor_id: int) -> float:
         raw = self._controller.read_present_input_voltage(motor_id)
