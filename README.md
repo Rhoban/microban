@@ -18,9 +18,9 @@ Aside from the motors and a few standard, easily sourced hardware components, **
 ## ✨ Key Features
 
 *   🤖 **100% Open-Source**: Mechanics, 3D models, and documentation are entirely free to use, modify, and distribute.
-*   🖨️ **3D-Printable**: Designed to be printed on any standard FDM desktop 3D printer.
-*   🔧 **DIY & Maker Friendly**: Come with...
-*   📏 **Compact Size**: Stands at approximately 30cm tall, making it the perfect desktop companion for robotics experimentation.
+*   🖨️ **3D-Printable**: The robot is designed to be printed on any standard FDM desktop 3D printer.
+*   🔧 **DIY & Maker Friendly**: Guided assembly instructions and a detailed bill of materials make it easy for anyone to build.
+*   📏 **Compact Size**: Microban stands at approximately 30cm tall, making it the perfect desktop companion for robotics experimentation.
 
 ---
 
