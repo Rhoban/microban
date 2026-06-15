@@ -21,18 +21,6 @@ The main features of Microban are:
 
 ---
 
-## 📁 CAD Files
-
-<img height="350px" alt="Capture d’écran du 2026-06-15 13-33-16" src="https://github.com/user-attachments/assets/8dab3c1c-3dc4-4dd1-9fc4-ea44fbaea734" align="right"/>
-
-The CAD files for Microban are in the `cad/` directory of this repository. It contains all the printable parts in both STL and STEP formats.
-
-A visual representation of the 3D model can be found in the [Onshape assembly](https://cad.onshape.com/documents/d424992a192a8ce34ffce163/v/7de3e6e40f0e1185d169e6d9/e/b34620a03cc3a684006c5867?renderMode=0&uiState=6a2fccab8e6d9214d2644ca7). This interactive assembly allows you to explore the robot's design in detail, providing a better understanding of how the parts fit together. It also serves as a reference for assembly, helping you visualize the final product and ensuring that you can correctly identify each component during the build process.
-
-An emphasis is placed on the range of motion of the 19 degrees of freedom of the robot. It allows for a wide variety of movements, making it suitable for various applications. Stops are integrated into the design to control which self-collisions are likely to occur, ensuring that the robot can move safely without damaging itself. The design also takes into account the cable routing for the servo motors, ensuring that the wires are neatly organized and do not interfere with the robot's movements.
-
----
-
 ## 🛠️ Bill of Materials (BOM)
 
 Here is a quick overview of what is in the robot:
@@ -54,7 +42,19 @@ A full, detailed BOM with links to purchase and prices is available in [BOM.md](
 
 ---
 
-## 🚀 Getting Started & Assembly
+## 📁 CAD Files
+
+<img height="350px" alt="Capture d’écran du 2026-06-15 13-33-16" src="https://github.com/user-attachments/assets/8dab3c1c-3dc4-4dd1-9fc4-ea44fbaea734" align="right"/>
+
+The CAD files for Microban are in the `cad/` directory of this repository. It contains all the printable parts in both STL and STEP formats.
+
+A visual representation of the 3D model can be found in the [Onshape assembly](https://cad.onshape.com/documents/d424992a192a8ce34ffce163/v/7de3e6e40f0e1185d169e6d9/e/b34620a03cc3a684006c5867?renderMode=0&uiState=6a2fccab8e6d9214d2644ca7). This interactive assembly allows you to explore the robot's design in detail, providing a better understanding of how the parts fit together. It also serves as a reference for assembly, helping you visualize the final product and ensuring that you can correctly identify each component during the build process.
+
+An emphasis is placed on the range of motion of the 19 degrees of freedom of the robot. It allows for a wide variety of movements, making it suitable for various applications. Stops are integrated into the design to control which self-collisions are likely to occur, ensuring that the robot can move safely without damaging itself. The design also takes into account the cable routing for the servo motors, ensuring that the wires are neatly organized and do not interfere with the robot's movements.
+
+---
+
+## 🚀 Getting Started 
 
 Building your own Microban is a straightforward process. 
 
