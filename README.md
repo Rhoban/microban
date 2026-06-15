@@ -10,20 +10,41 @@
   
 Welcome to the **Microban** project! 
 
-Microban is a ~30cm tall, fully open-source humanoid robot designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low (~$550), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
+Microban is a \~30cm tall, fully open-source humanoid robot designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low (\~$550), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
 
 The idea behind Microban is to provide a platform for learning and experimentation in robotics. By making the design open-source, users are encouraged to modify, improve, and share their own versions of the robot. Whether you're interested in programming, mechanical design, or electronics, Microban offers a hands-on experience that can help you develop your skills in a fun and engaging way.
 
 The main features of Microban are:
-*   🤖 **100% Open-Source**: Mechanics, 3D models, and documentation are entirely free to use, modify, and distribute.
-*   🔧 **DIY & Maker Friendly**: Guided assembly instructions, fully 3D-printable parts, relatively cheap components.
-*   📏 **Compact Size**: Microban stands at approximately 30cm tall, making it the perfect desktop companion for robotics experimentation.
+*   🤖 **100% Open-Source**: Mechanics, 3D models, and documentation are entirely free to use and modify.
+*   🔧 **DIY & Maker Friendly**: Guided assembly instructions, fully 3D-printable parts and cheap components.
+*   📏 **Compact Size**: Microban is only 30cm tall, making it the perfect desktop companion for robotics experimentation.
+
+---
+
+## 🛠️ Bill of Materials (BOM)
+
+Here is a quick overview of what is in the robot:
+
+| Component | Quantity | Description / Notes |
+| :--- | :---: | :--- |
+| **3D Printed Parts** | 26 | Check the CAD files. Recommended material is PLA. |
+| **Servo Motors** | 19 | Dynamixel XL330-M288-T servomotor. |
+| **Microcontroller**| 1 | Raspberry Pi Zero 2W. |
+| **Board Hat** | 1 | Pollen custom hat for Raspberry Pi Zero 2W |
+| **Power Supply** | 2 | 18650 3.7V Lithium-ion Batteries. |
+| **Battery Holder** | 1 | 2x18650 Battery Holder. |
+| **USB-C Charger** | 1 | Standard USB-C charger. |
+| **BMS** | 1 | Battery Management System for 2x18650 batteries. |
+| **Plastic Screws**| ~200 | Standard plastic screws for assembly. |
+| **Steel & POM Shims** | 12 | Alternative to needle bearings for motors without idler horns. | 
+
+A full, detailed BOM with links to purchase and prices is available in [BOM.md](docs/material.md)
 
 ---
 
 ## 📁 CAD Files
 
-<img width="20%" alt="Capture d’écran du 2026-06-15 13-33-16" src="https://github.com/user-attachments/assets/8dab3c1c-3dc4-4dd1-9fc4-ea44fbaea734" align="left"/>
+<img height="350px" alt="Capture d’écran du 2026-06-15 13-33-16" src="https://github.com/user-attachments/assets/8dab3c1c-3dc4-4dd1-9fc4-ea44fbaea734" align="right"/>
 
 The CAD files for Microban are in the `cad/` directory of this repository. It contains all the printable parts in both STL and STEP formats.
 
@@ -33,30 +54,7 @@ An emphasis is placed on the range of motion of the 19 degrees of freedom of the
 
 ---
 
-## 🛠️ Bill of Materials (BOM)
-
-To keep this project highly accessible, Microban relies on common hardware. Here is a quick overview of what you will need:
-
-| Component | Quantity | Description / Notes |
-| :--- | :---: | :--- |
-| **3D Printed Parts** | X | Check the `/STL` folder. Recommended material is PLA. |
-| **Servo Motors** | 19 | XL330-M288-T from Dynamixel. |
-| **Microcontroller**| 1 | Raspberry Pi Zero 2W. |
-| **Board Hat** | 1 | X |
-| **Power Supply** | 2 | 18650 3.7V Lithium-ion Batteries. |
-| **Battery Holder** | 1 | 2x18650 Battery Holder. |
-| **USB-C Charger** | 1 | Standard USB-C charger. |
-| **BMS** | 1 | Battery Management System for 2x18650 batteries. |
-| **M2x6 Plastic Screws**| ~X | Standard plastic screws for assembly. Recommended model is STP39. |
-| **M2.2x8 Plastic Screws**| ~X | Standard plastic screws for assembly. Recommended model is STP39. |
-| **20x30x0.3 Steel Shims** | 8 | X |
-| **20x30x1 POM Shims** | 4 | X |
-
-*(A full, detailed BOM with links to purchase components will be available in the the future.)*
-
----
-
-## 🚀 Getting Started & Assembly
+## 🚀 Getting Started 
 
 Building your own Microban is a straightforward process. 
 
