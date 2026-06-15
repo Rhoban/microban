@@ -2,9 +2,9 @@
 
 Here is a detailed Bill of Materials (BOM) for the project, including links to purchase each component and their approximate prices. Please note that prices may vary based on location and availability. You can source the components from your preferred suppliers, but beware that for electronic components using cheaper distributors may result in lower quality and reliability. 
 
-At the time of writing, the total cost of building **a Microban robot is approximately $533**.
+At the time of writing, **a Microban robot costs approximately $541**.
 
-If you also include the configuration tools (Dynamixel U2D2 and U2D2 Power Hub), the total cost rises to approximately $584.
+If you also include the configuration tools (Dynamixel U2D2 and U2D2 Power Hub), the total cost rises to approximately $592.
 
 
 ## Robot Components
