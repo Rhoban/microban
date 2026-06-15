@@ -8,7 +8,7 @@
   <img height="350px" alt="image" src="https://github.com/user-attachments/assets/63b53182-face-4d78-9a65-7006be63cb9d" />
 <p\>
   
-Welcome to the **Microban** project! 
+Welcome to the **Microban** project! **This repository is currently under development**, so I advise you to wait for the 1.0 release before attempting to build your own robot. In the meantime, feel free to explore the documentation.
 
 Microban is a \~30cm tall, fully open-source humanoid robot designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low (\~$550), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
 
@@ -56,11 +56,14 @@ An emphasis is placed on the range of motion of the 19 degrees of freedom of the
 
 ## 🚀 Getting Started 
 
-Building your own Microban is a straightforward process. 
+To build your own Microban, you will need to follow these steps:
 
-1. **Print the parts:** Head over to the `/STL` folder. We recommend printing at *[insert recommended layer height, e.g., 0.2mm]* with *[insert infill, e.g., 20%]* infill.
-2. **Source the hardware:** Gather the components listed in the BOM.
-3. **Assemble:** Follow our step-by-step [Assembly Guide](link-to-docs) to put the mechanics together.
+1. **Source the hardware:** Gather the components listed in the [BOM](docs/bom.md). Links are provided to purchase each item, but feel free to source them from your preferred suppliers. Some components, like the Dynamixel motors, may have specific distributors depending on your location, which can impact the total cost. 
+
+2. **Print the parts:** Head over to the `cad/stl/` folder and print all the parts using a 3D printer. The recommended filament is PLA with a layer height of 0.12mm and a 15% infill. Some parts require specific orientations for printing to ensure strength and proper fit. Refer to the guide [docs/printing.md](docs/printing.md) for detailed instructions on how to print each part correctly.
+
+3. **Assemble:** Follow our step-by-step [Assembly Guide](docs/assembly.md) to put the mechanics together.
+
 4. **Wire and Code:** *(Add brief instructions or links to the electronics/code section).*
 
 ---
@@ -76,3 +79,13 @@ Feel free to fork the repository, make your changes, and submit a Pull Request. 
 ## 📄 License
 
 This project is licensed under the **CERN-OHL-S-2.0** License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Citation
+
+If you use Microban in your research, please cite it as follows:
+
+```
+TODO
+```
