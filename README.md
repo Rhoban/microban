@@ -11,13 +11,15 @@ Microban is a ~30cm tall, fully open-source humanoid robot designed specifically
 
 Aside from the motors and a few standard, easily sourced hardware components, **everything is 3D printable**. 
 
+[Onshape CAD](https://cad.onshape.com/documents/d424992a192a8ce34ffce163/v/094edb3a534c5e0eac603427/e/b34620a03cc3a684006c5867?renderMode=0&uiState=6a2fb9408e6d9214d2637394)
+
 ---
 
 ## ✨ Key Features
 
 *   🤖 **100% Open-Source**: Mechanics, 3D models, and documentation are entirely free to use, modify, and distribute.
-*   🖨️ **3D-Printable**: Designed to be printed on virtually any standard FDM desktop 3D printer (no support-heavy or overly complex geometries).
-*   🔧 **DIY & Maker Friendly**: Uses standard, cheap, and easy-to-find off-the-shelf components (standard servos, common screws).
+*   🖨️ **3D-Printable**: Designed to be printed on any standard FDM desktop 3D printer.
+*   🔧 **DIY & Maker Friendly**: Come with...
 *   📏 **Compact Size**: Stands at approximately 30cm tall, making it the perfect desktop companion for robotics experimentation.
 
 ---
