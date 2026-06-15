@@ -21,7 +21,7 @@ The main features of Microban are:
 
 ---
 
-## 🛠️ Bill of Materials (BOM)
+## 🛠️ Components Overview
 
 Here is a quick overview of what is in the robot:
 
@@ -38,7 +38,7 @@ Here is a quick overview of what is in the robot:
 | **Plastic Screws**| ~200 | Standard plastic screws for assembly. |
 | **Steel & POM Shims** | 12 | Alternative to needle bearings for motors without idler horns. | 
 
-A full, detailed BOM with links to purchase and prices is available in [BOM.md](docs/material.md)
+A full, detailed Bill Of Materials (BOM) with links to purchase and prices is available in the detailed [docs/bom.md](docs/bom.md)
 
 ---
 

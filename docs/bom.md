@@ -19,6 +19,10 @@ Contains 1 motor, 1 180mm cable, 10 2.2x8 screws, 6 2x6 screws
 
 Filament material: < $10.00
 
+POM shims: TODO
+
+Steel shims: TODO
+
 ---
 
 MOTOR CONFIGURATION:
