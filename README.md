@@ -27,7 +27,7 @@ Here is a quick overview of what is in the robot:
 
 | Component | Quantity | Description / Notes |
 | :--- | :---: | :--- |
-| **3D Printed Parts** | 26 | Check the CAD files. Recommended material is PLA. |
+| **3D Printed Parts** | 28 | Check the CAD files. Recommended material is PLA. |
 | **Servo Motors** | 19 | Dynamixel XL330-M288-T servomotor. |
 | **Microcontroller**| 1 | Raspberry Pi Zero 2W. |
 | **Board Hat** | 1 | Pollen custom hat for Raspberry Pi Zero 2W |
