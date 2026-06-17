@@ -8,7 +8,7 @@
   <img height="350px" alt="image" src="https://github.com/user-attachments/assets/63b53182-face-4d78-9a65-7006be63cb9d" />
 <p\>
   
-Welcome to the **Microban** project! **This repository is currently under development**, so I advise you to wait for the 1.0 release before attempting to build your own robot. In the meantime, feel free to explore the documentation.
+Welcome to the **Microban** project! **This repository is currently under development**, so I advise you to wait for the 1.0 release before attempting to build your own robot. One of the major issue with building the robot currently is the **lack of off-the-shelf hat for the Raspberry Pi Zero 2W**. The custom hat will be available in the 1.0 release. In the meantime, feel free to explore the documentation and the CAD files, and stay tuned for updates on the project.
 
 Microban is a \~30cm tall, fully open-source humanoid robot designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low (\~$550), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
 
@@ -38,7 +38,7 @@ Here is a quick overview of what is in the robot:
 | **Plastic Screws**| ~200 | Standard plastic screws for assembly. |
 | **Steel & POM Shims** | 12 | Alternative to needle bearings for motors without idler horns. | 
 
-A full, detailed Bill Of Materials (BOM) with links to purchase and prices is available in the detailed [docs/bom.md](docs/bom.md)
+A full, detailed Bill Of Materials (BOM) with links to purchase and prices is available in [docs/bom.md](docs/bom.md)
 
 ---
 
