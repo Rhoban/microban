@@ -2,7 +2,10 @@
 
 This guide provides detailed instructions on how to print the parts for the Microban robot. It covers recommended settings, orientations, and tips to ensure successful prints. 
 
-The parts are available in the `cad/stl/` directory of this repository, and they are designed to be printed using a standard desktop 3D printer with PLA filament, 0.12mm layer height, and 15% infill. The next table summarizes the number of parts to print for each component of the robot. Please note that some parts may require specific orientations for printing, please refer to the [Part Orientation](#part-orientation-guide) section for more details.
+
+## Recommended Settings
+
+The parts are available in the `cad/stl/` directory of this repository, and they are designed to be printed using a standard desktop 3D printer with PLA filament, 0.12mm layer height, and 15% infill. The next table summarizes the number of parts to print for each component of the robot. Please note that some parts may require specific orientations for printing, please refer to the [Part Orientation](#part-orientation) section for more details.
 
 | Part | Quantity | Image | Description / Notes |
 | :--- | :---: | :--- | :--- |
@@ -25,3 +28,17 @@ The parts are available in the `cad/stl/` directory of this repository, and they
 | humerus.stl | 2 | <img width="741" height="575" alt="image" src="https://github.com/user-attachments/assets/eb17748b-e496-4ea1-b7d1-89c7314b1584" /> | Upper arms of the robot. |
 | radius.stl | 2 | <img width="396" height="861" alt="image" src="https://github.com/user-attachments/assets/1a880519-1306-4f23-b5ab-d61efd1680c8" /> | Lower arms of the robot. |
 
+
+## Part Orientation 
+
+The parts that support the plain bearings (POM washers sandwiched between steel shims) should be printed in a specific orientation to ensure proper fit and surface finish. These orientations can increase the required support material, but they are necessary to ensure that the bearings fit correctly and that the parts function as intended. 
+
+The following image show the recommended orientation for printing these parts, which are: 
+- `hip.stl`
+- `pelvis.stl`  
+- `arm_bearing_support.stl`
+- `shoulder.stl`
+
+
+
+For all the other parts, the orientation is quite straightforward, and they can be printed without the need of support material for most of them.
