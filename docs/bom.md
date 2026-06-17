@@ -44,7 +44,7 @@ In case of building several robots, it is not necessary to buy several U2D2 and 
 
 ## Optional Components
 
-As discussed in the [Robot Components](#robot-components) section, I personally recommend replacing the provided M2x8 screws by M2.2x8 screws. For your information, the total amount of M2x6 self-taping screws required for the assembly is 124, they are used to fix the horns to the parts. The total amount of M2x8 / M2.2x8 self-taping screws required for the assembly is 66, they are used to fix the motors to the parts. Having extra screws can also be useful in case of loss.
+As discussed in the [Robot Components](#robot-components) section, I personally recommend replacing the provided M2x8 screws by M2.2x8 screws. For your information, the total amount of M2x6 self-tapping screws required for the assembly is 124, they are used to fix the horns to the parts. The total amount of M2x8 / M2.2x8 self-tapping screws required for the assembly is 66, they are used to fix the motors to the parts. Having extra screws can also be useful in case of loss.
 
 The number of cables provided with the motors should be sufficient for the robot, but you may need additional cables in case of damage.
 If you plan to use Microban intensively, you may want to consider having additional batteries and a charger to avoid downtime during charging. 
@@ -53,7 +53,7 @@ For all these reasons, here are some optional components you may want to conside
 
 | Component | Quantity | Price | Link | Description / Notes |
 | :--- | :---: | :--- | :--- | :--- |
-| Screws STP39 2x6 | 100 | ~$30 (depends on quantity) | [Screwerk](https://de.screwerk.com/fr/shop/detail/stp/STP390200060S.html) | Optional self-taping screws for horn to part attachment. |
-| Screws STP39 2.2x8 | 100 | ~$30 (depends on quantity) | [Screwerk](https://de.screwerk.com/fr/shop/detail/stp/STP390220080B.html) | Optional screws self-taping for motor to part attachment. |
+| Screws STP39 2x6 | 100 | ~$30 (depends on quantity) | [Screwerk](https://de.screwerk.com/fr/shop/detail/stp/STP390200060S.html) | Optional self-tapping screws for horn to part attachment. |
+| Screws STP39 2.2x8 | 100 | ~$30 (depends on quantity) | [Screwerk](https://de.screwerk.com/fr/shop/detail/stp/STP390220080B.html) | Optional screws self-tapping for motor to part attachment. |
 | Additional cables | 10 | $19.00 | [Robotis](https://en.robotis.com/shop_en/item.php?it_id=903-0249-000) | X3P cables for motors. Can be made with JST EHR-3 connectors. |
 | Additional batteries | 1 | ~$4 | [Nkon](https://www.nkon.nl/fr/sony-murata-us18650-vtc6.html) | 18650 3.7V Lithium-ion Batteries. Murata VTC6 are recommended but not mandatory. |
