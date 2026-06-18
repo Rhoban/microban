@@ -50,6 +50,8 @@ As discussed in the [Robot Components](#robot-components) section, I personally 
 The number of cables provided with the motors should be sufficient for the robot, but you may need additional cables in case of damage. 
 It is also preferable to adjust the cable lengths to the minimum required for the robot to avoid cable entanglement. It is possible to only use off-the-shelf cables of size 50mm (6), 100mm (4), and 180mm (9), but due to the lack of availability, it is preferable to crimp your own cables. To do so, you can buy SEH-001T-P0.6 crimp pins and adjust 180mm cables to the required lengths. A detailled guide is available in the [Cable Guide](cable.md).
 
+Finally, if you plan to use Microban intensively, you may want to consider having additional batteries and a charger to avoid downtime during charging. 
+
 For all these reasons, here are some optional components you may want to consider:
 
 | Component | Quantity | Price | Link | Description / Notes |
