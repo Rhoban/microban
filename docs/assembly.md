@@ -54,7 +54,18 @@ Once the parameters are set, you can disconnect the motor and move on to the nex
 
 ## Cable Routing
 
-The XL330 motors used in the Microban robot are daisy-chained, which means that the motors are connected in series. This allows to limit the number of cables that need to be routed through the robot. The only exception is near the board, where the first cables are split to connect to several links. The following diagram shows how the motors are connected to each other and to the board.
+The XL330 motors used in the Microban robot are daisy-chained, which means that the motors are connected in series. This allows to limit the number of cables that need to be routed through the robot. The only exception is near the board, where the first cables are split to connect to several links. The following diagram shows how the motors are connected to each other and to the board, and what cable lengths are used for each connection. 
+
+<img width="100%" alt="routing" src="https://github.com/user-attachments/assets/fd655925-4968-4892-afc6-e4fe00495b89" />
+
+<br>
+<br>
+
+To create the 1-to-2 splitter cable, you can cut 2 cables of 180mm to obtain 3 half-cables of approximately 50mm (you don't need more length than that). Then, you can solder 2 of them to the 3rd one. Do not forget to insulate the soldered connections with heat shrink tubing. The following images shows how to cut the cables and how the splitter cable should look like.
+
+[]
+
+To do the 1-to-3 splitter cable, the process is the same, but one of the 3 outgoing cables should be longer than the other two to allow for the robot opening from the top. So you should cut 2 cables of 180mm into 3 half-cables of approximately 50mm and one half-cable of approximately 120-130mm.
 
 ### Splitter Cable
 
