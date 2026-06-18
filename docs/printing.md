@@ -48,4 +48,7 @@ The following images show the recommended orientations for the parts listed abov
 
 <img width="100%" alt="image" src="https://github.com/user-attachments/assets/cfa211df-709d-4d61-a312-1d02fa6255d2" />
 
+<br>
+<br>
+
 For all the other parts, the orientation is quite straightforward, and they can be printed without the need of support material for a lot of them.
