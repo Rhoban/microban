@@ -1,6 +1,6 @@
 # Printing Guide
 
-This guide provides detailed instructions on how to print the parts for the Microban robot. It covers recommended settings, orientations, and tips to ensure successful prints. 
+This guide provides detailed instructions on how to print the parts for the Microban robot. It covers recommended settings, orientations, and tips to ensure successful prints. To see the full assembly of the parts, you can refer to the [Onshape assembly](https://cad.onshape.com/documents/d424992a192a8ce34ffce163/v/7de3e6e40f0e1185d169e6d9/e/b34620a03cc3a684006c5867?renderMode=0&uiState=6a2fccab8e6d9214d2644ca7).
 
 
 ## Recommended Settings
