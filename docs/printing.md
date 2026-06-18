@@ -27,8 +27,8 @@ The parts are available in the `cad/stl/` directory of this repository, and they
 | shoulder.stl | 2 | <img width="533" height="457" alt="image" src="https://github.com/user-attachments/assets/755265fe-8790-48eb-b34c-a5c6f9dfb3e8" /> | Shoulder joints of the robot. |
 | humerus.stl | 2 | <img width="741" height="575" alt="image" src="https://github.com/user-attachments/assets/eb17748b-e496-4ea1-b7d1-89c7314b1584" /> | Upper arms of the robot. |
 | radius.stl | 2 | <img width="396" height="861" alt="image" src="https://github.com/user-attachments/assets/1a880519-1306-4f23-b5ab-d61efd1680c8" /> | Lower arms of the robot. |
-| idle_horn.stl | 4 | <img width="1074" height="716" alt="image" src="https://github.com/user-attachments/assets/bc5c3803-9362-4e6c-a5a5-b7352a124a70" /> | Idle horn for XL330 motors. This part can be buyed from Robotis, but printing it does not affect the quality and is cheaper. |
-| idle_cap.stl | 6 | <img width="524" height="514" alt="image" src="https://github.com/user-attachments/assets/a3833483-3d2a-487b-b7ea-cfcec248ceff" /> | Idle cap to fit the idle horn. This part can be buyed from Robotis, but printing it does not affect the quality and is cheaper. |
+| idle_horn.stl | 4 | <img width="1074" height="716" alt="image" src="https://github.com/user-attachments/assets/bc5c3803-9362-4e6c-a5a5-b7352a124a70" /> | Idle horn for XL330 motors. This part can be bought from Robotis, but printing it does not affect the quality and is cheaper. |
+| idle_cap.stl | 6 | <img width="524" height="514" alt="image" src="https://github.com/user-attachments/assets/a3833483-3d2a-487b-b7ea-cfcec248ceff" /> | Idle cap to fit the idle horn. This part can be bought from Robotis, but printing it does not affect the quality and is cheaper. Two of the caps are designed to fit the forearm parts (radius). |
 
 
 ## Part Orientation 
