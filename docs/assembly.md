@@ -70,7 +70,7 @@ The XL330 motors used in the Microban robot are daisy-chained, which means that 
 
 ### Splitter Cable
 
-To create the 1-to-2 splitter cable, you can cut 2 cables of 180mm to obtain 3 half-cables of approximately 50mm (you don't need more length than that). Then, you can solder 2 of them to the 3rd one. Do not forget to insulate the soldered connections with heat shrink tubing. 
+To create the 1-to-2 splitter cable, you can cut 2 cables of 180mm to obtain 3 half-cables of approximately 50mm (you don't need more length than that). Then, you can solder 2 of them to the 3rd one. Be careful to solder together the same wires, as an incorrect connection can damage permanently the motors. Do not forget to insulate the soldered connections with heat shrink tubing. 
 
 To do the 1-to-3 splitter cable, the process is the same, but one of the 3 outgoing cables should be longer than the other two to allow for the robot opening from the top. So you should cut 2 cables of 180mm into 3 half-cables of approximately 50mm and one half-cable of approximately 120-130mm. 
 
@@ -87,7 +87,7 @@ To reduce the length of the 180mm cables, you can cut them to the desired length
 <br>
 <br>
 
-First, cut the cable to the desired length. The end cut to the correct length should be stripped to expose the wires on 2mm, not more. While crimping the terminals, the first crimp will be done on the plastic part of the terminal to hold the wire in place, and the second crimp will be done on the metal part of the terminal to make the electrical connection.
+First, cut the cable to the desired length. The end cut to the correct length should be stripped to expose the wires on 2mm, not more. While crimping the terminals, the first crimp will be done on the plastic part of the terminal to hold the wire in place, and the second crimp will be done on the metal part of the terminal to make the electrical connection. The details of the crimping process are presented in this [video](TODO).
 
 <img height="250px" alt="image958" src="https://github.com/user-attachments/assets/31fa1b7c-5757-465e-8c69-24e27dfedf70" />
 <img height="250px" alt="image940" src="https://github.com/user-attachments/assets/82b92448-4931-4d4c-bf3d-20253d7764bc" />
@@ -95,9 +95,12 @@ First, cut the cable to the desired length. The end cut to the correct length sh
 <br>
 <br>
 
-The crimping process is presented in [this video](TODO).
+Once the 3 end terminals are crimped, you need to retrieve the plastic housing from the second half of the cable. You can do this by rising the plastic stops on the housing with a small screwdriver and pulling the housing out. If you have trouble with this step, here is another [video](TODO) showing how to do it. 
+
+Finally, you can insert the 3 crimped terminals into the plastic housing. The order of the wires is important, so make sure to insert them in their corresponding position. Here is a last [video](TODO) showing how to insert the terminals into the housing.
 
 
+--- 
 
-
+## 3. Leg Assembly
 
