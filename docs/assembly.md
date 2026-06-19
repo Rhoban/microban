@@ -9,9 +9,8 @@ The steps to assemble the robot are as follows:
 2. [Cable Setup](#2-cable-setup): Prepare all the cables necessary for the assembly. 
 3. [Leg Assembly](#3-leg-assembly): Assemble the legs of the robot.
 4. [Torso Assembly](#4-torso-assembly): Assemble the torso and arms of the robot.
-5. [Trunk Top Assembly](#5-trunk-top-assembly): Assemble the top of the trunk and the head of the robot.
-6. [Battery Module Assembly](#6-battery-module-assembly): Assemble the battery module.
-7. [Final Assembly](#7-final-assembly): Assemble all the parts together to complete the robot.
+5. [Electronics](#5-electronics): Assemble the top of the trunk, build the battery module, and connect the electronics.
+6. [Final Assembly](#6-final-assembly): Assemble all the parts together to complete the robot.
 
 
 ---
@@ -149,8 +148,6 @@ To increase the adhesion of the feet to the ground, you can add an optional laye
 
 The objective of this section is to assemble the torso of the robot. 
 
-[]
-
 <br>
 <br>
 
@@ -162,11 +159,16 @@ Splitter cable routing to explain / Fixing torso to pelvis.
 
 ---
 
-## 5. Trunk Top Assembly
+## 5. Electronics
 
-The objective of this section is to assemble the top of the trunk of the robot.
+The objective of this section is to ...
 
-Fist -> Add global routing scheme
+<img width="100%" alt="microban_elec" src="https://github.com/user-attachments/assets/39c3846d-ec3d-447d-befe-7f4e0d7e2ca3" />
 
-The head fixation is straightforward.
+### 5.1 Battery Module
 
+### 5.2 Trunk Top
+
+## 6. Final Assembly
+
+Connect the cable, slide the battery module in
