@@ -84,4 +84,20 @@ To reduce the length of the 180mm cables, you can cut them to the desired length
 
 <img width="100%" alt="image922" src="https://github.com/user-attachments/assets/e0d045f5-8e5a-4335-8f9a-7266d1a41eca" />
 
+<br>
+<br>
+
+First, cut the cable to the desired length. The end cut to the correct length should be stripped to expose the wires on 2mm, not more. While crimping the terminals, the first crimp will be done on the plastic part of the terminal to hold the wire in place, and the second crimp will be done on the metal part of the terminal to make the electrical connection.
+
+<img height="250px" alt="image958" src="https://github.com/user-attachments/assets/31fa1b7c-5757-465e-8c69-24e27dfedf70" />
+<img height="250px" alt="image940" src="https://github.com/user-attachments/assets/82b92448-4931-4d4c-bf3d-20253d7764bc" />
+
+<br>
+<br>
+
+The crimping process is presented in [this video](TODO).
+
+
+
+
 
