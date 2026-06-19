@@ -141,3 +141,32 @@ For the tibia and femur routing, you can check the first image of the section. F
 To increase the adhesion of the feet to the ground, you can add an optional layer of rubber on the bottom of the feet. You can use a rubber sheet or cut a piece of an old cycling tire. 
 
 <img width="100%" alt="image" src="https://github.com/user-attachments/assets/85b68480-c078-4cdb-8431-d062476647ee" />
+
+
+---
+
+## 4. Torso Assembly
+
+The objective of this section is to assemble the torso of the robot. 
+
+[]
+
+<br>
+<br>
+
+For the assembly, you should refer to the [Onshape assembly](https://cad.onshape.com/documents/d424992a192a8ce34ffce163/v/7de3e6e40f0e1185d169e6d9/e/b34620a03cc3a684006c5867?renderMode=0&uiState=6a2fccab8e6d9214d2644ca7) to see how the parts fit together. 
+
+Arm routing ?
+
+Splitter cable routing to explain / Fixing torso to pelvis.
+
+---
+
+## 5. Trunk Top Assembly
+
+The objective of this section is to assemble the top of the trunk of the robot.
+
+Fist -> Add global routing scheme
+
+The head fixation is straightforward.
+
