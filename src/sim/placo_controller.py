@@ -57,6 +57,9 @@ class PlacoViewerController:
         name = ID_TO_MOTOR.get(motor_id, "")
         return (self._last_angles.get(name, 0.0) - self._current_angles.get(name, 0.0)) / self._dt
 
+    def sync_read_present_input_voltage(self, ids: list[int]) -> list[float]:
+        return [80.0] * len(ids)
+
     def read_present_input_voltage(self, motor_id: int) -> float:  # noqa: ARG002
         return 80.0
 

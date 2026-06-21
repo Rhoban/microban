@@ -1,4 +1,5 @@
 import math
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -42,6 +43,8 @@ class MuJoCoController:
             self._name_to_qvel_idx[name] = self._model.jnt_dofadr[joint_id]
         # Number of physics sub-steps per scheduler tick (scheduler runs at 50 Hz)
         self._steps_per_tick = max(1, round(0.02 / self._model.opt.timestep))
+        self._torque_interval = 0.1
+        self._last_torque_print = 0.0
 
         # Set initial pose to neutral so the robot starts upright
         self._data.qpos[2] = 0.165 
@@ -106,6 +109,13 @@ class MuJoCoController:
             self.reset()
             return
 
+        if self._reset_source is not None and self._reset_source.show_torque:
+            now = time.monotonic()
+            if now - self._last_torque_print >= self._torque_interval:
+                total = float(sum(abs(f) for f in self._data.actuator_force))
+                print(f"Torque sum: {total:.3f} Nm")
+                self._last_torque_print = now
+
         self._viewer.sync()
 
     def sync_read_present_position(self, ids: list[int]) -> list[float]:
@@ -122,6 +132,9 @@ class MuJoCoController:
         name = ID_TO_MOTOR[motor_id]
         return float(self._data.qvel[self._name_to_qvel_idx[name]])
 
+    def sync_read_present_input_voltage(self, ids: list[int]) -> list[float]:
+        return [80.0] * len(ids)
+    
     def read_present_input_voltage(self, motor_id: int) -> float:
         return 80.0
 

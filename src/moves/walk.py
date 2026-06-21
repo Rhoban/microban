@@ -19,6 +19,50 @@ class WalkMove(Move):
 
         # Safety parameters
         self._projected_gravity_z_threshold = -0.5  # Threshold for detecting a fall based on projected gravity
+
+        # Logging
+        # self.position = {
+        #     "head": [],
+        #     "left_hip_yaw": [],
+        #     "left_hip_roll": [],
+        #     "left_hip_pitch": [],
+        #     "left_knee": [],
+        #     "left_ankle_pitch": [],
+        #     "left_ankle_roll": [],
+        #     "right_hip_yaw": [],
+        #     "right_hip_roll": [],
+        #     "right_hip_pitch": [],
+        #     "right_knee": [],
+        #     "right_ankle_pitch": [],
+        #     "right_ankle_roll": [],
+        #     "left_shoulder_pitch": [],
+        #     "left_shoulder_roll": [],
+        #     "left_elbow": [],
+        #     "right_shoulder_pitch": [],
+        #     "right_shoulder_roll": [],
+        #     "right_elbow": [],
+        # }
+        # self.voltage = {
+        #     "head": [],
+        #     "left_hip_yaw": [],
+        #     "left_hip_roll": [],
+        #     "left_hip_pitch": [],
+        #     "left_knee": [],
+        #     "left_ankle_pitch": [],
+        #     "left_ankle_roll": [],
+        #     "right_hip_yaw": [],
+        #     "right_hip_roll": [],
+        #     "right_hip_pitch": [],
+        #     "right_knee": [],
+        #     "right_ankle_pitch": [],
+        #     "right_ankle_roll": [],
+        #     "left_shoulder_pitch": [],
+        #     "left_shoulder_roll": [],
+        #     "left_elbow": [],
+        #     "right_shoulder_pitch": [],
+        #     "right_shoulder_roll": [],
+        #     "right_elbow": [],
+        # }
         
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
         if self._controller is not None:
@@ -42,6 +86,11 @@ class WalkMove(Move):
         # Update command
         for i, name in enumerate(OBSERVATION_DOF_ORDER):
             command.target_angles[name] = NEUTRAL_POSE[name] + action[i]
+
+        # Log positions and voltages
+        # for name in MOTOR_TO_ID.keys():
+        #     self.position[name].append(obs.robot_state.motor_positions[name])
+        #     self.voltage[name].append(obs.robot_state.motor_voltages[name])
 
     def build_observation(self, obs: Observation) -> list[float]:
         """Build policy observation from robot state."""
@@ -74,3 +123,11 @@ class WalkMove(Move):
             ids = list(MOTOR_TO_ID.values())
             self._controller.sync_write_kp(ids, [KP_DEFAULT] * len(ids))
         self.state = MoveState.INACTIVE
+
+        # Save json logs
+        # import json
+        # with open("walk_log.json", "w") as f:
+        #     json.dump({
+        #         "position": self.position,
+        #         "voltage": self.voltage,
+        #     }, f, indent=4)
