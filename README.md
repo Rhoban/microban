@@ -3,9 +3,9 @@
 [![License: CERN-OHL-S-2.0](https://img.shields.io/badge/Hardware-CERN--OHL--S--2.0-blue.svg)](LICENSE)
 
 <p align="center">
-  <img height="350px" alt="image" src="https://github.com/user-attachments/assets/e7bc975c-ab70-4ce5-a882-225468f9ffff" />
-  <img height="350px" alt="image" src="https://github.com/user-attachments/assets/df0143d0-566d-44a4-a285-8507b6c01a19" />
-  <img height="350px" alt="image" src="https://github.com/user-attachments/assets/63b53182-face-4d78-9a65-7006be63cb9d" />
+  <img height="380px" alt="image" src="https://github.com/user-attachments/assets/e7bc975c-ab70-4ce5-a882-225468f9ffff" />
+  <img height="380px" alt="image" src="https://github.com/user-attachments/assets/df0143d0-566d-44a4-a285-8507b6c01a19" />
+  <img height="380px" alt="image" src="https://github.com/user-attachments/assets/11ab24f1-ea60-4219-8a92-078d78795115" />
 <p\>
   
 Welcome to the **Microban** project! **This repository is currently under development**, so I advise you to wait for the 1.0 release before attempting to build your own robot. One of the major issue with building the robot currently is the **lack of off-the-shelf hat for the Raspberry Pi Zero 2W**. The custom hat will be available in the 1.0 release. In the meantime, feel free to explore the documentation and the CAD files, and stay tuned for updates on the project.
@@ -86,6 +86,21 @@ This project is licensed under the **CERN-OHL-S-2.0** License - see the [LICENSE
 
 If you use Microban in your research, please cite it as follows:
 
+```bibtex
+@software{mduclusaud-microban,
+    author = {Duclusaud, Marc},
+    month = jun,
+    title = {{Microban: A Compact, Fully 3D-Printable Open-Source Humanoid Robot}},
+    url = {https://github.com/MarcDcls/microban},
+    howpublished = "\url{https://github.com/MarcDcls/microban}",
+    version = {0.0.1},
+    year = {2026}
+}
 ```
-TODO
-```
+
+---
+
+<p align="center">
+  <img width="80%" alt="image" src="https://github.com/user-attachments/assets/f944db1b-b324-4915-a785-72229313eb72" />
+<p\>
+  
