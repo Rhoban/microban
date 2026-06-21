@@ -5,6 +5,9 @@ if __name__ == "__main__":
     with open("logs/rotate_head_log.json", "r") as f:
         log = json.load(f)
 
+    # with open("logs/rotate_head_log_rsl2.json", "r") as f:
+    #     log = json.load(f)
+
     obs_head_angle = log["obs_head_angle"]
     obs_head_velocity = log["obs_head_velocity"]
     target_head_angle = log["target_head_angle"]
