@@ -41,10 +41,16 @@ class MuJoCoInputSource(InputSource):
         self._lock = threading.Lock()
         self._reset_requested = threading.Event()
         self._viewer_opt: "MjvOption | None" = None
+        self._show_torque = False
 
     def set_viewer_opt(self, opt: "MjvOption") -> None:
         """Bind the viewer MjvOption so [i] can toggle the IMU site frame."""
         self._viewer_opt = opt
+
+    @property
+    def show_torque(self) -> bool:
+        with self._lock:
+            return self._show_torque
 
     def consume_reset(self) -> bool:
         """Return True (and clear the flag) if a reset was requested since last call."""
@@ -55,6 +61,7 @@ class MuJoCoInputSource(InputSource):
         for char, name in self._move_keys_display.items():
             print(f"  [{char}]      toggle move '{name}'")
         print("  [i]       toggle IMU frame + terminal display")
+        print("  [t]       toggle torque sum display")
         print("  [arrows]  vx (up/down), vtheta (left/right)")
         print("  [x]       reset velocity")
         print("  [r]       reset robot to initial pose")
@@ -101,6 +108,13 @@ class MuJoCoInputSource(InputSource):
                 )
             status = "enabled" if show else "disabled"
             print(f"IMU display {status}")
+
+        elif keycode == ord("T"):
+            with self._lock:
+                self._show_torque = not self._show_torque
+                show = self._show_torque
+            status = "enabled" if show else "disabled"
+            print(f"Torque sum display {status}")
 
         elif keycode == ord("Q"):
             self._stop_flag_path.write_text("stop\n", encoding="ascii")

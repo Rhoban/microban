@@ -40,6 +40,7 @@ def main() -> None:
     controller = RobotController()
     motor_ids = list(MOTOR_TO_ID.values())
     controller.sync_write_torque_enable(motor_ids, [True] * len(motor_ids))
+    controller.sync_write_status_return_level(motor_ids, [1] * len(motor_ids))
 
     try:
         ramp_to_neutral(controller)
