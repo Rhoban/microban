@@ -101,6 +101,6 @@ If you use Microban in your research, please cite it as follows:
 ---
 
 <p align="center">
-  <img width="80%" alt="image" src="https://github.com/user-attachments/assets/f944db1b-b324-4915-a785-72229313eb72" />
+  <img width="100%" alt="image" src="https://github.com/user-attachments/assets/f944db1b-b324-4915-a785-72229313eb72" />
 <p\>
   
