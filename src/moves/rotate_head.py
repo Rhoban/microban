@@ -30,10 +30,10 @@ class RotateHeadMove(Move):
         self._lerp_start_angle: float = 0.0
         self._active_start_time_s: float = 0.0
 
-        # self._obs_head_angle: list[float] = []
-        # self._obs_head_velocity: list[float] = []
-        # self._target_head_angle: list[float] = []
-        # self._target_head_velocity: list[float] = []
+        self._obs_head_angle: list[float] = []
+        self._obs_head_velocity: list[float] = []
+        self._target_head_angle: list[float] = []
+        self._target_head_velocity: list[float] = []
 
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
         if self._lerp_start_time_s is None:
@@ -54,20 +54,20 @@ class RotateHeadMove(Move):
         head_angle = self.amplitude_rad * math.sin(2.0 * math.pi * self.frequency * t)
         command.target_angles["head"] = head_angle
 
-        # self._obs_head_angle.append(obs.robot_state.motor_positions.get("head", 0.0))
-        # self._obs_head_velocity.append(obs.robot_state.motor_velocities.get("head", 0.0))
-        # self._target_head_angle.append(head_angle)
-        # self._target_head_velocity.append(2.0 * math.pi * self.frequency * self.amplitude_rad * math.cos(2.0 * math.pi * self.frequency * t))
+        self._obs_head_angle.append(obs.robot_state.motor_positions.get("head", 0.0))
+        self._obs_head_velocity.append(obs.robot_state.motor_velocities.get("head", 0.0))
+        self._target_head_angle.append(head_angle)
+        self._target_head_velocity.append(2.0 * math.pi * self.frequency * self.amplitude_rad * math.cos(2.0 * math.pi * self.frequency * t))
 
     def on_stop(self, obs: Observation, command: MotorCommand) -> None:
-        # import json
-        # with open("rotate_head_log.json", "w") as f:
-        #     json.dump({
-        #         "obs_head_angle": self._obs_head_angle,
-        #         "obs_head_velocity": self._obs_head_velocity,
-        #         "target_head_angle": self._target_head_angle,
-        #         "target_head_velocity": self._target_head_velocity,
-        #     }, f, indent=2)
+        import json
+        with open("rotate_head_log.json", "w") as f:
+            json.dump({
+                "obs_head_angle": self._obs_head_angle,
+                "obs_head_velocity": self._obs_head_velocity,
+                "target_head_angle": self._target_head_angle,
+                "target_head_velocity": self._target_head_velocity,
+            }, f, indent=2)
 
         if self._lerp_start_time_s is None:
             self._lerp_start_time_s = obs.robot_state.time_s
