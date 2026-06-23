@@ -163,11 +163,17 @@ Once the torso is assembled, you can fix it to the pelvis and connect the splitt
 
 ## 5. Electronics
 
-The objective of this section is to ...
+The objective of this section is to assemble the electronics of the robot, including the battery module and the trunk top. 
+
+The following schematic shows how the electronics are connected together. The battery module is composed of a 2S 18650 battery holder and a BMS board. It is connected to the trunk top with a xt30 connector. The trunk top contains the USB-C charger and the switch powering on the Raspberry Pi. The routing allows to charge the battery independently of the power state of the robot. The alimentation of the Raspberry Pi is done through one of the 2 JST EHR-4 connectors on the Raspberry Pi hat. 
 
 <img width="100%" alt="microban_elec" src="https://github.com/user-attachments/assets/39c3846d-ec3d-447d-befe-7f4e0d7e2ca3" />
 
 ### 5.1 Battery Module
+
+To assemble the battery module, first connect the 4.2V pin of the BMS to the metal contact on the battery holder, located on the side opposite the red (8.4V) and black (0V) wires. To make this easier, you can melt a small hole in the holder using your soldering iron to reach and solder the wire to the contact. Next, solder the positive (+) and negative (-) wires from the BMS to the XT30 connector. Once the wiring is complete, secure the BMS to the back of the battery holder using double-sided tape. Finally, apply hot glue to insulate all the connections and prevent any short circuits. The picture below shows the fully assembled battery module.
+
+
 
 ### 5.2 Trunk Top
 
