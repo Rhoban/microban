@@ -7,7 +7,11 @@ from observer import Observation
 from moves.move import MotorCommand, Move, MoveState
 
 
+# Set to True if the policy use a reference phase for the gait cycle
 USE_REFERENCE_PHASE = True
+
+# Set to True to log motor positions and voltages during the walk move
+# Note: requires to set observe_voltage = True in the Observer to log voltages
 LOGGING = False
 
 
