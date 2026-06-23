@@ -10,24 +10,22 @@ if __name__ == "__main__":
 
     time = [0.02 * i for i in range(len(motor_positions["head"]))]
 
-    plt.figure(figsize=(12, 6))
-    plt.subplot(2, 1, 1)
-    for name in motor_positions.keys():
-        plt.plot(time, motor_positions[name], label=f"Observed {name}")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Motor Position (rad)")
-    plt.title("Motor Positions vs Time")
-    plt.legend()
-    plt.grid()
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6), sharex=True)
 
-    plt.subplot(2, 1, 2)
+    for name in motor_positions.keys():
+        ax1.plot(time, motor_positions[name], label=f"Observed {name}")
+    ax1.set_ylabel("Motor Position (rad)")
+    ax1.set_title("Motor Positions vs Time")
+    ax1.legend()
+    ax1.grid()
+
     for name in motor_voltages.keys():
-        plt.plot(time, motor_voltages[name], label=f"Observed {name}")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Motor Voltage (V)")
-    plt.title("Motor Voltages vs Time")
-    plt.legend()
-    plt.grid()
+        ax2.plot(time, motor_voltages[name], label=f"Observed {name}")
+    ax2.set_xlabel("Time (s)")
+    ax2.set_ylabel("Motor Voltage (V)")
+    ax2.set_title("Motor Voltages vs Time")
+    ax2.legend()
+    ax2.grid()
 
     plt.tight_layout()
     plt.show()
