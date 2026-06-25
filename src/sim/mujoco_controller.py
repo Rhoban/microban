@@ -206,9 +206,13 @@ class MuJoCoController:
             self._data.qvel[self._name_to_qvel_idx[name]]
         ))
 
+    def sync_read_present_current(self, ids: list[int]) -> list[float]:
+        # Overcurrent safety targets the real BMS; no current model in sim.
+        return [0.0] * len(ids)
+
     def sync_read_present_input_voltage(self, ids: list[int]) -> list[float]:
         return [80.0] * len(ids)
-    
+
     def read_present_input_voltage(self, motor_id: int) -> float:
         return 80.0
 

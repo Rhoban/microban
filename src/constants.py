@@ -74,9 +74,16 @@ KP_RL: int = 125             # ~0.277 Nm/rad in MuJoCo
 KP_GAIN_PRM: float = 0.0022  # Nm/rad per register unit (for Xl330)
 
 # BAM motor model (bam package, XL330 m6)
-BAM_VIN: float = 7.5 
+BAM_VIN: float = 7.5
 BAM_VIN_MIN: float = 6.0
 BAM_VOLTAGE_DROP_GAIN: float = 0.2
+
+# Overcurrent safety: emergency torque-off when the summed |present_current| of all
+# motors stays above OVERCURRENT_CUTOFF_A for OVERCURRENT_DEBOUNCE_TICKS consecutive ticks.
+# Goal: cut the robot before a current spike (e.g. all motors snapping during a fall) trips the BMS.
+PRESENT_CURRENT_UNIT_A: float = 0.001   # XL330 present_current register unit (1.0 mA/LSB)
+OVERCURRENT_CUTOFF_A: float = 10.0      # total pack current threshold (CALIBRATE: below BMS trip, above normal walk peak)
+OVERCURRENT_DEBOUNCE_TICKS: int = 2     # consecutive over-threshold ticks before cutting
 
 # IMU (BMI088) I2C bus number on the Raspberry Pi
 IMU_I2C_BUS: int = 1

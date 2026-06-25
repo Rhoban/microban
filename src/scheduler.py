@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 
-from constants import MOTOR_TO_ID
+from constants import MOTOR_TO_ID, OVERCURRENT_CUTOFF_A, OVERCURRENT_DEBOUNCE_TICKS
 from controller import ControllerProtocol
 from imu_reader import imu_quat_to_body
 from observer import Observer, Observation
@@ -43,6 +43,7 @@ class Scheduler:
         self._serial_errors = 0
         self._last_imu_print_s: float = 0.0
         self._last_imu_stale_warn_s: float = 0.0
+        self._overcurrent_ticks = 0
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -71,7 +72,11 @@ class Scheduler:
                     print(f"Warning: serial read error (attempt {self._serial_errors}/3): {e}", end="\r\n", flush=True)
                     continue
                 self._serial_errors = 0
-                
+
+                # Overcurrent safety: cut the robot before a current spike trips the BMS
+                if self._check_overcurrent(robot_state):
+                    break
+
                 robot_state.time_s = start_time - self.loop_start_time
                 user_input = self.input_source.read() if self.input_source else UserInput()
                 obs = Observation(robot_state=robot_state, user_input=user_input)
@@ -164,6 +169,33 @@ class Scheduler:
 
         if self.stop_flag_path.exists():
             self.stop_flag_path.unlink()
+
+    def _check_overcurrent(self, robot_state) -> bool:
+        """Track the summed |present_current| over all motors and report when it stays
+        above OVERCURRENT_CUTOFF_A for OVERCURRENT_DEBOUNCE_TICKS consecutive ticks.
+
+        When True, the run loop breaks and _cleanup() disables torque on every motor,
+        leaving the robot compliant so the BMS does not trip on the current spike.
+        """
+        currents = robot_state.motor_currents
+        if not currents:
+            return False
+
+        total_current = sum(abs(c) for c in currents.values())
+        if total_current >= OVERCURRENT_CUTOFF_A:
+            self._overcurrent_ticks += 1
+        else:
+            self._overcurrent_ticks = 0
+
+        if self._overcurrent_ticks >= OVERCURRENT_DEBOUNCE_TICKS:
+            print(
+                f"Overcurrent safety triggered: {total_current:.2f} A (threshold "
+                f"{OVERCURRENT_CUTOFF_A:.2f} A) — disabling torque",
+                end="\r\n",
+                flush=True,
+            )
+            return True
+        return False
 
     def _send_to_motors(self, command: MotorCommand):
         """Send one batched goal position command from the composed command dict."""

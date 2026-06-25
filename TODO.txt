@@ -2,6 +2,8 @@
 - Implement BAM actuator in sim mode
 
 
+- Current limit for actuators is 1.75A
+
 Documentation:
 - Add printing guide with pictures
 - Add assembly guide with Onshape screenshots, wiring instructions, cripping & soldering instructions, and a list of tools needed

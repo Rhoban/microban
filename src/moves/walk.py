@@ -12,7 +12,7 @@ from moves.move import MotorCommand, Move, MoveState
 LOGGING = False
 
 # Policy name
-AGENT_NAME = "walk_obs_delay2.onnx"
+AGENT_NAME = "walk_lean_forward.onnx"
 
 
 class WalkMove(Move):
@@ -25,6 +25,8 @@ class WalkMove(Move):
 
         # Load ONNX policy
         self._ort_session = ort.InferenceSession(f"src/agents/{AGENT_NAME}")
+
+        self.action_scale = 1.0
 
         # Reference pose: read from ONNX metadata
         meta = self._ort_session.get_modelmeta().custom_metadata_map
@@ -115,7 +117,7 @@ class WalkMove(Move):
 
         # Update command
         for i, name in enumerate(OBSERVATION_DOF_ORDER):
-            command.target_angles[name] = self._default_pose[name] + action[i]
+            command.target_angles[name] = self._default_pose[name] + action[i] * self.action_scale
 
         # Log positions and voltages
         if LOGGING:
