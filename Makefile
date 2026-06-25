@@ -1,4 +1,4 @@
-.PHONY: sync setup run run-no-sync stop voltage voltage-no-sync imu imu-no-sync gyro gyro-no-sync sim viewer
+.PHONY: sync setup run run-no-sync stop shutdown voltage voltage-no-sync imu imu-no-sync gyro gyro-no-sync sim viewer
 
 HOST ?= microban
 ID ?=
@@ -16,7 +16,8 @@ sync:
 		./ $(HOST):microban
 
 setup: sync
-	ssh $(HOST) "bash -l -c 'cd microban && uv sync'"
+	ssh $(HOST) "bash -l -c 'cd microban && uv sync --frozen'"
+# 	ssh -tt $(HOST) "sudo apt install -y libjsoncpp26 && sudo ln -sf /usr/lib/aarch64-linux-gnu/libjsoncpp.so.26 /usr/lib/aarch64-linux-gnu/libjsoncpp.so.24 && sudo ldconfig"
 
 sim:
 	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50
@@ -44,3 +45,6 @@ imu: sync
 
 imu-no-sync:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/imu.py'"
+
+shutdown:
+	ssh -tt $(HOST) "sudo shutdown -h now"
