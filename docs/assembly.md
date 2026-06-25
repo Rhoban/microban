@@ -196,7 +196,9 @@ To assemble the battery module, first connect the 4.2V pin of the BMS to the met
 
 ### 5.2 Trunk Top
 
-
+<p align="center">
+  <img width="60%" alt="image" src="https://github.com/user-attachments/assets/24028ff2-4bd2-4be3-9f0e-d7b23aa124b9" />
+</p>
 
 ## 6. Final Assembly
 
