@@ -132,7 +132,7 @@ Apply the changes:
 sudo reboot
 ```
 
-### OPTIONAL: Change the username
+### OPTIONAL - Change the username
 
 The image ships with the user `user`. A logged-in account cannot be renamed, so create
 a temporary admin account, rename from there, then remove it. Replace `NEW_USER` with
@@ -162,7 +162,7 @@ Apply the changes:
 sudo reboot
 ```
 
-### OPTIONAL: Change the hostname
+### OPTIONAL - Change the hostname
 
 Rename your robot so it no longer answers to `microban` on the network:
 ```bash
