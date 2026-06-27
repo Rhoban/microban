@@ -127,7 +127,12 @@ Run the password tool and follow the prompts:
 passwd
 ```
 
-### Change the username (optional)
+Apply the changes:
+```bash
+sudo reboot
+```
+
+### OPTIONAL: Change the username
 
 The image ships with the user `user`. A logged-in account cannot be renamed, so create
 a temporary admin account, rename from there, then remove it. Replace `NEW_USER` with
@@ -152,7 +157,12 @@ sudo userdel -r tmpadmin
 The shutdown-without-password rule still works (it targets the `sudo` group, not a
 name). Remember to update the `User` field in your `~/.ssh/config` (Step 5).
 
-### Change the hostname (optional)
+Apply the changes:
+```bash
+sudo reboot
+```
+
+### OPTIONAL: Change the hostname
 
 Rename your robot so it no longer answers to `microban` on the network:
 ```bash
@@ -165,14 +175,10 @@ sudo nano /etc/hosts
 Find the line containing `microban` (usually the second line) and replace it with your
 `NEW_ROBOT_NAME`. Save and exit (Ctrl+O, Enter, Ctrl+X).
 
-### Reboot
-
 Apply the changes:
 ```bash
 sudo reboot
 ```
-
-Your robot is now secured and discoverable at `<YOUR_USER>@<ROBOT_NAME>.local`.
 
 ## Step 5: Deploy the Software from Your Computer
 
