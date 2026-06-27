@@ -67,6 +67,8 @@ To build your own Microban, you will need to follow these steps:
 
 4. **Deploy the software:** Once the robot is assembled, you can deploy the software on the Raspberry Pi Zero 2W by following the instructions in the [Deployment Guide](docs/deployment.md). 
 
+5. **Drive it:** See the [Usage Guide](docs/usage.md) to run the robot, control it with the keyboard or a gamepad, and learn how to add your own moves.
+
 ---
 
 ## 🤝 Contributing

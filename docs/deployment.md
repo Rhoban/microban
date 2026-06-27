@@ -1,15 +1,20 @@
 # Software Installation & Deployment
 
-This guide takes you from the pre-built Microban SD-card image to your robot
-performing its first move. The image already contains the operating system and the
-Microban code; you will flash it, connect to the robot over the network, and drive
-it from your computer.
+This guide takes you from the pre-built Microban SD-card image to a robot you can drive
+from your computer. The image already contains the operating system and the Microban
+code; you will flash it, connect to the robot over the network, and run it. For
+day-to-day operation and development afterwards, see the [Usage Guide](usage.md).
 
-## Step 1: Flash the Image
+## Step 1: Download and Flash the Image
 
-Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) to write the
-provided `microban.img.xz` onto a micro-SD card. The card should be 16 GB or larger, and I advise using a new card, as corrupted cards can cause issues. Raspberry Pi Imager
-reads the compressed `.xz` directly — no need to decompress it first.
+Download the latest `microban.img.xz` from the
+[Releases page](https://github.com/MarcDcls/microban/releases) — it is attached as an
+asset to the most recent image release. There is no need to decompress it; Raspberry
+Pi Imager reads the compressed `.xz` directly.
+
+Then use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) to write
+`microban.img.xz` onto a micro-SD card. The card should be 16 GB or larger, and I
+advise using a new card, as corrupted cards can cause issues.
 
 1. Insert the micro-SD card into your computer.
 2. Open Raspberry Pi Imager. It is distributed as an AppImage, so make it executable
@@ -107,7 +112,7 @@ Open your terminal and connect over SSH:
 ssh user@microban.local
 ```
 
-> If `microban.local` cannot be found, look up your local router's DHCP client list
+> If `microban.local` cannot be found after 5 minutes, look up your local router's DHCP client list
 > to find the IP address assigned to the Pi, and connect with `ssh user@<IP>`.
 
 ## Step 4: Personalize and Secure Your Robot
@@ -157,17 +162,28 @@ installs the dependencies there.
    cd microban
    ```
 
-3. **Add an SSH alias** so the Makefile can reach the Pi. The Makefile expects the
-   host to be named `microban`. Add the following to your `~/.ssh/config`, replacing
-   the user and hostname with yours (use `NEW_ROBOT_NAME.local` if you renamed it in
-   Step 4):
+3. **Add SSH aliases** so the Makefile can reach the Pi. Add the following to your
+   `~/.ssh/config`, replacing `user` if you changed it and `<IP_ADDRESS>` with the
+   robot's IP on each network:
    ```
+   # Main network
    Host microban
-       HostName microban.local
+       HostName <IP_ADDRESS>
+       User user
+
+   # Secondary network / phone hotspot
+   Host microban-ext
+       HostName <IP_ADDRESS>
        User user
    ```
-   > If you prefer a different alias, pass it to every command with
-   > `make <target> HOST=<your-alias>`.
+   To find the robot's IP on a given network ping it from your computer while connected to that network:
+   ```bash
+   ping microban.local
+   ```
+
+   > The Makefile targets default to `HOST=microban`. To operate the robot over the
+   > secondary network, pass `HOST=microban-ext` (e.g. `make run HOST=microban-ext`),
+   > or export it for the whole session: `export HOST=microban-ext`.
 
 4. **Copy your SSH key** (recommended) so you are not prompted for a password on every
    command:
@@ -182,41 +198,17 @@ installs the dependencies there.
    ```
    This rsyncs your local copy to the robot and runs `uv sync --frozen` there.
 
-## Step 6: Run Your First Move
+## Step 6: Run the Robot
 
-1. Place the robot on a stable surface (or hold it securely) — the motors will enable
-   torque and hold their neutral pose.
+Your Microban is ready! Place it on a stable surface (or hold it securely), then start
+the control loop from your computer:
 
-2. Start the control loop from your computer:
-   ```bash
-   make run
-   ```
-   The robot ramps to its neutral pose and starts the control loop at 50 Hz. The
-   command stays attached to the robot so you can control it from this terminal.
+```bash
+make run
+```
 
-3. **Control it with the keyboard:**
-   | Key | Action |
-   | :--- | :--- |
-   | `v` | toggle the **walk** move |
-   | `h` | toggle the **head** move |
-   | `s` | toggle the **squat** move |
-   | arrows | `vx` (up/down), `vtheta` (left/right) |
-   | `x` | reset velocity to zero |
-   | `i` | toggle the IMU/gyro display |
-   | `q` | stop the control loop |
+On start the robot enables torque and ramps to its neutral pose, then runs the control
+loop at 50 Hz attached to your terminal. Press `q` or run `make stop` to stop.
 
-   Prefer a Bluetooth Xbox controller? See the [Gamepad guide](gamepad.md) — the left
-   stick drives, the right stick turns, and **A** toggles the walk.
-
-4. **Stop** the control loop at any time (disables torque on all motors):
-   ```bash
-   make stop
-   ```
-   (or press `q` in the `make run` terminal).
-
-5. **Power off** the robot cleanly when you are done:
-   ```bash
-   make shutdown
-   ```
-
-🎉 Your Microban is now up and running!
+🎉 For the full set of controls — Makefile commands, keyboard and gamepad driving,
+the available moves, and how to add your own — see the **[Usage Guide](usage.md)**.
