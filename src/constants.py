@@ -103,6 +103,7 @@ OVERCURRENT_PROXY_DELAY_TICKS: int = 3   # number of ticks to delay the proxy cu
 # Input sources emit normalized commands in [-1, 1]; scale_velocity() maps them to these.
 # Rotation gets a wider range when turning in place (vx = vy = 0) than while translating.
 VX_MAX: float = 0.7
+VX_MAX_BACKWARD: float = 0.5  # backward (vx < 0) is capped lower than forward
 VY_MAX: float = 0.3
 VTHETA_MAX_STATIONARY: float = 3.0
 VTHETA_MAX_MOVING: float = 1.5

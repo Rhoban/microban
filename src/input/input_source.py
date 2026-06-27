@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from constants import VX_MAX, VY_MAX, VTHETA_MAX_STATIONARY, VTHETA_MAX_MOVING
+from constants import VX_MAX, VX_MAX_BACKWARD, VY_MAX, VTHETA_MAX_STATIONARY, VTHETA_MAX_MOVING
 
 
 @dataclass
@@ -17,8 +17,8 @@ def scale_velocity(velocity: dict[str, float]) -> dict[str, float]:
     """Map a normalized velocity command in [-1, 1] per axis to physical limits.
 
     Applied centrally (in the scheduler) so the limits are identical for every input
-    source — keyboard, gamepad, or agent. Rotation gets a wider range when turning in
-    place (vx = vy = 0) than while translating.
+    source — keyboard, gamepad, or agent. Forward and backward have different caps, and
+    rotation gets a wider range when turning in place (vx = vy = 0) than while translating.
     """
     vx = max(-1.0, min(1.0, velocity.get("vx", 0.0)))
     vy = max(-1.0, min(1.0, velocity.get("vy", 0.0)))
@@ -26,8 +26,9 @@ def scale_velocity(velocity: dict[str, float]) -> dict[str, float]:
 
     moving = abs(vx) > 1e-6 or abs(vy) > 1e-6
     vtheta_max = VTHETA_MAX_MOVING if moving else VTHETA_MAX_STATIONARY
+    vx_max = VX_MAX if vx >= 0.0 else VX_MAX_BACKWARD
 
-    return {"vx": vx * VX_MAX, "vy": vy * VY_MAX, "vtheta": vtheta * vtheta_max}
+    return {"vx": vx * vx_max, "vy": vy * VY_MAX, "vtheta": vtheta * vtheta_max}
 
 
 class InputSource(ABC):

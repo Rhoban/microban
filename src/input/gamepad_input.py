@@ -27,14 +27,16 @@ _AXIS_FULL_SCALE = 32767.0
 # Standard xpad axis numbers.
 _AXIS_LX = 0   # left stick X
 _AXIS_LY = 1   # left stick Y
-_AXIS_RX = 3   # right stick X
+_AXIS_RX = 2   # right stick X (horizontal)
 
-# Standard xpad button numbers, exposed under friendly names.
+# Button numbers. A, B and START are verified on an Xbox controller over Bluetooth
+# (HID layout); the others follow the common layout and may differ on your pad — check
+# with `jstest /dev/input/js0` if needed.
 XBOX_BUTTONS = {
-    "A": 0, "B": 1, "X": 2, "Y": 3,
-    "LB": 4, "RB": 5,
-    "BACK": 6, "START": 7, "GUIDE": 8,
-    "L3": 9, "R3": 10,
+    "A": 0, "B": 1, "X": 3, "Y": 4,
+    "LB": 6, "RB": 7,
+    "BACK": 10, "START": 11, "GUIDE": 12,
+    "L3": 13, "R3": 14,
 }
 
 
@@ -47,7 +49,7 @@ def find_gamepad_path() -> str | None:
 class GamepadInputSource(InputSource):
     """Read an Xbox (or compatible) gamepad via the Linux joystick API in a daemon thread.
 
-    Left stick drives (vx, vy), right stick X drives vtheta. Buttons toggle moves.
+    Left stick drives (vx, vy), right stick drives vtheta. Buttons toggle moves.
     Designed as a drop-in replacement for KeyboardInputSource. Zero dependencies:
     reads raw 8-byte events from /dev/input/js* with struct.
 
@@ -62,7 +64,7 @@ class GamepadInputSource(InputSource):
     def __init__(
         self,
         button_moves: dict[str, str] | None = None,
-        stop_button: str = "START",
+        stop_button: str = "B",
         imu_button: str | None = "BACK",
         device_path: str | None = None,
         stop_flag_path: str = "/tmp/microban_scheduler.stop",
@@ -194,7 +196,7 @@ class GamepadInputSource(InputSource):
         lines = [
             "Gamepad controls:",
             "  left stick   vx (up/down), vy (left/right)",
-            "  right stick  vtheta (left/right)",
+            "  right stick  vtheta",
             *(f"  [{btn(number)}]  toggle move '{move}'" for number, move in self._move_numbers.items()),
         ]
         if self._imu_number is not None:

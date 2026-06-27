@@ -68,7 +68,8 @@ keyboard, gamepad and sim. Defaults (in [constants.py](../src/constants.py)):
 
 | Axis | Max |
 | :--- | :--- |
-| `vx` (forward) | ±0.7 |
+| `vx` (forward) | +0.7 |
+| `vx` (backward) | -0.5 |
 | `vy` (lateral) | ±0.3 |
 | `vtheta` (turning in place, `vx = vy = 0`) | ±3.0 |
 | `vtheta` (while translating) | ±1.5 |

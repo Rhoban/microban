@@ -111,9 +111,9 @@ class KeyboardInputSource(InputSource):
         elif key == _ARROW_DOWN:
             self._adjust_velocity("vx", -VELOCITY_STEP)
         elif key == _ARROW_RIGHT:
-            self._adjust_velocity("vtheta", +VELOCITY_STEP)
-        elif key == _ARROW_LEFT:
             self._adjust_velocity("vtheta", -VELOCITY_STEP)
+        elif key == _ARROW_LEFT:
+            self._adjust_velocity("vtheta", +VELOCITY_STEP)
 
     def _adjust_velocity(self, axis: str, delta: float) -> None:
         with self._lock:

@@ -10,10 +10,13 @@ keyboard otherwise.
 ### Mapping
 
 - **Left stick**: `vx` (up/down), `vy` (left/right)
-- **Right stick (X)**: `vtheta` (left/right)
+- **Right stick** (left/right): `vtheta`
 - **A**: toggle the `walk` move
+- **B**: stop the scheduler (writes the stop flag)
 - **View/Back** button: toggle the IMU/gyro display
-- **Menu/Start** button: stop the scheduler (writes the stop flag)
+
+Axis and button numbers vary between controllers (especially over Bluetooth) — if
+something doesn't respond as expected, see [Remapping](#remapping-for-your-controller).
 
 Every input source emits a **normalized** command in `[-1, 1]` per axis. The physical
 limits are applied centrally by `scale_velocity()` (in the scheduler), so they are
@@ -67,13 +70,38 @@ Once paired, a device node appears:
 ls /dev/input/js*        # e.g. /dev/input/js0
 ```
 
-You can watch raw events with `jstest` (from the `joystick` package, optional):
+You can watch raw events with `jstest` (from the `joystick` package):
 
 ```
+sudo apt install -y joystick
 jstest /dev/input/js0
 ```
 
-Button/axis numbers follow the standard xpad layout (A=0, B=1, X=2, Y=3, Back=6,
-Start=7; left stick = axes 0/1, right stick X = axis 3). If your controller maps
-them differently over Bluetooth, adjust the numbers at the top of
-[gamepad_input.py](../src/input/gamepad_input.py).
+### Remapping for your controller
+
+Xbox controllers don't all expose the same axis/button numbers — over Bluetooth the
+kernel often uses a different layout than the wired `xpad` one. If a stick or button
+doesn't behave as expected, find the real numbers and update the constants.
+
+1. Run `jstest /dev/input/js0`, then move each stick and press each button one at a
+   time, noting the `Axis N` / `Button N` that changes:
+
+   | Action | Note the number |
+   | :--- | :--- |
+   | Left stick horizontal / vertical | `Axis` → `_AXIS_LX` / `_AXIS_LY` |
+   | Right stick horizontal | `Axis` → `_AXIS_RX` (drives `vtheta`) |
+   | A / B / Back / Start | `Button` → `XBOX_BUTTONS` |
+
+2. Edit the constants at the top of
+   [gamepad_input.py](../src/input/gamepad_input.py):
+   - `_AXIS_LX`, `_AXIS_LY`, `_AXIS_RX` — the stick axis numbers.
+   - `XBOX_BUTTONS` — the button name → number map (at least the ones you use).
+   - `VX_SIGN`, `VY_SIGN`, `VTHETA_SIGN` — flip between `+1.0` / `-1.0` if a direction
+     is reversed.
+
+3. Which button does what is set by `GAMEPAD_BUTTON_MOVES` in
+   [main.py](../src/main.py) (moves) and the `stop_button` / `imu_button` arguments of
+   `GamepadInputSource` (defaults: stop = `B`, IMU = `BACK`).
+
+The defaults shipped in the repo (A=0, B=1, Start=11; left stick = axes 0/1, right
+stick horizontal = axis 2) are verified on an Xbox controller over Bluetooth.
