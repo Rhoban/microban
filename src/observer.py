@@ -42,7 +42,9 @@ class Observer:
         self.controller = controller
         self._last_imu_warn_s: float = 0.0
         self._imu_warn_interval_s: float = 1.0
+
         self.observe_voltage: bool = False
+        
         # When True, reads present_current each tick and the overcurrent safety uses the measured
         # current. When False (default), no extra bus read — the safety falls back to the cheaper
         # position-error proxy in the scheduler, keeping the IMU read latency low.
