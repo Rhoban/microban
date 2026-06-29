@@ -20,6 +20,8 @@ The main features of Microban are:
 *   🔧 **DIY & Maker Friendly**: Guided assembly instructions, fully 3D-printable parts and cheap components.
 *   📏 **Compact Size**: Microban is only 30cm tall and can be recharged via USB-C, making it the perfect desktop companion for robotics experimentation.
 
+To see the robot take its first steps, check out this YouTube video: [https://youtu.be/1pnFrT_jfXQ](https://youtu.be/1pnFrT_jfXQ)
+
 ---
 
 ## 🛠️ Components Overview
