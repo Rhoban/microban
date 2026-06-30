@@ -33,7 +33,7 @@ Here is a quick overview of what is in the robot:
 | **3D Printed Parts** | ~30 | Check the CAD files. Recommended material is PLA. |
 | **Servo Motors** | 19 | Dynamixel XL330-M288-T servomotor. |
 | **Microcontroller**| 1 | Raspberry Pi Zero 2W. |
-| **Board Hat** | 1 | Pollen RPI Robot Hat for Raspberry Pi Zero 2W |
+| **Board Hat** | 1 | Pollen RPI Robot Hat for Raspberry Pi Zero 2W. |
 | **Power Supply** | 2 | 18650 3.7V Lithium-ion Batteries. |
 | **Battery Holder** | 1 | 2x18650 Battery Holder. |
 | **USB-C Charger** | 1 | Standard USB-C charger. |
