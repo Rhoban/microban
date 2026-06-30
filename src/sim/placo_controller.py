@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Marc Duclusaud
+
 """MeshCat viewer controller using placo kinematics — never deployed to the robot."""
 
 import math

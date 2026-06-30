@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Marc Duclusaud
+
 """Read and print the bus voltage from one or all motors."""
 
 import sys

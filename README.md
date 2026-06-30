@@ -1,6 +1,7 @@
 # Microban: A Compact, Fully 3D-Printable Open-Source Humanoid Robot
 
 [![License: CERN-OHL-S-2.0](https://img.shields.io/badge/Hardware-CERN--OHL--S--2.0-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/Software-Apache--2.0-yellow.svg)](LICENSE)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18470949-blue)](https://doi.org/10.5281/zenodo.20784789)
 
 <p align="center">

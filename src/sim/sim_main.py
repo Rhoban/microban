@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Marc Duclusaud
+
 """Local simulation entry point — never deployed to the robot.
 
 Usage:

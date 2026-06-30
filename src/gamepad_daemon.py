@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Marc Duclusaud
+
 """Headless gamepad launcher.
 
 Runs as a background service (opt-in, see systemd/microban-gamepad.service). While the

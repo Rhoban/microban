@@ -1,0 +1,15 @@
+Microban hardware design files (CAD)
+Copyright 2026 Marc Duclusaud
+
+All files in this directory (STL and STEP files) are licensed under the
+CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S-2.0).
+
+    SPDX-License-Identifier: CERN-OHL-S-2.0
+
+Because these are binary files that cannot carry an embedded notice, this
+file serves as the license notice for the whole directory.
+
+Source Location: https://github.com/MarcDcls/microban
+
+The full text of the CERN-OHL-S-2.0 licence is available in the LICENSE
+file at the root of this repository.

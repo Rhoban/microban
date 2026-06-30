@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Marc Duclusaud
+
 """Standalone IMU reader — prints roll, pitch, yaw and gyroscope data at 2 Hz.
 
 Usage:

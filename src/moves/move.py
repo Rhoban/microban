@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Marc Duclusaud
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto

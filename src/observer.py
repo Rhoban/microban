@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Marc Duclusaud
+
 from dataclasses import dataclass, field
 import time
 
@@ -86,4 +89,3 @@ class Observer:
                 self._last_imu_warn_s = now
 
         return state
-
