@@ -18,10 +18,11 @@ VTHETA_SIGN = -1.0  # right stick X: reports right as positive
 
 # Linux joystick API (Documentation/input/joydev/joystick-api.rst).
 # Each event is: __u32 time (ms), __s16 value, __u8 type, __u8 number.
-_JS_EVENT = struct.Struct("=IhBB")
-_JS_EVENT_BUTTON = 0x01
-_JS_EVENT_AXIS = 0x02
-_JS_EVENT_INIT = 0x80  # ORed into the type for synthetic startup events (ignored)
+# Public so gamepad_daemon can reuse the same parser.
+JS_EVENT = struct.Struct("=IhBB")
+JS_EVENT_BUTTON = 0x01
+JS_EVENT_AXIS = 0x02
+JS_EVENT_INIT = 0x80  # ORed into the type for synthetic startup events (ignored)
 _AXIS_FULL_SCALE = 32767.0
 
 # Standard xpad axis numbers.
@@ -135,23 +136,30 @@ class GamepadInputSource(InputSource):
             if not select.select([fd], [], [], 0.1)[0]:
                 continue
             try:
-                data = os.read(fd, _JS_EVENT.size * 32)
+                data = os.read(fd, JS_EVENT.size * 32)
             except BlockingIOError:
                 continue
             except OSError:
-                print("Gamepad disconnected", end="\r\n", flush=True)
+                self._on_disconnect()
                 break
             if not data:
-                print("Gamepad disconnected", end="\r\n", flush=True)
+                self._on_disconnect()
                 break
-            for offset in range(0, len(data) - _JS_EVENT.size + 1, _JS_EVENT.size):
-                _, value, ev_type, number = _JS_EVENT.unpack_from(data, offset)
-                if ev_type & _JS_EVENT_INIT:
+            for offset in range(0, len(data) - JS_EVENT.size + 1, JS_EVENT.size):
+                _, value, ev_type, number = JS_EVENT.unpack_from(data, offset)
+                if ev_type & JS_EVENT_INIT:
                     continue  # ignore synthetic startup snapshots
-                if ev_type == _JS_EVENT_AXIS:
+                if ev_type == JS_EVENT_AXIS:
                     self._handle_axis(number, value)
-                elif ev_type == _JS_EVENT_BUTTON and value == 1:
+                elif ev_type == JS_EVENT_BUTTON and value == 1:
                     self._handle_button(number)
+
+    def _on_disconnect(self) -> None:
+        # Stop commanding motion on the last (now stale) stick values, otherwise the
+        # robot would keep moving on the velocity it had when the controller dropped.
+        with self._lock:
+            self._state.velocity = {"vx": 0.0, "vy": 0.0, "vtheta": 0.0}
+        print("Gamepad disconnected (velocity zeroed)", end="\r\n", flush=True)
 
     def _normalize(self, value: int) -> float:
         norm = max(-1.0, min(1.0, value / _AXIS_FULL_SCALE))

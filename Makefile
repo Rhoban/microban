@@ -1,4 +1,4 @@
-.PHONY: sync setup run stop shutdown voltage imu sim viewer
+.PHONY: sync setup run stop shutdown voltage imu sim viewer gamepad-headless-enable gamepad-headless-disable
 
 HOST ?= microban
 ID ?=
@@ -39,3 +39,11 @@ imu: sync
 
 shutdown:
 	ssh -tt $(HOST) "sudo shutdown -h now"
+
+# Opt-in headless mode: a service launches the control loop when START is held 2s on
+# the gamepad (no SSH needed); B stops it. See docs/usage.md.
+gamepad-headless-enable: sync
+	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh'"
+
+gamepad-headless-disable:
+	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh --uninstall'"

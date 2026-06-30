@@ -14,6 +14,19 @@ from moves.walk import WalkMove
 
 PID_FILE = Path("/tmp/microban_scheduler.pid")
 
+
+def _another_session_running() -> bool:
+    """True if a live control loop already owns the PID file (e.g. launched by the
+    gamepad daemon). Avoids two instances fighting over the motor bus."""
+    if not PID_FILE.exists():
+        return False
+    try:
+        pid = int(PID_FILE.read_text(encoding="ascii").strip())
+        os.kill(pid, 0)
+    except (ValueError, OSError):
+        return False
+    return True
+
 # Which moves can be toggled from the gamepad / keyboard.
 MOVE_KEYS = {"h": "head", "s": "squat", "v": "walk"}
 GAMEPAD_BUTTON_MOVES = {"A": "walk"}
@@ -59,6 +72,10 @@ def ramp_to_neutral(controller: RobotController, duration_s: float = 2.0) -> Non
 
 
 def main() -> None:
+    if _another_session_running():
+        print("A control loop is already running (see the PID file); aborting.")
+        return
+
     PID_FILE.write_text(f"{os.getpid()}\n", encoding="ascii")
 
     controller = RobotController()

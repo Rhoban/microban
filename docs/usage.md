@@ -54,6 +54,30 @@ drives, the right stick turns, and **A** toggles the walk. See the
 [Gamepad guide](gamepad.md) for pairing and the full mapping. `main.py` uses the
 gamepad automatically when one is connected, and falls back to the keyboard otherwise.
 
+## Headless gamepad mode (no SSH)
+
+An optional service lets you run the robot **without any terminal**: once the
+controller is connected to the Pi, **hold START for 2 s** to start the control loop,
+and press **B** to stop it. It coexists with `make run` (only one control loop runs at a
+time).
+
+Enable it (opt-in) from your computer:
+```bash
+make gamepad-headless-enable     # installs + starts the service on the Pi
+make gamepad-headless-disable    # removes it
+```
+
+Behavior while a headless session runs:
+- **Wi‑Fi is turned off** to free the 2.4 GHz antenna for Bluetooth (fewer controller
+  dropouts), and restored when the session stops. It uses `rfkill` (a soft block), so a
+  reboot always brings Wi‑Fi back.
+- If the **controller disconnects**, the robot's velocity is zeroed so it stops moving
+  (torque stays on, holding its pose). Reconnect and press **B** — or `make stop` once
+  Wi‑Fi is back, or power off — to end the session.
+
+`make stop` won't reach the robot while Wi‑Fi is off, so use **B** to stop a headless
+session.
+
 ## Moves
 
 Moves are toggled independently and run on top of the neutral pose:
