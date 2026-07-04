@@ -1,7 +1,7 @@
 # Microban: A Compact, Fully 3D-Printable Open-Source Humanoid Robot
 
-[![License: CERN-OHL-S-2.0](https://img.shields.io/badge/Hardware-CERN--OHL--S--2.0-blue.svg)](LICENSE)
-[![License: Apache-2.0](https://img.shields.io/badge/Software-Apache--2.0-yellow.svg)](LICENSE)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/Hardware-CC%20BY--NC--SA%204.0-orange.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+[![License: GPL v3](https://img.shields.io/badge/Software-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18470949-blue)](https://doi.org/10.5281/zenodo.20784789)
 
 <p align="center">
@@ -76,15 +76,29 @@ To build your own Microban, you will need to follow these steps:
 
 ## 🤝 Contributing
 
-This project is community-driven! Whether it's designing a new head, improving the leg kinematics, writing code, or simply fixing typos in the documentation, contributions are always welcome. 
+This project is community-driven! Whether it's designing a new head, writing code, or simply fixing typos in the documentation, contributions are always welcome. 
 
 Feel free to fork the repository, make your changes, and submit a Pull Request. If you build your own Microban, please share it in the Discussions tab!
 
 ---
 
-## 📄 License
+## 📄 License & Commercial Use
 
-This project is licensed under the **CERN-OHL-S-2.0** License - see the [LICENSE](LICENSE) file for details.
+This project uses a dual-licensing model to keep the project open for the community while protecting the author's work from unauthorized commercial exploitation.
+
+* **Hardware & Documentation (CAD, STL, Docs):** Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+* **Software (Source Code):** Licensed under [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.html).
+
+### 💡 TL;DR (Simplified Summary)
+
+* **Hobbyists, Makers & Researchers:** You are **100% free** to download, 3D-print, build, modify, and hack Microban for your personal, educational, or academic research use. If you share your modifications, you must release them under the same licenses.
+* **Commercial Entities & Companies:** You **cannot** sell this robot, sell parts/kits, or use this hardware/software design in commercial products without prior explicit written permission.
+
+### ⚠️ Commercial Inquiries
+
+If you wish to manufacture, distribute, or sell products based on Microban (including selling pre-printed 3D parts, electronics kits, or fully assembled robots), you **must acquire a Commercial License**.
+
+For licensing terms, commercial partnerships, or inquiries, please reach out to me on [LinkedIn](https://www.linkedin.com/in/marc-duclusaud/).
 
 ---
 

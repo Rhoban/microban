@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2026 Marc Duclusaud
 
 """Read and print the bus voltage from one or all motors."""
