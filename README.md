@@ -1,4 +1,4 @@
-# Microban: A Compact, Fully 3D-Printable Open-Source Humanoid Robot
+# Microban: A Compact, Fully 3D-Printable Humanoid Robot
 
 [![License: GPL v3](https://img.shields.io/badge/Software-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/Hardware-CC%20BY--NC--SA%204.0-orange.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
@@ -12,9 +12,9 @@
   
 Welcome to the **Microban** project! 
 
-Microban is a \~30cm tall, fully open-source humanoid robot designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low ($550-$600), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
+Microban is a \~30cm tall humanoid robot designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low ($550-$600), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
 
-The idea behind Microban is to provide a platform for learning and experimentation in robotics. By making the design open-source, users are encouraged to modify, improve, and share their own versions of the robot. Whether you're interested in programming, mechanical design, or electronics, Microban offers a hands-on experience that can help you develop your skills in a fun and engaging way.
+The idea behind Microban is to provide a platform for learning and experimentation in robotics. By making the design open, users are encouraged to modify, improve, and share their own versions of the robot. Whether you're interested in programming, mechanical design, or electronics, Microban offers a hands-on experience that can help you develop your skills in a fun and engaging way.
 
 The main features of Microban are:
 *   🤖 **100% Open-Source**: Mechanics, 3D models, and documentation are entirely free to use and modify.
