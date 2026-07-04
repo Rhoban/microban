@@ -1,4 +1,4 @@
-# Microban: A Compact, Fully 3D-Printable Humanoid Robot
+# Microban: A Compact, Fully 3D-Printable Open-Source Humanoid Robot
 
 [![License: GPL v3](https://img.shields.io/badge/Software-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/Hardware-CC%20BY--NC--SA%204.0-orange.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
@@ -111,10 +111,10 @@ If you use Microban in your research, please cite it as follows:
     author = {Duclusaud, Marc},
     doi = {10.5281/zenodo.20784789},
     month = jun,
-    title = {{Microban: A Compact, Fully 3D-Printable Humanoid Robot}},
+    title = {{Microban: A Compact, Fully 3D-Printable Open-Source Humanoid Robot}},
     url = {https://github.com/MarcDcls/microban},
     howpublished = "\url{https://github.com/MarcDcls/microban}",
-    version = {0.0.1},
+    version = {1.0.0},
     year = {2026}
 }
 ```
