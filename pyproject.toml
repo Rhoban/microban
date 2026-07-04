@@ -14,7 +14,7 @@ dependencies = [
 
 [dependency-groups]
 sim = [
-    "bam",
+    "better-actuator-models",
     "mujoco>=3.8.1",
 ]
 
@@ -22,6 +22,3 @@ sim = [
 override-dependencies = [
     "numpy>=2.3",
 ]
-
-[tool.uv.sources]
-bam = { git = "ssh://git@github.com/rhoban/bam", branch = "doc" }
