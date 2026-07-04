@@ -1,38 +1,13 @@
-## Gamepad control (Xbox / Bluetooth)
+# Gamepad control through Bluetooth
 
 The robot can be driven with a Bluetooth gamepad (Xbox or compatible). The gamepad
-is paired with **the Pi** and read directly there via the Linux joystick API
-(`/dev/input/js*`), in the same process as the control loop. This needs no extra
-dependency and no compilation — events are parsed from raw bytes with `struct`.
-`main.py` uses the gamepad automatically when one is connected and falls back to the
-keyboard otherwise.
+is paired with the Raspberry Pi and read directly there via the Linux joystick API
+(`/dev/input/js*`), in the same process as the control loop. 
 
-### Mapping
+Pairing a gamepad allows to drive the robot through two different modes: with a terminal (SSH) or fully headless (no SSH, no terminal). The second mode is particularly useful for demonstration purposes, 
+due to the fact that it allows to drive the robot without any computer connected to it. 
 
-- **Left stick**: `vx` (up/down), `vy` (left/right)
-- **Right stick** (left/right): `vtheta`
-- **A**: toggle the `walk` move
-- **B**: stop the scheduler (writes the stop flag)
-- **View/Back** button: toggle the IMU/gyro display
-
-Axis and button numbers vary between controllers (especially over Bluetooth) — if
-something doesn't respond as expected, see [Remapping](#remapping-for-your-controller).
-
-Every input source emits a **normalized** command in `[-1, 1]` per axis. The physical
-limits are applied centrally by `scale_velocity()` (in the scheduler), so they are
-identical for keyboard, gamepad and sim: `vx` ±0.7, `vy` ±0.3, `vtheta` ±3.0 when
-turning in place (`vx = vy = 0`) and ±1.5 while translating. Tune these via
-`VX_MAX` / `VY_MAX` / `VTHETA_MAX_STATIONARY` / `VTHETA_MAX_MOVING` in
-[constants.py](../src/constants.py).
-
-Signs, deadzone and button mapping are constants at the top of
-[gamepad_input.py](../src/input/gamepad_input.py); the move/button mapping is set
-via `GAMEPAD_BUTTON_MOVES` in [main.py](../src/main.py).
-
-Force a source with the `MICROBAN_INPUT` environment variable
-(`gamepad`, `keyboard`, or `auto`, the default).
-
-### Pairing the controller on the Pi
+## Pairing the controller on the Pi
 
 On the Pi, put the Xbox controller in pairing mode (hold the pair button until the
 Xbox light flashes fast), then:
@@ -51,39 +26,75 @@ bluetoothctl
 
 Once paired and trusted, the controller reconnects automatically when powered on.
 
-### Device permissions
+## SSH usage
 
-Reading `/dev/input/js*` requires membership in the `input` group (otherwise you'd
-need root):
+When the controller is connected, the `make run` command uses it as input automatically instead of the keyboard. The mapping is:
+
+- **Left stick**: `vx` (up/down), `vy` (left/right)
+- **Right stick** (left/right): `vtheta`
+- **A**: toggle the `walk` move
+- **B**: stop the scheduler (writes the stop flag)
+- **View/Back** button: toggle the IMU/gyro display
+
+Axis and button numbers vary between controllers (especially over Bluetooth) — if
+something doesn't respond as expected, see [Remapping](#remapping-for-your-controller).
+
+Every input source emits a **normalized** command in `[-1, 1]` per axis. The physical
+limits are applied centrally by `scale_velocity()` in the scheduler, so they are
+identical for keyboard, gamepad and sim: `vx` ±0.7, `vy` ±0.3, `vtheta` ±3.0 when
+turning in place (`vx = vy = 0`) and ±1.5 while translating. Tune these via
+`VX_MAX` / `VY_MAX` / `VTHETA_MAX_STATIONARY` / `VTHETA_MAX_MOVING` in
+[constants.py](../src/constants.py).
+
+Signs, deadzone and button mapping are constants at the top of
+[gamepad_input.py](../src/input/gamepad_input.py); the move/button mapping is set
+via `GAMEPAD_BUTTON_MOVES` in [main.py](../src/main.py).
+
+## Headless mode (no SSH)
+
+The headless mode is an optional service that lets you run the robot **without any terminal**. To activate it, power off the controller, then run the following commands on your computer:
 
 ```
-sudo usermod -aG input $USER
+make gamepad-headless-enable
 ```
 
-Log out and back in (or reboot) for the group change to take effect.
+Once enabled, it launches a daemon on the Pi that waits for a controller to connect over Bluetooth. Once a controller is connected, the Wi-Fi is turned off to free the 2.4 GHz antenna and the following commands are available on the controller:
 
-### Verifying
+- **Hold START for 2 s** → start the control loop.
+- **A** → toggle the `walk` move.
+- **B** → stop the control loop.
+- **Hold BACK for 2 s** → power off the Pi cleanly.
 
-Once paired, a device node appears:
+The headless mode persists across reboots, which means that you don't need to connect to the Pi over SSH to enable it again. It is particularly useful for demonstration purposes, as it allows to drive the robot without any computer connected to it.
 
+If the **controller disconnects** during a session, the robot's velocity is zeroed so
+it stops moving (torque stays on, holding its pose). Reconnect and press **B** or power off the robot end the session.
+
+Whenever the daemon is left with no controller connected — because it disconnected,
+because the control loop crashed, or because the robot just booted — Wi-Fi is
+(re)enabled automatically. You don't need to power-cycle the robot to get SSH back;
+simply turning the controller off is enough.
+
+> [!IMPORTANT]
+> As the Wi-Fi is turned off when the controller is connected, so you won't be able to connect to the Pi over SSH while the controller is connected. If you need to connect to the Pi over SSH, power off the controller
+
+To disable the headless mode, run the following command (after powering off the controller):
 ```
-ls /dev/input/js*        # e.g. /dev/input/js0
+make gamepad-headless-disable
 ```
 
-You can watch raw events with `jstest` (from the `joystick` package):
-
-```
-sudo apt install -y joystick
-jstest /dev/input/js0
-```
-
-### Remapping for your controller
+## Remapping for your controller
 
 Xbox controllers don't all expose the same axis/button numbers — over Bluetooth the
 kernel often uses a different layout than the wired `xpad` one. If a stick or button
 doesn't behave as expected, find the real numbers and update the constants.
 
-1. Run `jstest /dev/input/js0`, then move each stick and press each button one at a
+1. Install the joystick package and run `jstest` on the device node:
+```
+sudo apt install -y joystick
+```
+
+2. Run `jstest /dev/input/js0`, then move each stick and press each button one at a
    time, noting the `Axis N` / `Button N` that changes:
 
    | Action | Note the number |
@@ -92,14 +103,14 @@ doesn't behave as expected, find the real numbers and update the constants.
    | Right stick horizontal | `Axis` → `_AXIS_RX` (drives `vtheta`) |
    | A / B / Back / Start | `Button` → `XBOX_BUTTONS` |
 
-2. Edit the constants at the top of
+3. Edit the constants at the top of
    [gamepad_input.py](../src/input/gamepad_input.py):
    - `_AXIS_LX`, `_AXIS_LY`, `_AXIS_RX` — the stick axis numbers.
    - `XBOX_BUTTONS` — the button name → number map (at least the ones you use).
    - `VX_SIGN`, `VY_SIGN`, `VTHETA_SIGN` — flip between `+1.0` / `-1.0` if a direction
      is reversed.
 
-3. Which button does what is set by `GAMEPAD_BUTTON_MOVES` in
+4. Which button does what is set by `GAMEPAD_BUTTON_MOVES` in
    [main.py](../src/main.py) (moves) and the `stop_button` / `imu_button` arguments of
    `GamepadInputSource` (defaults: stop = `B`, IMU = `BACK`).
 

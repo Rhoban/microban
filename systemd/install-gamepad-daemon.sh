@@ -22,7 +22,7 @@ USER_NAME=${SUDO_USER:-$(whoami)}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 
 # Let the daemon (running as $USER_NAME, in the sudo group) toggle Wi-Fi and power off
-# without a password (Wi-Fi off during a session; BACK held 2s = shutdown).
+# without a password (Wi-Fi off while the gamepad is connected; BACK held 2s = shutdown).
 cat > "$SUDOERS" <<EOF
 %sudo ALL=(root) NOPASSWD: /usr/sbin/rfkill block wifi, /usr/sbin/rfkill unblock wifi, /usr/sbin/shutdown
 EOF

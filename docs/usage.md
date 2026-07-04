@@ -2,7 +2,8 @@
 
 This guide covers day-to-day operation once the robot has been set up (see the
 [Deployment Guide](deployment.md)). You drive the robot from your computer with the
-`Makefile`, which talks to the Pi over SSH.
+`Makefile`, which talks to the Pi over SSH. You can use the keyboard or a Bluetooth 
+gamepad to control it, and optionally run it
 
 > [!IMPORTANT]
 > Always run `make shutdown` before cutting power to the robot. This is **not**
@@ -49,39 +50,9 @@ by default; add `HOST=microban-ext` to operate over the secondary network (see t
 
 ## Controlling with a gamepad
 
-A Bluetooth Xbox controller can be used instead of the keyboard: the left stick
-drives, the right stick turns, and **A** toggles the walk. See the
-[Gamepad guide](gamepad.md) for pairing and the full mapping. `main.py` uses the
-gamepad automatically when one is connected, and falls back to the keyboard otherwise.
+A Bluetooth Xbox controller can be used instead of the keyboard. The detailed explanation of the gamepad usage is in [Gamepad Guide](gamepad.md). 
 
-## Headless gamepad mode (no SSH)
-
-An optional service lets you run the robot **without any terminal**: once the
-controller is connected to the Pi:
-- **Hold START for 2 s** → start the control loop.
-- **B** → stop it.
-- **Hold BACK for 2 s** → power off the Pi cleanly.
-
-It coexists with `make run` (only one control loop runs at a time).
-
-Enable it (opt-in) from your computer:
-```bash
-make gamepad-headless-enable     # installs + starts the service on the Pi
-make gamepad-headless-disable    # removes it
-```
-Once enabled it **persists across reboots** (the robot comes back in headless mode on
-every power-on) until you run `make gamepad-headless-disable`.
-
-Behavior while a headless session runs:
-- **Wi‑Fi is turned off** to free the 2.4 GHz antenna for Bluetooth (fewer controller
-  dropouts), and restored when the session stops. It uses `rfkill` (a soft block), so a
-  reboot always brings Wi‑Fi back.
-- If the **controller disconnects**, the robot's velocity is zeroed so it stops moving
-  (torque stays on, holding its pose). Reconnect and press **B** — or `make stop` once
-  Wi‑Fi is back, or power off — to end the session.
-
-`make stop` won't reach the robot while Wi‑Fi is off, so use **B** to stop a headless
-session.
+Using a gamepad allows to drive the robot through two different modes: with a terminal (SSH) or fully headless (no SSH, no terminal). The second mode is particularly useful for demonstration purposes, due to the fact that it allows to drive the robot without any computer connected to it.
 
 ## Moves
 

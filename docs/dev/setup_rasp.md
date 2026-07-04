@@ -235,4 +235,11 @@ cloud-init re-run, so the motors stay reachable.
 > UART stays on via `enable_uart=1` in `config.txt`, and you disable the console once
 > with `raspi-config` (Interface Options → Serial Port → login shell: No, hardware: Yes).
 
+### Device permissions
 
+Reading `/dev/input/js*` requires membership in the `input` group (otherwise you'd
+need root):
+
+```
+sudo usermod -aG input $USER
+```

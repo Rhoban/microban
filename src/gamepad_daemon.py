@@ -7,8 +7,16 @@ Runs as a background service (opt-in, see systemd/microban-gamepad.service). Whi
 robot has no control loop running, it watches the Bluetooth controller and, when START
 is held for 2 s, starts the control loop (the same `src/main.py` that `make run` runs) —
 no SSH needed. The control loop is stopped from the gamepad with B (writes the stop
-flag). Wi-Fi is turned off while a session runs to free the 2.4 GHz antenna for
-Bluetooth, and restored when it ends.
+flag).
+
+Wi-Fi is cut as soon as the gamepad connects over Bluetooth (to free the 2.4 GHz
+antenna) and restored whenever it's not connected — independent of whether a
+control-loop session is actually running. Whenever the daemon has to wait for a
+gamepad (at startup, or after it disconnects, or after a control-loop crash), it
+first makes sure Wi-Fi is enabled, undoing any stale `rfkill` block left over from
+an unclean shutdown or crash. This means powering the controller off before booting
+the robot keeps Wi-Fi up, giving you an escape hatch to SSH in (e.g. to run
+`make gamepad-headless-disable`) even with headless mode enabled.
 
 Coexists with `make run`: main.py refuses to start a second session (PID guard), and
 this daemon skips launching if one is already running.
@@ -73,13 +81,19 @@ def wifi(enabled: bool) -> None:
 
 
 def wait_for_gamepad() -> str:
-    """Block until a joystick device is present, then return its path."""
-    while True:
-        path = find_gamepad_path()
-        if path is not None:
-            print(f"Gamepad connected: {path}", flush=True)
-            return path
-        time.sleep(1.0)
+    """Block until a joystick device is present, then return its path.
+
+    If none is connected yet, Wi-Fi is (re)enabled first. This is what makes the
+    robot reachable over SSH at boot and after a control-loop crash.
+    """
+    path = find_gamepad_path()
+    if path is None:
+        wifi(enabled=True)
+        while path is None:
+            time.sleep(1.0)
+            path = find_gamepad_path()
+    print(f"Gamepad connected: {path}", flush=True)
+    return path
 
 
 def wait_for_action(path: str) -> str:
@@ -140,14 +154,10 @@ def power_off() -> None:
 def run_session() -> None:
     """Start the control loop and block until it exits (B button or crash)."""
     print("Launching control loop", flush=True)
-    wifi(enabled=False)
-    try:
-        env = {**os.environ, "PYTHONPATH": "src"}
-        proc = subprocess.Popen([sys.executable, "src/main.py"], cwd=str(REPO), env=env)
-        proc.wait()
-        print(f"Control loop exited (code {proc.returncode})", flush=True)
-    finally:
-        wifi(enabled=True)
+    env = {**os.environ, "PYTHONPATH": "src"}
+    proc = subprocess.Popen([sys.executable, "src/main.py"], cwd=str(REPO), env=env)
+    proc.wait()
+    print(f"Control loop exited (code {proc.returncode})", flush=True)
 
 
 def main() -> None:
@@ -157,10 +167,12 @@ def main() -> None:
     print("microban gamepad daemon started", flush=True)
     while True:
         path = wait_for_gamepad()
+        wifi(enabled=False)  # gamepad connected over Bluetooth: free the 2.4 GHz band
         action = wait_for_action(path)
 
         if action == "disconnect":
             print("Gamepad disconnected while armed", flush=True)
+            wifi(enabled=True)
             continue
         if action == "shutdown":
             power_off()
