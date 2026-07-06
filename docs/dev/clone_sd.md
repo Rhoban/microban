@@ -24,7 +24,13 @@ sudo truncate -s 0 "$R/etc/machine-id"
 sudo rm -rf "$R"/var/lib/cloud/instances/* "$R"/var/lib/cloud/instance \
             "$R"/var/lib/cloud/sem/* "$R"/var/lib/cloud/data/*
 
-# Your Wi-Fi credentials (if any NetworkManager connection was created)
+# netcfg watcher stamp — records the sha256 of the last-applied network-config
+# (see setup_rasp.md, microban-netcfg-reapply.service). If left behind, it still
+# holds YOUR network's hash, so the first user's identical-looking config can be seen
+# as "unchanged" and the Wi-Fi never gets re-applied. Always clear it here.
+sudo rm -f "$R"/var/lib/microban/netcfg.sha256
+
+# Your Wi-Fi credentials (any NetworkManager connection you created).
 sudo rm -f "$R"/etc/NetworkManager/system-connections/*.nmconnection
 
 # Your SSH public key, shell history, caches and logs
