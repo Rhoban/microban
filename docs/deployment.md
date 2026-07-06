@@ -70,6 +70,10 @@ network:
 
 ⚠️ CRITICAL: DO NOT modify the YAML format. It is strictly space-sensitive and should not be changed. 
 
+📶 CRITICAL: the network **must be 2.4 GHz**. The Raspberry Pi Zero 2 W has a 2.4 GHz-only
+Wi-Fi chip and **cannot see or join a 5 GHz network** — it will silently never connect. If
+you use a phone hotspot, force it to 2.4 GHz.
+
 🛜 Replace <YOUR_WIFI_NAME> and <YOUR_WIFI_PASSWORD> with your local network credentials. In addition, you can set other networks, such as your phone hotspot to use your robot everywhere. To do so, add an entry to the access-points section:
 
 ```yaml
