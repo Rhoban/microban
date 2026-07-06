@@ -8,8 +8,8 @@ day-to-day operation and development afterwards, see the [Usage Guide](usage.md)
 ## Step 1: Download and Flash the Image
 
 Download `microban.img.xz` from the
-[latest image release](https://github.com/MarcDcls/microban/releases/tag/image.v1)
-([direct link](https://github.com/MarcDcls/microban/releases/download/image.v1/microban.img.xz)).
+[latest image release](https://github.com/MarcDcls/microban/releases/tag/image.v2)
+([direct link](https://github.com/MarcDcls/microban/releases/download/image.v2/microban.img.xz)).
 There is no need to decompress it; Raspberry Pi Imager reads the compressed `.xz`
 directly.
 
