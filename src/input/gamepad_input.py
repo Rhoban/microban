@@ -43,6 +43,10 @@ XBOX_BUTTONS = {
     "L3": 13, "R3": 14,
 }
 
+# Trigger axes and the value above which they are considered pressed. 
+TRIGGER_AXES = {"LT": 4, "RT": 5}
+TRIGGER_PRESS_THRESHOLD = 0
+
 
 def find_gamepad_path() -> str | None:
     """Return the first joystick device path (/dev/input/js*), or None."""

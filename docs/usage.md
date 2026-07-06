@@ -8,6 +8,8 @@ gamepad to control it, and optionally run it
 > [!IMPORTANT]
 > Always run `make shutdown` before cutting power to the robot. This is **not**
 > automatic — powering off the Pi without a clean shutdown can corrupt the SD card.
+> Wait 10-15 s after the command before flipping the power switch off, to give the
+> Pi time to actually halt.
 
 ## Makefile commands
 

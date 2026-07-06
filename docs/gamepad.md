@@ -60,10 +60,11 @@ make gamepad-headless-enable
 
 Once enabled, it launches a daemon on the Pi that waits for a controller to connect over Bluetooth. Once a controller is connected, the Wi-Fi is turned off to free the 2.4 GHz antenna and the following commands are available on the controller:
 
-- **Hold START for 2 s** → start the control loop.
+- **Hold START** → start the control loop.
 - **A** → toggle the `walk` move.
 - **B** → stop the control loop.
-- **Hold BACK for 2 s** → power off the Pi cleanly.
+- **Hold both triggers** → power off the Pi cleanly. Wait 10-15 s after that before
+  flipping the robot's power switch off, to give the Pi time to actually halt.
 
 The headless mode persists across reboots, which means that you don't need to connect to the Pi over SSH to enable it again. It is particularly useful for demonstration purposes, as it allows to drive the robot without any computer connected to it.
 
@@ -89,7 +90,11 @@ Xbox controllers don't all expose the same axis/button numbers — over Bluetoot
 kernel often uses a different layout than the wired `xpad` one. If a stick or button
 doesn't behave as expected, find the real numbers and update the constants.
 
-1. Install the joystick package and run `jstest` on the device node:
+This requires an SSH session, so headless mode must be disabled first (see above) —
+otherwise Wi-Fi is off while the controller is connected and you won't be able to
+reach the Pi. You'll also need the controller connected.
+
+1. Install the joystick package on the Pi:
 ```
 sudo apt install -y joystick
 ```
@@ -102,11 +107,14 @@ sudo apt install -y joystick
    | Left stick horizontal / vertical | `Axis` → `_AXIS_LX` / `_AXIS_LY` |
    | Right stick horizontal | `Axis` → `_AXIS_RX` (drives `vtheta`) |
    | A / B / Back / Start | `Button` → `XBOX_BUTTONS` |
+   | Left / right trigger | `Axis` → `TRIGGER_AXES` (headless power-off gesture) |
 
 3. Edit the constants at the top of
    [gamepad_input.py](../src/input/gamepad_input.py):
    - `_AXIS_LX`, `_AXIS_LY`, `_AXIS_RX` — the stick axis numbers.
    - `XBOX_BUTTONS` — the button name → number map (at least the ones you use).
+   - `TRIGGER_AXES` — the `LT` / `RT` axis numbers, and `TRIGGER_PRESS_THRESHOLD` —
+     the raw axis value that counts as "pressed".
    - `VX_SIGN`, `VY_SIGN`, `VTHETA_SIGN` — flip between `+1.0` / `-1.0` if a direction
      is reversed.
 
@@ -115,4 +123,6 @@ sudo apt install -y joystick
    `GamepadInputSource` (defaults: stop = `B`, IMU = `BACK`).
 
 The defaults shipped in the repo (A=0, B=1, Start=11; left stick = axes 0/1, right
-stick horizontal = axis 2) are verified on an Xbox controller over Bluetooth.
+stick horizontal = axis 2, triggers = axes 4/5) are verified on an Xbox controller
+over Bluetooth — but the exact axis numbers, rest/press values and button mappings are known to vary
+across pads, so double-check with `jstest` on yours.

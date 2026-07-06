@@ -5,9 +5,9 @@
 
 Runs as a background service (opt-in, see systemd/microban-gamepad.service). While the
 robot has no control loop running, it watches the Bluetooth controller and, when START
-is held for 2 s, starts the control loop (the same `src/main.py` that `make run` runs) —
-no SSH needed. The control loop is stopped from the gamepad with B (writes the stop
-flag).
+is held, starts the control loop (the same `src/main.py` that `make run` runs) — no SSH
+needed. The control loop is stopped from the gamepad with B (writes the stop flag).
+Holding both triggers together powers the Pi off cleanly.
 
 Wi-Fi is cut as soon as the gamepad connects over Bluetooth (to free the 2.4 GHz
 antenna) and restored whenever it's not connected — independent of whether a
@@ -33,7 +33,10 @@ from pathlib import Path
 from input.gamepad_input import (
     find_gamepad_path,
     XBOX_BUTTONS,
+    TRIGGER_AXES,
+    TRIGGER_PRESS_THRESHOLD,
     JS_EVENT,
+    JS_EVENT_AXIS,
     JS_EVENT_BUTTON,
     JS_EVENT_INIT,
 )
@@ -43,7 +46,7 @@ PID_FILE = Path("/tmp/microban_scheduler.pid")
 
 LAUNCH_BUTTON = XBOX_BUTTONS["START"]
 LAUNCH_HOLD_SECONDS = 2.0
-SHUTDOWN_BUTTON = XBOX_BUTTONS["BACK"]
+SHUTDOWN_AXES = (TRIGGER_AXES["LT"], TRIGGER_AXES["RT"])  # held together to power off
 SHUTDOWN_HOLD_SECONDS = 2.0
 CUT_WIFI = True  # turn Wi-Fi off during a session (better Bluetooth signal)
 
@@ -99,7 +102,7 @@ def wait_for_gamepad() -> str:
 def wait_for_action(path: str) -> str:
     """Watch the gamepad in the armed (idle) state for a held-button gesture.
 
-    Returns "launch" (START held), "shutdown" (BACK held longer), or "disconnect"
+    Returns "launch" (START held), "shutdown" (both triggers held), or "disconnect"
     if the device goes away (so the caller can wait for it to come back).
     """
     try:
@@ -108,11 +111,9 @@ def wait_for_action(path: str) -> str:
         return "disconnect"
 
     held: dict[int, float] = {}  # button number -> press time (monotonic)
-    print(
-        f"Armed — hold START {LAUNCH_HOLD_SECONDS:.0f}s to launch, "
-        f"BACK {SHUTDOWN_HOLD_SECONDS:.0f}s to power off",
-        flush=True,
-    )
+    triggers_pressed = {axis: False for axis in SHUTDOWN_AXES}
+    triggers_since: float | None = None  # when both triggers were first held together
+    print("Armed — hold START to launch, hold both triggers to power off", flush=True)
     try:
         while True:
             select.select([fd], [], [], 0.1)
@@ -135,12 +136,20 @@ def wait_for_action(path: str) -> str:
                         held[number] = time.monotonic()
                     else:
                         held.pop(number, None)
+                elif ev_type == JS_EVENT_AXIS and number in triggers_pressed:
+                    triggers_pressed[number] = value >= TRIGGER_PRESS_THRESHOLD
 
             now = time.monotonic()
             if LAUNCH_BUTTON in held and now - held[LAUNCH_BUTTON] >= LAUNCH_HOLD_SECONDS:
                 return "launch"
-            if SHUTDOWN_BUTTON in held and now - held[SHUTDOWN_BUTTON] >= SHUTDOWN_HOLD_SECONDS:
-                return "shutdown"
+
+            if all(triggers_pressed.values()):
+                if triggers_since is None:
+                    triggers_since = now
+                elif now - triggers_since >= SHUTDOWN_HOLD_SECONDS:
+                    return "shutdown"
+            else:
+                triggers_since = None
     finally:
         os.close(fd)
 
