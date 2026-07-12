@@ -60,6 +60,9 @@ An emphasis is placed on the range of motion of the 19 degrees of freedom of the
 
 ## 🚀 Getting Started 
 
+> **Need help during the build?** 
+> If you run into any issues while sourcing components, printing parts, or assembling your Microban, don't hesitate to ask the community in the **[Q&A Discussions section](https://github.com/MarcDcls/microban/discussions/categories/q-a)**!
+
 To build your own Microban, you will need to follow these steps:
 
 1. **Source the hardware:** Gather the components listed in the [BOM](docs/bom.md). Links are provided to purchase each item, but feel free to source them from your preferred suppliers. Some components, like the Dynamixel motors, may have specific distributors depending on your location, which can impact the total cost. 
@@ -76,9 +79,11 @@ To build your own Microban, you will need to follow these steps:
 
 ## 🤝 Contributing
 
-This project is community-driven! Whether it's designing a new head, writing code, or simply fixing typos in the documentation, contributions are always welcome. 
+This project is community-driven! Whether it's designing a new head, writing code, or simply fixing typos in the documentation, contributions are always welcome. Feel free to fork the repository, make your changes, and submit a Pull Request. 
 
-Feel free to fork the repository, make your changes, and submit a Pull Request. If you build your own Microban, please share it in the Discussions tab!
+If you build your own Microban, don't hesitate to share it in the **[Show and Tell section](https://github.com/MarcDcls/microban/discussions/categories/show-and-tell)**! 
+
+If you just want to share ideas or chat about the project, you are also more than welcome to join the **[General Discussions](https://github.com/MarcDcls/microban/discussions/categories/general)**.
 
 ---
 
@@ -92,7 +97,7 @@ This project uses a dual-licensing model to keep the project open for the commun
 To summarize the licenses:
 
 * **Hobbyists, Makers & Researchers:** You are **100% free** to download, 3D-print, build, modify, and hack Microban for your personal, educational, or academic research use. If you share your modifications, you must release them under the same licenses.
-* **Commercial Entities & Companies:** You **cannot** sell this robot, sell parts/kits, or use this hardware/software design in commercial products without prior explicit written permission.
+* **Commercial Entities & Companies:** You **cannot sell this robot**, sell parts/kits, or use this hardware/software design in commercial products without prior explicit written permission.
 
 ### ⚠️ Commercial Inquiries
 
