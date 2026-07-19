@@ -12,7 +12,7 @@
   
 Welcome to the **Microban** project! 
 
-Microban is a \~30cm tall humanoid robot designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low ($550-$600), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
+Microban is a ~30cm tall open-source humanoid robot created by [Marc Duclusaud](https://github.com/MarcDcls), in affiliation with the [Rhoban team](https://github.com/Rhoban), and designed specifically for makers, students, and robotics enthusiasts. The core philosophy behind this project is accessibility: the total cost of the robot is kept relatively low ($550-$600), all components are 3D-printable or easily sourced, and the assembly process is guided with detailed instructions. This means that anyone with a standard desktop 3D printer and a few basic tools should be able to build their own Microban from scratch.
 
 The idea behind Microban is to provide a platform for learning and experimentation in robotics. By making the design open, users are encouraged to modify, improve, and share their own versions of the robot. Whether you're interested in programming, mechanical design, or electronics, Microban offers a hands-on experience that can help you develop your skills in a fun and engaging way.
 
@@ -61,7 +61,7 @@ An emphasis is placed on the range of motion of the 19 degrees of freedom of the
 ## 🚀 Getting Started 
 
 > **Need help during the build?** 
-> If you run into any issues while sourcing components, printing parts, or assembling your Microban, don't hesitate to ask the community in the **[Q&A Discussions section](https://github.com/MarcDcls/microban/discussions/categories/q-a)**!
+> If you run into any issues while sourcing components, printing parts, or assembling your Microban, don't hesitate to ask the community in the **[Q&A Discussions section](https://github.com/Rhoban/microban/discussions/categories/q-a)**!
 
 To build your own Microban, you will need to follow these steps:
 
@@ -81,13 +81,15 @@ To build your own Microban, you will need to follow these steps:
 
 This project is community-driven! Whether it's designing a new head, writing code, or simply fixing typos in the documentation, contributions are always welcome. Feel free to fork the repository, make your changes, and submit a Pull Request. 
 
-If you build your own Microban, don't hesitate to share it in the **[Show and Tell section](https://github.com/MarcDcls/microban/discussions/categories/show-and-tell)**! 
+If you build your own Microban, don't hesitate to share it in the **[Show and Tell section](https://github.com/Rhoban/microban/discussions/categories/show-and-tell)**! 
 
-If you just want to share ideas or chat about the project, you are also more than welcome to join the **[General Discussions](https://github.com/MarcDcls/microban/discussions/categories/general)**.
+If you just want to share ideas or chat about the project, you are also more than welcome to join the **[General Discussions](https://github.com/Rhoban/microban/discussions/categories/general)**.
 
 ---
 
 ## 📄 License & Commercial Use
+
+Copyright (c) 2026 Marc Duclusaud.
 
 This project uses a dual-licensing model to keep the project open for the community while protecting the author's work from unauthorized commercial exploitation.
 
@@ -117,8 +119,8 @@ If you use Microban in your research, please cite it as follows:
     doi = {10.5281/zenodo.20784789},
     month = jun,
     title = {{Microban: A Compact, Fully 3D-Printable Open-Source Humanoid Robot}},
-    url = {https://github.com/MarcDcls/microban},
-    howpublished = "\url{https://github.com/MarcDcls/microban}",
+    url = {https://github.com/Rhoban/microban},
+    howpublished = "\url{https://github.com/Rhoban/microban}",
     version = {1.0.0},
     year = {2026}
 }
