@@ -11,7 +11,7 @@ If you also include the configuration tools (Dynamixel U2D2 and U2D2 Power Hub),
 > [!WARNING]
 > **Important Note regarding PCB Ordering (JLCPCB)**
 > 
-> @alexpinel recently reported that the **R33 resistor** was missing from the assembled board when ordering from JLCPCB. Until it is fixed, please double-check your order during the JLCPCB preview step to ensure R33 is populated. If it is missing from your batch, be aware that you might need to manually solder or bypass it.
+> [@alexpinel](https://github.com/alexpinel) recently reported that the **R33 resistor** was missing from the assembled board when ordering from JLCPCB. Until it is fixed, please double-check your order during the JLCPCB preview step to ensure R33 is populated. If it is missing from your batch, be aware that you might need to manually solder or bypass it.
 >
 
 ## Robot Components
