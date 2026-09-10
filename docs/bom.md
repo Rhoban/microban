@@ -9,10 +9,10 @@ At the time of writing, **a Microban robot costs approximately $567**.
 If you also include the configuration tools (Dynamixel U2D2 and U2D2 Power Hub), the total cost rises to approximately $623.
 
 > [!WARNING]
-> **Important Note regarding PCB Ordering (JLCPCB)**
+> **Note regarding PCB Ordering with JLCPCB**
 > 
-> [@alexpinel](https://github.com/alexpinel) recently reported that the **R33 resistor** was missing from the assembled board when ordering from JLCPCB. Until it is fixed, please double-check your order during the JLCPCB preview step to ensure R33 is populated. If it is missing from your batch, be aware that you might need to manually solder or bypass it.
->
+> The default R33 resistor might currently be out of stock at JLCPCB, so double-check its presence during the preview step. If the default R33 is on shortage, you can easily swap it with another 150R 0402 resistor (e.g., part numbers `RT0402BRD07150RL` or `RCA02150RJLF`).
+> 
 
 ## Robot Components
 
