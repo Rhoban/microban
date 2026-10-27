@@ -241,16 +241,17 @@ class MuJoCoController:
         return 80.0
 
     def read_acc(self) -> tuple[float, float, float]:
-        """Return pseudo-accelerometer (ax, ay, az) in g from the 'orientation' sensor."""
+        """Return pseudo-accelerometer (ax, ay, az) in g from the 'orientation' sensor: what an accelerometer at rest
+        reads, the world's up (0, 0, +1) g in the IMU frame (+1 g along the axis that points up)."""
         if self._sensor_orientation < 0:
-            return 0.0, 0.0, -1.0
+            return 0.0, 0.0, 1.0
         adr = self._model.sensor_adr[self._sensor_orientation]
         w, x, y, z = self._data.sensordata[adr:adr + 4]
-        # Gravity in world is (0, 0, -1) g; rotate into IMU frame using conjugate quat
-        gx = 2 * (x * z - w * y)
-        gy = 2 * (y * z + w * x)
-        gz = w * w - x * x - y * y + z * z
-        return float(gx), float(gy), float(-gz)
+        # third row of the IMU's rotation matrix: the world z axis in the IMU frame
+        ax = 2 * (x * z - w * y)
+        ay = 2 * (y * z + w * x)
+        az = w * w - x * x - y * y + z * z
+        return float(ax), float(ay), float(az)
 
     def read_gyro(self) -> tuple[float, float, float]:
         if self._sensor_gyro < 0:

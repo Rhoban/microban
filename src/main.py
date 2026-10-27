@@ -30,8 +30,17 @@ def _another_session_running() -> bool:
     return True
 
 # Which moves can be toggled from the gamepad / keyboard.
-MOVE_KEYS = {"h": "head", "s": "squat", "v": "walk"}
-GAMEPAD_BUTTON_MOVES = {"A": "walk"}
+MOVE_KEYS = {"h": "head", "s": "squat", "v": "walk", "c": "controller"}
+GAMEPAD_BUTTON_MOVES = {"A": "walk", "B": "controller"}
+
+
+def _controller_move(controller) -> dict:
+    """MICROBAN_CONTROLLER=path/to/file.py: a user's Controller (moves/controller.py) as the move "controller"."""
+    path = os.environ.get("MICROBAN_CONTROLLER")
+    if not path:
+        return {}
+    from moves.controller import ControllerMove
+    return {"controller": ControllerMove(path, controller)}
 
 
 def build_input_source() -> InputSource:
@@ -75,6 +84,7 @@ def main() -> None:
             moves={
                 "head": RotateHeadMove(),
                 "squat": SquatMove(),
+                **_controller_move(controller),
                 "walk": WalkMove(controller=controller),
             },
             telemetry=Telemetry(controller),

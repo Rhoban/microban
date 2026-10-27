@@ -229,7 +229,13 @@ class Scheduler:
                 return set()
             self._locked = False                       # a move launched again: it leaves em / init
         if requested and (not self.powered or (self._pose is not None and self._pose["hold"])):
-            self._start_pose(obs.robot_state, dict(NEUTRAL_POSE), POWER_UP_S, hold=False)
+            if all(getattr(self.registered_moves[n], "power_up", "neutral") == "current" for n in requested
+                   if n in self.registered_moves):
+                # moves that start where the robot is (a user's controller, maybe hanging on the wall)
+                here = {n: obs.robot_state.motor_positions.get(n, NEUTRAL_POSE[n]) for n in MOTOR_TO_ID}
+                self._start_pose(obs.robot_state, here, 0.1, hold=False)
+            else:
+                self._start_pose(obs.robot_state, dict(NEUTRAL_POSE), POWER_UP_S, hold=False)
         if self._pose is not None and not self._pose["hold"]:
             return set()                               # the moves start once at the neutral pose
         return requested

@@ -19,14 +19,17 @@ sync:
 setup: sync
 	ssh $(HOST) "bash -l -c 'cd microban && uv sync'"
 
+# CONTROLLER=path/to/file.py: your Controller (src/moves/controller.py), started / stopped with [c] (gamepad: B)
+CONTROLLER ?=
 sim:
-	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50
+	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50 $(if $(CONTROLLER),--controller $(CONTROLLER))
 
 viewer:
 	PYTHONPATH=src uv run src/sim/viewer_main.py --hz 25
 
 run: sync
-	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/main.py'"
+	$(if $(CONTROLLER),scp $(CONTROLLER) $(HOST):microban/user_controller.py)
+	ssh -tt $(HOST) "bash -l -c 'cd microban && $(if $(CONTROLLER),MICROBAN_CONTROLLER=user_controller.py) PYTHONPATH=src .venv/bin/python src/main.py'"
 
 stop:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/stop.py'"

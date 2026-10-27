@@ -17,6 +17,7 @@ from sim.mujoco_controller import MuJoCoController
 from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
+from moves.controller import ControllerMove
 
 
 def main() -> None:
@@ -29,9 +30,10 @@ def main() -> None:
     parser.add_argument("--delay-quat", type=int, default=4, metavar="TICKS", help="Quaternion (projected gravity) read delay in ticks")
     parser.add_argument("--trunk-com-offset", type=float, nargs=3, default=[0.0, 0.0, 0.0], metavar=("X", "Y", "Z"), help="CoM offset on trunk body in meters (body frame)")
     parser.add_argument("--climb", action="store_true", help="the climbing forearms and feet (microban_model)")
+    parser.add_argument("--controller", default=None, help="a Controller file (moves/controller.py), started with [c]")
     args = parser.parse_args()
 
-    input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "v": "walk"})
+    input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "v": "walk", "c": "controller"})
     controller = MuJoCoController(
         climb=args.climb,
         key_callback=input_source.key_callback,
@@ -52,6 +54,7 @@ def main() -> None:
         moves={
             "head": RotateHeadMove(),
             "squat": SquatMove(),
+            **({"controller": ControllerMove(args.controller, controller)} if args.controller else {}),
             "walk": WalkMove(controller=controller),
         },
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)
