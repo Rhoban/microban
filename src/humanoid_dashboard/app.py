@@ -1,6 +1,7 @@
 """PC side of the dashboard: receives the robot's telemetry (humanoid_dashboard.link), computes the 3D pose of the robot
 model with MuJoCo (forward kinematics from the joint angles and the trunk orientation), and serves a web page (three.js)
-with the motors, the IMU, plots, the robot's events and its commands (reboot a motor, torque on/off). Records frames.
+with the motors, the IMU, plots, the robot's events and its commands (reboot a motor, torque on/off). Records frames and replays them (any speed, frame
+by frame, back and forth: the page asks for one frame at a time, its 3D pose computed here).
 
     python -m humanoid_dashboard.app --robot HOST --model path/to/robot.xml [--http 8780]
 
@@ -225,6 +226,34 @@ class Hub:
         return out
 
 
+class Recording:
+    """A saved recording (Hub.stop_recording), for the replay: its plots' series at once, then frame by frame."""
+
+    def __init__(self, path):
+        with np.load(path, allow_pickle=False) as z:
+            self.schema = json.loads(str(z["schema"]))
+            self.arrays = {k: z[k] for k in z.files if k != "schema"}
+        self.t = self.arrays["t"]
+        self.names = {name: labels for name, labels in self.schema["fields"]}
+
+    def __len__(self):
+        return len(self.t)
+
+    def values(self, i):
+        return {name: [None if math.isnan(x) else round(float(x), 5) for x in self.arrays[name][i]]
+                for name in self.names if name in self.arrays}
+
+    def series(self):
+        """What the page plots, for every frame: time, total current, trunk orientation, joint angles and targets."""
+        def col(name):
+            a = self.arrays.get(name)
+            return None if a is None else np.where(np.isnan(a), None, a.round(5).astype(object)).tolist()
+        cur = self.arrays.get("current")
+        return {"schema": self.schema, "t": self.t.round(4).tolist(), "n": len(self),
+                "cur": None if cur is None else np.nansum(np.abs(cur), axis=1).round(4).tolist(),
+                "imu_quat": col("imu_quat"), "q": col("q"), "q_target": col("q_target")}
+
+
 # ---------------------------------------------------------------------------------------------------- web server
 def make_app(hub, model, title, rec_dir):
     app = web.Application()
@@ -238,6 +267,25 @@ def make_app(hub, model, title, rec_dir):
 
     async def api_mesh(request):
         return web.Response(body=model.mesh(int(request.match_info["i"])), content_type="application/octet-stream")
+
+    loaded = {}                                       # file name -> Recording (the last few replayed)
+
+    def recording(name):
+        path = rec_dir / pathlib.Path(name).name       # only the recordings folder
+        if path.suffix != ".npz" or not path.is_file():
+            raise web.HTTPNotFound(text=f"no recording {name}")
+        if name not in loaded:
+            while len(loaded) >= 3:
+                loaded.pop(next(iter(loaded)))
+            loaded[name] = Recording(path)
+        return loaded[name]
+
+    async def api_recordings(request):
+        files = sorted(rec_dir.glob("*.npz"), key=lambda f: f.stat().st_mtime, reverse=True) if rec_dir.is_dir() else []
+        return web.json_response([{"file": f.name, "size": f.stat().st_size} for f in files])
+
+    async def api_replay(request):
+        return web.json_response(recording(request.match_info["file"]).series())
 
     async def ws_handler(request):
         ws = web.WebSocketResponse(heartbeat=10)
@@ -260,12 +308,25 @@ def make_app(hub, model, title, rec_dir):
                 else:
                     out = hub.stop_recording(rec_dir)
                     hub.broadcast({"type": "recording", "on": False, "file": str(out) if out else None})
+            elif req.get("type") == "replay_frame":           # one frame of a recording, to this page only
+                try:
+                    rec = recording(req["file"])
+                except web.HTTPNotFound:
+                    continue
+                i = max(0, min(len(rec) - 1, int(req["i"])))
+                values = rec.values(i)
+                await ws.send_str(json.dumps({"type": "replay_frame", "file": req["file"], "i": i,
+                                              "robot_t": float(rec.t[i]), "values": values,
+                                              "poses": model.poses({k: rec.arrays[k][i].tolist() for k in values},
+                                                                   rec.names)}))
         hub.browsers.discard(ws)
         return ws
 
     app.router.add_get("/", index)
     app.router.add_get("/api/scene", api_scene)
     app.router.add_get("/api/mesh/{i}", api_mesh)
+    app.router.add_get("/api/recordings", api_recordings)
+    app.router.add_get("/api/replay/{file}", api_replay)
     app.router.add_get("/ws", ws_handler)
     app.router.add_static("/static", WEB)
     return app

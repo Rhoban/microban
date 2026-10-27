@@ -6,6 +6,7 @@ const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const DEG = 180 / Math.PI, HISTORY_S = 10;
 let scene3d = null, schema = null, names = {}, meta = {}, last = null, selected = null, recording = false;
+let liveSchema = null, replay = null;  // replay: {file, data (its plots' series), i, playing, speed, cursor (robot s)}
 const hist = [];                      // [{t, cur, sel: [q, target], roll, pitch}]
 
 // ------------------------------------------------------------------------------------------------ 3D view
@@ -169,7 +170,7 @@ function renderTable(force) {
       r.cells[4].innerHTML = `<span class="bar"><i></i></span> <span class="cv"></span>`;
     }
   }
-  const lim = meta.limits || {}, cmds = meta.commands || [];
+  const lim = meta.limits || {}, cmds = replay ? [] : meta.commands || [];      // a replay: nothing to command
   for (const r of t.tBodies[0].rows) {
     const j = r.dataset.j, q = val("q", j), qt = val("q_target", j), c = val("current", j), T = val("temperature", j);
     const e = val("hw_error", j), tq = val("torque", j), bad = e !== null ? errBits(e) : [];
@@ -202,6 +203,7 @@ function select(j) {
   selected = selected === j ? null : j;
   $("p_sel_title").firstChild.textContent = selected ? `${selected} ` : "Motor ";
   for (const h of hist) h.sel = null;
+  if (replay) replayPlots(replay.i);
   renderTable();
 }
 
@@ -266,22 +268,38 @@ function connect() {
   ws = new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data);
-    if (m.type === "schema") {
-      schema = m.schema; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
-      $("title").textContent = schema.robot; document.title = schema.robot + " · dashboard"; robotCmdsKey = ""; renderRobotCmds();
-      movesKey = ""; renderMoves(); renderEditor(false);
-    }
+    if (m.type === "schema") { liveSchema = m.schema; if (!replay) applySchema(liveSchema); robotCmdsKey = ""; renderRobotCmds(); }
+    else if (m.type === "replay_frame") onReplayFrame(m);
     else if (m.type === "frame") onFrame(m);
     else if (m.type === "ack" || m.type === "event") log(m);
-    else if (m.type === "recording") { recording = m.on; $("rec").classList.toggle("on", m.on); $("rec").textContent = m.on ? "■ Stop" : "● Record"; if (m.file) log({ level: "info", text: `saved ${m.file}` }); }
+    else if (m.type === "recording") {
+      recording = m.on; $("rec").classList.toggle("on", m.on); $("rec").textContent = m.on ? "■ Stop" : "● Record";
+      if (m.file) { log({ level: "info", text: `saved ${m.file}` }); listRecordings(); }
+    }
   };
   ws.onclose = () => { $("link").className = "pill"; $("link").textContent = "dashboard server stopped"; setTimeout(connect, 1500); };
+}
+function applySchema(s) {          // the live robot's, or a recording's while it is replayed
+  schema = s; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
+  $("title").textContent = schema.robot + (replay ? " · replay" : ""); document.title = schema.robot + " · dashboard";
+  movesKey = ""; renderMoves(); renderEditor(false);
 }
 function onFrame(m) {
   const pill = $("link");
   if (m.age > 1.0 || !m.rate) { pill.className = "pill"; pill.textContent = m.seq ? `no data for ${m.age.toFixed(0)} s` : "no robot"; }
   else { pill.className = "pill " + (m.rate < 20 ? "warn" : "ok"); pill.textContent = `${m.rate} Hz`; }
-  if (!m.values) return;
+  if (!m.values || replay) return;
+  showFrame(m);
+  hist.push({ t: m.robot_t, ...plotPoint(m.values) });
+  while (hist.length && hist[0].t < m.robot_t - HISTORY_S) hist.shift();
+}
+function plotPoint(values) {
+  const cur = values.current ? values.current.reduce((a, b) => a + Math.abs(b || 0), 0) : null;
+  const [roll, pitch] = quatRollPitch(values.imu_quat);
+  const sel = selected ? [val("q", selected), val("q_target", selected)].map(v => v === null ? null : v * DEG) : null;
+  return { cur, roll, pitch, sel };
+}
+function showFrame(m) {
   last = m;
   if (scene3d && m.poses) scene3d.pose(m.poses);
   // scalar fields (one value each) in the header
@@ -293,11 +311,6 @@ function onFrame(m) {
     return `${d.label || k} <b>${v === null ? "–" : (+v).toFixed(1)}</b>${d.unit ? " " + d.unit : ""}`;
   }).filter(Boolean);
   $("scalars").innerHTML = sc.join(" · ");
-  const cur = m.values.current ? m.values.current.reduce((a, b) => a + Math.abs(b || 0), 0) : null;
-  const [roll, pitch] = quatRollPitch(m.values.imu_quat);
-  const sel = selected ? [val("q", selected), val("q_target", selected)].map(v => v === null ? null : v * DEG) : null;
-  hist.push({ t: m.robot_t, cur, roll, pitch, sel });
-  while (hist.length && hist[0].t < m.robot_t - HISTORY_S) hist.shift();
   if (scene3d) { const st = {}; for (const j of jointsList()) st[j] = j === selected ? "sel" : motorState(j); scene3d.tint(st); }
   renderTable();
   renderRobotCmds();
@@ -306,7 +319,7 @@ function onFrame(m) {
 // whole-robot commands (the ones the robot lists), as em / init on Rhoban's robots
 let robotCmdsKey = "";
 function renderRobotCmds() {
-  const cmds = meta.commands || [];
+  const cmds = (liveSchema && liveSchema.meta || {}).commands || [];          // the live robot's, even in a replay
   const key = cmds.join();
   if (key === robotCmdsKey) return;
   robotCmdsKey = key;
@@ -325,9 +338,9 @@ function renderRobotCmds() {
 let movesKey = "";
 function renderMoves() {
   const list = meta.moves || [], card = $("moves");
-  card.classList.toggle("show", list.length > 0 && (meta.commands || []).includes("move_start"));
+  card.classList.toggle("show", list.length > 0 && (replay || (meta.commands || []).includes("move_start")));
   const vals = last && last.values && last.values.moves ? last.values.moves : [];
-  const key = JSON.stringify(list.map(m => [m.name, m.options])) + vals.join() + JSON.stringify(Object.values(confirmKey));
+  const key = JSON.stringify(list.map(m => [m.name, m.options])) + vals.join() + JSON.stringify(Object.values(confirmKey)) + !!replay;
   if (key === movesKey) return;
   movesKey = key;
   const box = $("movelist"); box.innerHTML = "";
@@ -336,6 +349,7 @@ function renderMoves() {
     el.className = "mv" + (m.kind === "switch" ? " switch" : "") + (st === 2 ? " on" : st === 1 || st === 3 ? " busy" : "");
     el.title = m.doc || m.name;
     el.innerHTML = `<b>${m.name}</b><small>${["off", "starting", "on", "stopping"][st] || ""}</small>`;
+    if (replay) { box.appendChild(el); return; }                     // a replay shows the states only
     const b = st === 0 ? button("Start", "", () => cmd("move_start", { move: m.name }), m.kind === "move" ? "Robot ready? Start" : null, "move:" + m.name)
                        : button("Stop", "", () => cmd("move_stop", { move: m.name }), null, "move:" + m.name);
     el.appendChild(b);
@@ -371,6 +385,96 @@ function renderEditor(force) {
 $("edclose").onclick = () => { editing = null; $("editor").classList.remove("show"); };
 $("edsave").onclick = () => cmd("save_options", {});
 $("rec").onclick = () => send({ type: "record", on: !recording });
+
+// ------------------------------------------------------------------------------------------------ replay
+// The page holds a recording's plotted series; the server sends one frame at a time (values + 3D pose) where the
+// cursor is, so it plays at any speed, back and forth. The live robot keeps running: em still acts on it.
+const SPEEDS = [0.1, 0.25, 0.5, 1, 2];
+let pending = false;
+async function listRecordings() {
+  const files = await (await fetch("/api/recordings")).json(), sel = $("rp_file"), cur = sel.value;
+  sel.innerHTML = `<option value="">${files.length ? "choose a recording…" : "no recording yet"}</option>` +
+    files.map(f => `<option>${f.file}</option>`).join("");
+  if (files.some(f => f.file === cur)) sel.value = cur;
+}
+async function openReplay(file) {
+  if (!file) return;
+  const r = await fetch("/api/replay/" + encodeURIComponent(file));
+  if (!r.ok) { log({ level: "error", text: `replay ${file}: ${await r.text()}` }); return; }
+  const data = await r.json();
+  replay = { file, data, i: 0, playing: false, speed: replay ? replay.speed : 1, cursor: data.t[0] };
+  applySchema(data.schema);
+  $("rp_seek").max = data.n - 1; seek(0);
+}
+function closeReplay() {
+  replay = null; $("replaybar").classList.remove("show"); $("replay").classList.remove("on"); hist.length = 0;
+  if (liveSchema) applySchema(liveSchema);
+}
+function seek(i) {                   // show frame i (asks the server for it; one request at a time)
+  if (!replay) return;
+  const d = replay.data; i = Math.max(0, Math.min(d.n - 1, i));
+  replay.i = i; if (!replay.playing) replay.cursor = d.t[i];
+  $("rp_seek").value = i;
+  $("rp_time").textContent = `${(d.t[i] - d.t[0]).toFixed(2)} / ${(d.t[d.n - 1] - d.t[0]).toFixed(2)} s · frame ${i + 1}/${d.n}`;
+  if (!pending) { pending = true; send({ type: "replay_frame", file: replay.file, i }); }
+}
+function onReplayFrame(m) {
+  pending = false;
+  if (!replay || m.file !== replay.file) return;
+  if (m.i !== replay.i) { seek(replay.i); }                         // the cursor moved meanwhile: catch up
+  showFrame(m); replayPlots(m.i);
+}
+function replayPlots(i) {            // the plots: the HISTORY_S before the cursor, from the recording's series
+  const d = replay.data, ji = selected ? (names.q || []).indexOf(selected) : -1;
+  hist.length = 0;
+  for (let k = i; k >= 0 && d.t[k] >= d.t[i] - HISTORY_S; k--) {
+    const [roll, pitch] = quatRollPitch(d.imu_quat && d.imu_quat[k]);
+    const sel = ji < 0 || !d.q ? null : [d.q[k][ji], d.q_target ? d.q_target[k][ji] : null].map(v => v === null ? null : v * DEG);
+    hist.unshift({ t: d.t[k], cur: d.cur ? d.cur[k] : null, roll, pitch, sel });
+  }
+}
+function frameAt(t) {                // the last frame at or before robot time t
+  const d = replay.data; let lo = 0, hi = d.n - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (d.t[mid] <= t) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+function play(on) {
+  if (!replay) return;
+  const d = replay.data;
+  if (on && replay.i >= d.n - 1) { replay.i = 0; replay.cursor = d.t[0]; }
+  replay.playing = on; $("rp_play").textContent = on ? "⏸" : "▶";
+}
+let lastTick = performance.now();
+setInterval(() => {
+  const now = performance.now(), dt = (now - lastTick) / 1000; lastTick = now;
+  if (!replay || !replay.playing) return;
+  const d = replay.data;
+  replay.cursor += dt * replay.speed;
+  const i = frameAt(replay.cursor);
+  if (i !== replay.i) seek(i);
+  if (replay.cursor >= d.t[d.n - 1]) play(false);
+}, 1000 / 30);
+$("rp_speed").innerHTML = SPEEDS.map(v => `<option value="${v}"${v === 1 ? " selected" : ""}>×${v}</option>`).join("");
+$("rp_speed").onchange = e => { if (replay) replay.speed = +e.target.value; };
+$("rp_file").onchange = e => openReplay(e.target.value);
+$("rp_play").onclick = () => play(!(replay && replay.playing));
+$("rp_back").onclick = () => { play(false); seek(replay.i - 1); };
+$("rp_fwd").onclick = () => { play(false); seek(replay.i + 1); };
+$("rp_seek").oninput = e => { if (replay) { replay.cursor = replay.data.t[+e.target.value]; seek(+e.target.value); } };
+$("rp_live").onclick = closeReplay;
+$("replay").onclick = () => {
+  if (replay || $("replaybar").classList.contains("show")) { closeReplay(); return; }
+  $("replaybar").classList.add("show"); $("replay").classList.add("on"); listRecordings();
+};
+document.addEventListener("keydown", e => {   // space: play / pause; arrows: one frame (shift: one second)
+  if (!replay || e.target.closest("input, select, textarea")) return;
+  if (e.key === " ") { e.preventDefault(); play(!replay.playing); }
+  else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    e.preventDefault(); play(false);
+    const s = e.key === "ArrowLeft" ? -1 : 1;
+    if (e.shiftKey) { replay.cursor = replay.data.t[replay.i] + s; seek(frameAt(replay.cursor)); } else seek(replay.i + s);
+  }
+});
 setInterval(drawPlots, 100);
 build3d().then(s => { scene3d = s; }).catch(e => log({ level: "error", text: "3D view: " + e }));
 connect();

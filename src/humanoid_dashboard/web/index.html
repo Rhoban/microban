@@ -84,6 +84,15 @@
   #events div.error { color: var(--bad); } #events div.warn { color: var(--warn); } #events div.ack { color: var(--ok); } #events div.nack { color: var(--bad); }
   #events small { color: var(--muted); }
   #empty { padding: 20px; color: var(--muted); }
+  button#replay.on { background: var(--accent-soft); border-color: var(--accent); }
+  #replaybar { position: absolute; left: 8px; right: 8px; bottom: 8px; display: none; align-items: center; gap: 6px; flex-wrap: wrap;
+               padding: 6px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 4px 16px rgba(0, 0, 0, .12); }
+  #replaybar.show { display: flex; }
+  #replaybar select { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); max-width: 100%; }
+  #replaybar #rp_file { flex: 0 1 260px; min-width: 0; }
+  #replaybar button { min-width: 34px; }
+  #rp_seek { flex: 1 1 160px; min-width: 120px; accent-color: var(--accent); }
+  #rp_time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
   /* narrow window (half screen): one column, the page scrolls: 3D, plots and events, moves, every motor */
   @media (max-width: 1100px) {
     html, body { height: auto; }
@@ -106,9 +115,20 @@
   <div class="spacer"></div>
   <span id="robotcmds" class="chips"></span>
   <button class="rec" id="rec">● Record</button>
+  <button id="replay" title="replay a recording (the live robot keeps running; em still acts on it)">▶ Replay</button>
 </header>
 <main>
-  <div class="card" id="view"><div id="overlay">drag: rotate · right-drag: pan · wheel: zoom · click a part: select its motor</div></div>
+  <div class="card" id="view"><div id="overlay">drag: rotate · right-drag: pan · wheel: zoom · click a part: select its motor</div>
+    <div id="replaybar">
+      <select id="rp_file" title="recordings (--recordings folder)"></select>
+      <button id="rp_back" title="one frame back (←; shift: 1 s)">⏮</button>
+      <button id="rp_play" title="play / pause (space)">▶</button>
+      <button id="rp_fwd" title="one frame forward (→; shift: 1 s)">⏭</button>
+      <select id="rp_speed" title="speed"></select>
+      <input type="range" id="rp_seek" min="0" max="0" value="0">
+      <span id="rp_time"></span>
+      <button id="rp_live" title="back to the live robot">Live</button>
+    </div></div>
   <div id="right">
     <div class="card" id="moves"><h2>Moves <span class="legend">start / stop (as their keys); dashed: switches</span></h2><div id="movelist"></div></div>
     <div class="card" id="motors"><h2>Motors <span id="summary" class="legend"></span></h2><div class="scroll"><table id="table"></table><div id="empty">Waiting for the robot…</div></div></div>

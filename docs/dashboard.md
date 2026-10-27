@@ -16,7 +16,8 @@ the 3D view) opens http://127.0.0.1:8780. Close it any time: the robot does not 
 `make dashboard HOST=<robot>` opens, on the PC, a page with the robot in 3D, every motor (angle and error to its
 target, current, temperature, hardware error, torque), the trunk orientation, plots of the last 10 s and the robot's
 events. A motor in overheating / overload error can be rebooted from it (its torque stays off: **Torque on** puts it
-back, after a confirmation), and a run can be recorded (`recordings/*.npz`).
+back, after a confirmation), and a run can be recorded (`recordings/*.npz`) and replayed in the page (**Replay**: slowed down, frame by
+frame, back and forth).
 
 The robot only sends what its control loop already reads, in one UDP packet per tick (`src/telemetry.py`, port 7350),
 and only while a dashboard listens: no extra bus traffic while nobody watches. While one listens, the loop also reads
