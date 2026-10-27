@@ -118,7 +118,7 @@ VY_MAX: float = 0.3
 VTHETA_MAX_STATIONARY: float = 3.0
 VTHETA_MAX_MOVING: float = 1.5
 
-# The board, from the device tree: the Raspberry Pi Zero 2 W (Microban) or the Radxa ROCK 3C of the climbing robots
+# The board, from the device tree: the Raspberry Pi Zero 2 W (Microban v1) or the Radxa ROCK 3C (Microban v2)
 # (UART2 and I2C3 overlays: motors on /dev/ttyS2, BMI088 on i2c-3; checked 2026-10-27)
 def _board_model() -> str:
     try:
@@ -136,7 +136,7 @@ MOTOR_SERIAL_PORT: str = "/dev/ttyS2" if IS_RADXA else "/dev/ttyAMA0"
 IMU_I2C_BUS: int = 3 if IS_RADXA else 1
 
 # Rotation from trunk frame (body) to IMU sensor frame
-IMU_MOUNT_QUAT: tuple[float, float, float, float] = (0.5, -0.5, -0.5, 0.5)
+IMU_MOUNT_QUAT: tuple[float, float, float, float] = (0.5, 0.5, 0.5, 0.5)   # Microban v2 (Radxa board): the model's imu site
 
 # Observation DoF ordering
 OBSERVATION_DOF_ORDER = [

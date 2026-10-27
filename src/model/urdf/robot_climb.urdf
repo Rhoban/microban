@@ -1,0 +1,389 @@
+<?xml version="1.0" ?>
+<!-- Microban v2 (Radxa): written from robot_climb.xml -->
+<robot name="microban">
+  <link name="trunk">
+    <inertial>
+      <origin xyz="-0.00428655 -0.000799412 0.0554008" rpy="0.0511905918 0.00480430173 -0.0110459138"/>
+      <mass value="0.283162"/>
+      <inertia ixx="0.000608094" ixy="0" ixz="0" iyy="0.000437061" iyz="0" izz="0.000356941"/>
+    </inertial>
+  </link>
+  <link name="head">
+    <inertial>
+      <origin xyz="3.6986e-08 -0.00238622 0.0210192" rpy="1.57081722 -1.26075128 1.57078974"/>
+      <mass value="0.0169699"/>
+      <inertia ixx="6.95892e-06" ixy="0" ixz="0" iyy="6.27221e-06" iyz="0" izz="5.11543e-06"/>
+    </inertial>
+  </link>
+  <joint name="head" type="revolute">
+    <parent link="trunk"/>
+    <child link="head"/>
+    <origin xyz="0.00195835 0 0.126" rpy="0 -0 1.57079633"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-1.5708" upper="1.5708"/>
+  </joint>
+  <link name="shoulder">
+    <inertial>
+      <origin xyz="2.521e-09 -3.76e-10 -0.00904957" rpy="1.57079633 -0 0"/>
+      <mass value="0.0100298"/>
+      <inertia ixx="2.08008e-06" ixy="0" ixz="0" iyy="2.07522e-06" iyz="0" izz="1.18852e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_shoulder_pitch" type="revolute">
+    <parent link="trunk"/>
+    <child link="shoulder"/>
+    <origin xyz="0 -0.0505 0.081" rpy="-1.57079633 1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-3.14159" upper="3.14159"/>
+  </joint>
+  <link name="humerus__configuration_right">
+    <inertial>
+      <origin xyz="-0.000302207 -0.0252901 -0.0143945" rpy="1.57657688 0.0045658166 -0.022178229"/>
+      <mass value="0.042744"/>
+      <inertia ixx="1.78192e-05" ixy="0" ixz="0" iyy="1.77086e-05" iyz="0" izz="4.16556e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_shoulder_roll" type="revolute">
+    <parent link="shoulder"/>
+    <child link="humerus__configuration_right"/>
+    <origin xyz="0 -0.0145 -0.0195" rpy="1.57079633 -1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-3.14159" upper="0"/>
+  </joint>
+  <link name="radius_right">
+    <inertial>
+      <origin xyz="0.0069232 -0.0430317 0.012878" rpy="1.34406402 -1.38423641 0.584441234"/>
+      <mass value="0.0173499"/>
+      <inertia ixx="1.39641e-05" ixy="0" ixz="0" iyy="1.34363e-05" iyz="0" izz="2.91816e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_elbow" type="revolute">
+    <parent link="humerus__configuration_right"/>
+    <child link="radius_right"/>
+    <origin xyz="-0.0145 -0.0515 -0.0145" rpy="-0 1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-2.18166" upper="2.18166"/>
+  </joint>
+  <link name="hip">
+    <inertial>
+      <origin xyz="0.00431847 1.31382e-07 -0.0100454" rpy="1.63617196 7.73426892e-06 1.57080458"/>
+      <mass value="0.00988978"/>
+      <inertia ixx="5.07896e-06" ixy="0" ixz="0" iyy="4.69308e-06" iyz="0" izz="1.0731e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_hip_yaw" type="revolute">
+    <parent link="trunk"/>
+    <child link="hip"/>
+    <origin xyz="0 -0.036 0" rpy="0 -0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-4.18879" upper="1.0472"/>
+  </joint>
+  <link name="hip_block__configuration_right">
+    <inertial>
+      <origin xyz="-5.665e-05 0.0100355 0.0271424" rpy="0.117508573 -0.00893991748 -0.00119387484"/>
+      <mass value="0.048423"/>
+      <inertia ixx="1.67949e-05" ixy="0" ixz="0" iyy="1.37385e-05" iyz="0" izz="7.99365e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_hip_roll" type="revolute">
+    <parent link="hip"/>
+    <child link="hip_block__configuration_right"/>
+    <origin xyz="-0.02 0 -0.0214" rpy="-1.57079633 -0 -1.57079633"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-0.610865" upper="0.610865"/>
+  </joint>
+  <link name="femur__configuration_right">
+    <inertial>
+      <origin xyz="-0.0102168 -0.0361932 -0.014685" rpy="1.57183547 -2.98157642e-05 -0.153608942"/>
+      <mass value="0.0161197"/>
+      <inertia ixx="1.32375e-05" ixy="0" ixz="0" iyy="1.04908e-05" iyz="0" izz="4.67239e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_hip_pitch" type="revolute">
+    <parent link="hip_block__configuration_right"/>
+    <child link="femur__configuration_right"/>
+    <origin xyz="-0.0145 0 0.0385" rpy="3.14159265 1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-1.5708" upper="1.5708"/>
+  </joint>
+  <link name="tibia__configuration_right">
+    <inertial>
+      <origin xyz="0.00283278 -0.0206415 -0.0144636" rpy="1.58594209 -0.0213867565 0.202700524"/>
+      <mass value="0.0312719"/>
+      <inertia ixx="1.7334e-05" ixy="0" ixz="0" iyy="1.51199e-05" iyz="0" izz="5.16432e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_knee" type="revolute">
+    <parent link="femur__configuration_right"/>
+    <child link="tibia__configuration_right"/>
+    <origin xyz="-0.005 -0.062 0" rpy="0 -0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-0.785398" upper="2.35619"/>
+  </joint>
+  <link name="ankle_block__configuration_left">
+    <inertial>
+      <origin xyz="-0.0110817 -0.0100083 -0.0144031" rpy="-0.0775030926 -1.56485838 -2.95068761"/>
+      <mass value="0.048013"/>
+      <inertia ixx="1.64861e-05" ixy="0" ixz="0" iyy="1.34043e-05" iyz="0" izz="7.98523e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_ankle_pitch" type="revolute">
+    <parent link="tibia__configuration_right"/>
+    <child link="ankle_block__configuration_left"/>
+    <origin xyz="0.008 -0.0612131 0" rpy="0 -0 3.14159265"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-1.5708" upper="0.610865"/>
+  </joint>
+  <link name="foot_climb">
+    <inertial>
+      <origin xyz="-1.0695e-08 -0.0115199 0.0605776" rpy="0 0.13467864 1.57079633"/>
+      <mass value="0.0299799"/>
+      <inertia ixx="4.07283e-05" ixy="0" ixz="0" iyy="4.01815e-05" iyz="0" izz="5.73401e-06"/>
+    </inertial>
+  </link>
+  <joint name="right_ankle_roll" type="revolute">
+    <parent link="ankle_block__configuration_left"/>
+    <child link="foot_climb"/>
+    <origin xyz="-0.0385 0 -0.0145" rpy="-3.14159265 -1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-0.610865" upper="0.610865"/>
+  </joint>
+  <link name="shoulder_2">
+    <inertial>
+      <origin xyz="2.521e-09 3.76e-10 0.00904957" rpy="1.57079633 -0 0"/>
+      <mass value="0.0100298"/>
+      <inertia ixx="2.08008e-06" ixy="0" ixz="0" iyy="2.07522e-06" iyz="0" izz="1.18852e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_shoulder_pitch" type="revolute">
+    <parent link="trunk"/>
+    <child link="shoulder_2"/>
+    <origin xyz="0 0.0505 0.081" rpy="-1.57079633 -1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-3.14159" upper="3.14159"/>
+  </joint>
+  <link name="humerus__configuration_left">
+    <inertial>
+      <origin xyz="-0.000305532 0.0252901 -0.0143912" rpy="1.56514133 -0.0103922544 0.0221510433"/>
+      <mass value="0.042744"/>
+      <inertia ixx="1.78192e-05" ixy="0" ixz="0" iyy="1.77084e-05" iyz="0" izz="4.16552e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_shoulder_roll" type="revolute">
+    <parent link="shoulder_2"/>
+    <child link="humerus__configuration_left"/>
+    <origin xyz="0 0.0145 0.0195" rpy="-1.57079633 1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="0" upper="3.14159"/>
+  </joint>
+  <link name="radius_left">
+    <inertial>
+      <origin xyz="-0.00692316 0.0430316 -0.012878" rpy="1.34409567 -1.38422039 0.584410747"/>
+      <mass value="0.0173499"/>
+      <inertia ixx="1.39641e-05" ixy="0" ixz="0" iyy="1.34363e-05" iyz="0" izz="2.91818e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_elbow" type="revolute">
+    <parent link="humerus__configuration_left"/>
+    <child link="radius_left"/>
+    <origin xyz="-0.0145 0.0515 -0.0145" rpy="0 -1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-2.18166" upper="2.18166"/>
+  </joint>
+  <link name="hip_2">
+    <inertial>
+      <origin xyz="-0.00431847 -1.31382e-07 -0.0100454" rpy="1.5054207 -7.73426892e-06 1.57080458"/>
+      <mass value="0.00988978"/>
+      <inertia ixx="5.07896e-06" ixy="0" ixz="0" iyy="4.69308e-06" iyz="0" izz="1.0731e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_hip_yaw" type="revolute">
+    <parent link="trunk"/>
+    <child link="hip_2"/>
+    <origin xyz="0 0.036 0" rpy="0 -0 3.14159265"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-1.0472" upper="4.18879"/>
+  </joint>
+  <link name="hip_block__configuration_left">
+    <inertial>
+      <origin xyz="5.95623e-05 0.0100355 0.0271453" rpy="0.117334761 0.00874420301 0.00103678523"/>
+      <mass value="0.048423"/>
+      <inertia ixx="1.67981e-05" ixy="0" ixz="0" iyy="1.37416e-05" iyz="0" izz="7.99385e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_hip_roll" type="revolute">
+    <parent link="hip_2"/>
+    <child link="hip_block__configuration_left"/>
+    <origin xyz="0.02 0 -0.0214" rpy="-1.57079633 -0 1.57079633"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-0.610865" upper="0.610865"/>
+  </joint>
+  <link name="femur__configuration_left">
+    <inertial>
+      <origin xyz="0.0102168 0.0361932 -0.014315" rpy="1.57183547 -2.98157642e-05 -0.153608942"/>
+      <mass value="0.0161197"/>
+      <inertia ixx="1.32375e-05" ixy="0" ixz="0" iyy="1.04908e-05" iyz="0" izz="4.67239e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_hip_pitch" type="revolute">
+    <parent link="hip_block__configuration_left"/>
+    <child link="femur__configuration_left"/>
+    <origin xyz="-0.0145 0 0.0385" rpy="0 -1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-1.5708" upper="1.5708"/>
+  </joint>
+  <link name="tibia__configuration_left">
+    <inertial>
+      <origin xyz="-0.00282824 0.0206415 -0.0145364" rpy="1.58596028 -0.021773953 0.202775227"/>
+      <mass value="0.0312719"/>
+      <inertia ixx="1.73344e-05" ixy="0" ixz="0" iyy="1.51206e-05" iyz="0" izz="5.16474e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_knee" type="revolute">
+    <parent link="femur__configuration_left"/>
+    <child link="tibia__configuration_left"/>
+    <origin xyz="0.005 0.062 0" rpy="0 -0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-0.785398" upper="2.35619"/>
+  </joint>
+  <link name="ankle_block__configuration_right">
+    <inertial>
+      <origin xyz="0.0110847 0.0100083 -0.0145939" rpy="-0.0962314257 -1.56462184 -2.93177663"/>
+      <mass value="0.048013"/>
+      <inertia ixx="1.64829e-05" ixy="0" ixz="0" iyy="1.34013e-05" iyz="0" izz="7.98505e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_ankle_pitch" type="revolute">
+    <parent link="tibia__configuration_left"/>
+    <child link="ankle_block__configuration_right"/>
+    <origin xyz="-0.008 0.0612131 0" rpy="0 0 3.14159265"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-1.5708" upper="0.610865"/>
+  </joint>
+  <link name="foot_climb_2">
+    <inertial>
+      <origin xyz="-1.0695e-08 -0.0115199 0.0605776" rpy="0 0.13467864 1.57079633"/>
+      <mass value="0.0299799"/>
+      <inertia ixx="4.07283e-05" ixy="0" ixz="0" iyy="4.01815e-05" iyz="0" izz="5.73401e-06"/>
+    </inertial>
+  </link>
+  <joint name="left_ankle_roll" type="revolute">
+    <parent link="ankle_block__configuration_right"/>
+    <child link="foot_climb_2"/>
+    <origin xyz="0.0385 0 -0.0145" rpy="0 -1.57079633 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="0.6" velocity="6.6" lower="-0.610865" upper="0.610865"/>
+  </joint>
+  <!-- Frame body (dummy link + fixed joint) -->
+  <link name="body">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="body_frame" type="fixed">
+    <origin xyz="0 0 0" rpy="0 -0 0"/>
+    <parent link="trunk"/>
+    <child link="body"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame imu (dummy link + fixed joint) -->
+  <link name="imu">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="imu_frame" type="fixed">
+    <origin xyz="-0.01421 -0.015 0.044" rpy="1.57079633 -0 1.57079633"/>
+    <parent link="trunk"/>
+    <child link="imu"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame right_hand_ball (dummy link + fixed joint) -->
+  <link name="right_hand_ball">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="right_hand_ball_frame" type="fixed">
+    <origin xyz="0.03 -0.0715 0.0135" rpy="1.57079633 -0 0"/>
+    <parent link="radius_right"/>
+    <child link="right_hand_ball"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame right_foot (dummy link + fixed joint) -->
+  <link name="right_foot">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="right_foot_frame" type="fixed">
+    <origin xyz="0 -0.023 0.042" rpy="-1.57079633 -1.57079633 0"/>
+    <parent link="foot_climb"/>
+    <child link="right_foot"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame right_foot_ball (dummy link + fixed joint) -->
+  <link name="right_foot_ball">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="right_foot_ball_frame" type="fixed">
+    <origin xyz="0 -0.0065 0.1095" rpy="-1.57079633 -1.57079633 0"/>
+    <parent link="foot_climb"/>
+    <child link="right_foot_ball"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame left_hand_ball (dummy link + fixed joint) -->
+  <link name="left_hand_ball">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="left_hand_ball_frame" type="fixed">
+    <origin xyz="-0.03 0.0715 -0.0135" rpy="1.57079633 -0 -3.14159265"/>
+    <parent link="radius_left"/>
+    <child link="left_hand_ball"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame left_foot (dummy link + fixed joint) -->
+  <link name="left_foot">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="left_foot_frame" type="fixed">
+    <origin xyz="0 -0.023 0.042" rpy="-1.57079633 -1.57079633 0"/>
+    <parent link="foot_climb_2"/>
+    <child link="left_foot"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame left_foot_ball (dummy link + fixed joint) -->
+  <link name="left_foot_ball">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <joint name="left_foot_ball_frame" type="fixed">
+    <origin xyz="0 -0.0065 0.1095" rpy="-1.57079633 -1.57079633 0"/>
+    <parent link="foot_climb_2"/>
+    <child link="left_foot_ball"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+</robot>

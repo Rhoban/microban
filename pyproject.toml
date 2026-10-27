@@ -13,8 +13,12 @@ dependencies = [
 ]
 
 [dependency-groups]
+dashboard = [            # the live dashboard on the PC (make dashboard): src/humanoid_dashboard
+    "mujoco>=3.2",
+    "aiohttp>=3.9",
+]
 sim = [
-    "better-actuator-models",
+    "better-actuator-models @ git+https://github.com/Rhoban/bam.git@0007411bd82c48f1bc12ae8382f98e4d8b879c95",   # vin_drop_gain (sim/mujoco_controller.py)
     "mujoco>=3.8.1",
 ]
 
