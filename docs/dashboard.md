@@ -10,7 +10,10 @@ and only while a dashboard listens: no extra bus traffic while nobody watches. W
 the motors' health (torque, hardware error, voltage, temperature) once a second (two small sync reads, ~1.5 ms).
 The page's commands run in the control loop between two ticks; a reboot takes ~0.3 s, during which the other motors
 hold their last target. Everything else (kinematics, 3D, plots, recording) runs on the PC:
-[humanoid-dashboard](https://github.com/cgaspard3333/humanoid-dashboard), usable with other robots.
+`src/humanoid_dashboard` (see its README), which does not depend on Microban and can serve other robots.
 
 The input voltage error bit is always set at Microban's ~8 V (above the XL330's 7.0 V limit, Shutdown 52 does not cut
 the torque for it): the page ignores it. `MICROBAN_DASHBOARD=0` turns the link off.
+
+Without a robot: `PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.fake_robot --model src/model/mjcf/robot.xml`,
+then `make dashboard HOST=127.0.0.1`.

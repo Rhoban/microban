@@ -14,6 +14,7 @@ sync:
 		--exclude='src/debug' \
 		--exclude='src/sim' \
 		--exclude='src/model/mjcf' \
+		--exclude='src/humanoid_dashboard/web' \
 		./ $(HOST):microban
 
 setup: sync
@@ -49,7 +50,7 @@ gamepad-headless-disable:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh --uninstall'"
 
 # Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while `make run` is running.
-# DASHBOARD: the humanoid-dashboard command (default: fetched by uvx from its repository)
-DASHBOARD ?= uvx --from "humanoid-dashboard[pc] @ git+https://github.com/cgaspard3333/humanoid-dashboard" humanoid-dashboard
+# MODEL: the robot model shown (climbing mode: MODEL=src/model/mjcf/robot_climb.xml)
+MODEL ?= src/model/mjcf/robot.xml
 dashboard:
-	$(DASHBOARD) --robot $(HOST) --model src/model/mjcf/robot.xml --title Microban
+	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --robot $(HOST) --model $(MODEL) --title Microban

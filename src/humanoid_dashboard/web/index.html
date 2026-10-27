@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot dashboard</title>
+<style>
+  :root { --bg: #f3f3f0; --panel: #fff; --ink: #1d2126; --muted: #6b7078; --line: #e1e1db; --accent: #d9622b;
+          --accent-soft: #fbe5d8; --ok: #2e8b57; --ok-soft: #e0f1e7; --warn: #c27a12; --warn-soft: #fbefd9;
+          --bad: #c63b2f; --bad-soft: #f8dedb; --grid: #e7e7e2; --scene: #eceae5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171a; --panel: #1d2024; --ink: #e8e9eb; --muted: #9aa0a8; --line: #30343a; --accent: #f07a3e;
+            --accent-soft: #3a2619; --ok: #4cc286; --ok-soft: #1b3127; --warn: #e5a23a; --warn-soft: #3a2e17;
+            --bad: #f0675b; --bad-soft: #3b1f1c; --grid: #2a2d32; --scene: #1a1c1f; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 14px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  h1 { font-size: 15px; margin: 0; }
+  .pill { padding: 3px 10px; border-radius: 99px; background: var(--bad-soft); color: var(--bad); font-weight: 600; font-size: 12px; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); }
+  .chips b { color: var(--ink); font-weight: 600; }
+  .spacer { flex: 1; }
+  button { font: inherit; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.rec.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+  button.danger { border-color: var(--bad); color: var(--bad); }
+  button.confirm { background: var(--bad); border-color: var(--bad); color: #fff; }
+  button.small { padding: 2px 8px; font-size: 12px; }
+
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 640px; grid-template-rows: minmax(0, 1fr) 230px; gap: 10px; padding: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .card h2 { white-space: nowrap; overflow: hidden; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
+  #view { grid-row: 1; grid-column: 1; position: relative; }
+  #view canvas { display: block; width: 100%; height: 100%; }
+  #overlay { position: absolute; left: 10px; top: 8px; color: var(--muted); font-size: 12px; pointer-events: none; }
+  #motors { grid-row: 1 / span 2; grid-column: 2; }
+  .scroll { overflow: auto; min-height: 0; flex: 1; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th { position: sticky; top: 0; background: var(--panel); text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  td { padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  tr { cursor: pointer; }
+  tr.sel td { background: var(--accent-soft); }
+  tr.err td { background: var(--bad-soft); }
+  td.num { text-align: right; }
+  .bar { position: relative; width: 56px; height: 12px; background: var(--grid); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ok); }
+  .bar i.warn { background: var(--warn); } .bar i.bad { background: var(--bad); }
+  .st { font-size: 12px; } .st.bad { color: var(--bad); font-weight: 600; } .st.warn { color: var(--warn); } .st.muted { color: var(--muted); }
+  .hot { color: var(--warn); font-weight: 600; } .vhot { color: var(--bad); font-weight: 600; }
+  #bottom { grid-row: 2; grid-column: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.1fr); gap: 10px; min-height: 0; }
+  .plot { position: relative; flex: 1; min-height: 0; }
+  .plot canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .legend { font-weight: 400; text-transform: none; letter-spacing: 0; display: flex; gap: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 4px; vertical-align: middle; background: var(--c); }
+  #events { font: 12px/1.45 ui-monospace, monospace; padding: 6px 10px; }
+  #events div.error { color: var(--bad); } #events div.warn { color: var(--warn); } #events div.ack { color: var(--ok); } #events div.nack { color: var(--bad); }
+  #events small { color: var(--muted); }
+  #empty { padding: 20px; color: var(--muted); }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; grid-template-rows: 420px auto auto; } #motors { grid-row: 3; grid-column: 1; } #bottom { grid-template-columns: 1fr 1fr; grid-template-rows: 160px 160px; } }
+</style>
+<script type="importmap">{ "imports": { "three": "/static/vendor/three.module.js", "three/addons/": "/static/vendor/addons/" } }</script>
+</head>
+<body>
+<header>
+  <h1 id="title">Robot</h1>
+  <span class="pill" id="link">no robot</span>
+  <div class="chips" id="scalars"></div>
+  <div class="spacer"></div>
+  <button class="rec" id="rec">● Record</button>
+</header>
+<main>
+  <div class="card" id="view"><div id="overlay">drag: rotate · right-drag: pan · wheel: zoom · click a part: select its motor</div></div>
+  <div class="card" id="motors"><h2>Motors <span id="summary" class="legend"></span></h2><div class="scroll"><table id="table"></table><div id="empty">Waiting for the robot…</div></div></div>
+  <div id="bottom">
+    <div class="card"><h2>Current <span class="legend"><span style="--c:var(--accent)">total A</span></span></h2><div class="plot"><canvas id="p_cur"></canvas></div></div>
+    <div class="card"><h2 id="p_sel_title">Motor <span class="legend"><span style="--c:var(--accent)">angle</span><span style="--c:var(--muted)">target</span></span></h2><div class="plot"><canvas id="p_sel"></canvas></div></div>
+    <div class="card"><h2>Trunk <span class="legend"><span style="--c:var(--accent)">roll</span><span style="--c:#3d7fd9">pitch</span></span></h2><div class="plot"><canvas id="p_imu"></canvas></div></div>
+    <div class="card"><h2>Events</h2><div class="scroll" id="events"></div></div>
+  </div>
+</main>
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>
