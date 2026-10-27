@@ -6,7 +6,7 @@ import time
 from rustypot import Xl330PyController
 import numpy as np
 
-from constants import MOTOR_TO_ID, MOTOR_SIGN, MOTOR_OFFSET, IMU_I2C_BUS, MOTOR_SERIAL_PORT, PRESENT_CURRENT_UNIT_A
+from constants import MOTOR_TO_ID, MOTOR_SIGN, IMU_I2C_BUS, MOTOR_SERIAL_PORT, PRESENT_CURRENT_UNIT_A
 from imu_reader import ThreadedIMUReader
 
 
@@ -20,7 +20,6 @@ class RobotController:
         self._controller.set_fast_sync_read(True)
         self._kp: dict[int, int] = {}              # last position gain written to each motor
         self._id_to_sign: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_SIGN[name] for name in MOTOR_TO_ID}
-        self._id_to_offset: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_OFFSET.get(name, 0.0) for name in MOTOR_TO_ID}
         self._imu_reader = ThreadedIMUReader(i2c_bus=IMU_I2C_BUS, frequency_hz=200.0)
         self._imu_reader.start()
 
@@ -31,13 +30,12 @@ class RobotController:
         self._controller.sync_write_status_return_level(ids, levels)
 
     def sync_write_goal_position(self, ids: list[int], positions: list[float]) -> None:
-        hw_positions = [(pos + self._id_to_offset[motor_id]) * self._id_to_sign[motor_id]
-                        for motor_id, pos in zip(ids, positions)]
+        hw_positions = [pos * self._id_to_sign[motor_id] for motor_id, pos in zip(ids, positions)]
         self._controller.sync_write_goal_position(ids, hw_positions)
 
     def sync_read_present_position(self, ids: list[int]) -> list[float]:
         raw = self._controller.sync_read_present_position(ids)
-        return [r * self._id_to_sign[motor_id] - self._id_to_offset[motor_id] for motor_id, r in zip(ids, raw)]
+        return [r * self._id_to_sign[motor_id] for motor_id, r in zip(ids, raw)]
 
     def sync_read_state(self, ids: list[int]) -> tuple[list[float], list[float], list[float]]:
         """Present position (rad), velocity (rad/s) and current (A) in one sync read: the XL330 keeps them side by side
@@ -50,13 +48,12 @@ class RobotController:
             sign = self._id_to_sign[motor_id]
             currents.append(int.from_bytes(b[0:2], "little", signed=True) * PRESENT_CURRENT_UNIT_A)
             velocities.append(int.from_bytes(b[2:6], "little", signed=True) * 0.229 * np.pi / 30 * sign)
-            positions.append((int.from_bytes(b[6:10], "little", signed=True) - 2048) * 2 * np.pi / 4096 * sign
-                             - self._id_to_offset[motor_id])
+            positions.append((int.from_bytes(b[6:10], "little", signed=True) - 2048) * 2 * np.pi / 4096 * sign)
         return positions, velocities, currents
 
     def read_present_position(self, motor_id: int) -> float:
         raw = self._controller.read_present_position(motor_id)
-        return raw * self._id_to_sign[motor_id] - self._id_to_offset[motor_id]
+        return raw * self._id_to_sign[motor_id]
 
     def sync_read_present_velocity(self, ids: list[int]) -> list[float]:
         raw = np.array(self._controller.sync_read_present_velocity(ids)) * 0.229 * np.pi / 30

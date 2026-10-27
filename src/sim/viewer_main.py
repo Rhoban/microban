@@ -10,6 +10,8 @@ Usage:
 
 import argparse
 
+import microban_model
+
 from scheduler import Scheduler
 from input.keyboard_input import KeyboardInputSource
 from sim.placo_controller import PlacoViewerController
@@ -22,7 +24,7 @@ def main() -> None:
     parser.add_argument("--hz", type=float, default=50.0, metavar="FREQ", help="Scheduler frequency in Hz (default: 50)")
     args = parser.parse_args()
 
-    controller = PlacoViewerController(model_path="src/model/mjcf", dt=1.0 / args.hz)
+    controller = PlacoViewerController(model_path=str(microban_model.MJCF_DIR), dt=1.0 / args.hz)
     input_source = KeyboardInputSource(move_keys={"h": "head", "s": "squat"})
 
     scheduler = Scheduler(

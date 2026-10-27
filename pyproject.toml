@@ -10,6 +10,7 @@ dependencies = [
     "placo>=0.9.23",
     "pollen_bmi088_imu_library==1.0.0rc1",
     "rustypot>=1.4.2",
+    "microban-model",      # the robot's MJCF / URDF (Rhoban/microban_model; meshes in Git LFS)
 ]
 
 [dependency-groups]
@@ -26,3 +27,6 @@ sim = [
 override-dependencies = [
     "numpy>=2.3",
 ]
+
+[tool.uv.sources]
+microban-model = { git = "https://github.com/Rhoban/microban_model", lfs = true }

@@ -2,6 +2,7 @@
 # Copyright 2026 Marc Duclusaud
 
 import math
+import microban_model
 import placo
 
 import numpy as np
@@ -37,7 +38,7 @@ class SquatMove(Move):
         lerp_duration: float = 1.0,
     ) -> None:
         super().__init__()
-        self._model_path = "src/model/urdf"
+        self._model_path = str(microban_model.URDF_DIR)
         self.frequency = frequency
         self.amplitude = amplitude
         self.lerp_duration = lerp_duration

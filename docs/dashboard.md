@@ -15,7 +15,7 @@ hold their last target. Everything else (kinematics, 3D, plots, recording) runs 
 The input voltage error bit is always set at Microban's ~8 V (above the XL330's 7.0 V limit, Shutdown 52 does not cut
 the torque for it): the page ignores it. `MICROBAN_DASHBOARD=0` turns the link off.
 
-Without a robot: `PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.fake_robot --model src/model/mjcf/robot.xml`,
+Without a robot: `PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.fake_robot --model "$(python -c 'import microban_model; print(microban_model.mjcf())')"`,
 then `make dashboard HOST=127.0.0.1`.
 
 ## Torque, em and init

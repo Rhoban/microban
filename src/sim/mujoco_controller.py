@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 import mujoco
 import mujoco.viewer
 
+from sim.scene import build_scene
+
 if TYPE_CHECKING:
     from sim.mujoco_input import MuJoCoInputSource
 
@@ -40,7 +42,8 @@ class MuJoCoController:
 
     def __init__(
         self,
-        mjcf_path: str,
+        mjcf_path: str | None = None,
+        climb: bool = False,
         key_callback: Callable[[int, int, int, int], None] | None = None,
         stop_flag_path: str = "/tmp/microban_scheduler.stop",
         reset_source: "MuJoCoInputSource | None" = None,
@@ -55,7 +58,8 @@ class MuJoCoController:
     ) -> None:
         self._stop_flag_path = Path(stop_flag_path)
         self._reset_source = reset_source
-        self._model = mujoco.MjModel.from_xml_path(mjcf_path)
+        # the robot from microban_model in its scene (sim/scene.py), or a scene of one's own
+        self._model = mujoco.MjModel.from_xml_path(mjcf_path) if mjcf_path else build_scene(climb)
         self._data = mujoco.MjData(self._model)
 
         self._name_to_actuator_idx: dict[str, int] = {}

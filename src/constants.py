@@ -27,6 +27,8 @@ MOTOR_TO_ID = {
 
 ID_TO_MOTOR = {v: k for k, v in MOTOR_TO_ID.items()}
 
+# Joint angles: every zero is its motor's zero (microban_model). The shoulder pitch holds the arm forward at 0,
+# along the body at +90 deg.
 NEUTRAL_POSE = {
     "left_hip_yaw": float(np.deg2rad(0.0)),
     "left_hip_roll": float(np.deg2rad(5.0)),
@@ -40,10 +42,10 @@ NEUTRAL_POSE = {
     "right_knee": float(np.deg2rad(0.0)),
     "right_ankle_pitch": float(np.deg2rad(0.0)),
     "right_ankle_roll": float(np.deg2rad(5.0)),
-    "left_shoulder_pitch": float(np.deg2rad(10.0)),
+    "left_shoulder_pitch": float(np.deg2rad(100.0)),
     "left_shoulder_roll": float(np.deg2rad(10.0)),
     "left_elbow": float(np.deg2rad(-20.0)),
-    "right_shoulder_pitch": float(np.deg2rad(10.0)),
+    "right_shoulder_pitch": float(np.deg2rad(100.0)),
     "right_shoulder_roll": float(np.deg2rad(-10.0)),
     "right_elbow": float(np.deg2rad(-20.0)),
     "head": float(np.deg2rad(0.0)),
@@ -69,13 +71,6 @@ MOTOR_SIGN = {
     "right_shoulder_roll": -1.0,
     "right_elbow": -1.0,
     "head": 1.0,
-}
-
-# Microban v2: both shoulder pitch horns are mounted a quarter turn from the model's zero (arm down in the model,
-# arm forward at the motor's zero): hardware joint = model joint + MOTOR_OFFSET (before MOTOR_SIGN). 0 for the others.
-MOTOR_OFFSET = {
-    "left_shoulder_pitch": float(np.pi / 2),
-    "right_shoulder_pitch": float(np.pi / 2),
 }
 
 # Position P Gain (Dynamixel register value)

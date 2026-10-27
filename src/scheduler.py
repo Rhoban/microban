@@ -10,7 +10,6 @@ from typing import Optional
 
 from constants import (
     MOTOR_TO_ID,
-    MOTOR_OFFSET,
     NEUTRAL_POSE,
     KP_DEFAULT,
     BAM_MAX_CURRENT,
@@ -223,7 +222,7 @@ class Scheduler:
             print("Emergency stop: torque off on every motor", end="\r\n", flush=True)
         elif req == "init":
             self._stop_moves()
-            self._start_pose(obs.robot_state, {n: -MOTOR_OFFSET.get(n, 0.0) for n in MOTOR_TO_ID}, INIT_S, hold=True)
+            self._start_pose(obs.robot_state, {n: 0.0 for n in MOTOR_TO_ID}, INIT_S, hold=True)
             self._locked = True
         if self._locked:
             if not launched:

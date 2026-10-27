@@ -28,11 +28,12 @@ def main() -> None:
     parser.add_argument("--delay-gyro", type=int, default=3, metavar="TICKS", help="Gyro read delay in ticks")
     parser.add_argument("--delay-quat", type=int, default=4, metavar="TICKS", help="Quaternion (projected gravity) read delay in ticks")
     parser.add_argument("--trunk-com-offset", type=float, nargs=3, default=[0.0, 0.0, 0.0], metavar=("X", "Y", "Z"), help="CoM offset on trunk body in meters (body frame)")
+    parser.add_argument("--climb", action="store_true", help="the climbing forearms and feet (microban_model)")
     args = parser.parse_args()
 
     input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "v": "walk"})
     controller = MuJoCoController(
-        mjcf_path="src/model/mjcf/scene.xml",
+        climb=args.climb,
         key_callback=input_source.key_callback,
         reset_source=input_source,
         delay_act_steps=args.delay_act,

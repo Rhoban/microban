@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2026 Marc Duclusaud
 
+import math
 import onnxruntime as ort
 import numpy as np
 
@@ -17,6 +18,9 @@ LOGGING = False
 # Policy name
 AGENT_NAME = "walk.onnx"
 
+
+
+WALK_V1_SHOULDER_OFFSET = {"left_shoulder_pitch": math.pi / 2, "right_shoulder_pitch": math.pi / 2}
 
 class WalkMove(Move):
     """Walk using a RL policy trained in simulation."""
@@ -35,7 +39,9 @@ class WalkMove(Move):
         meta = self._ort_session.get_modelmeta().custom_metadata_map
         names = meta["joint_names"].split(",")
         positions = [float(v) for v in meta["default_joint_pos"].split(",")]
-        self._default_pose: dict[str, float] = dict(zip(names, positions))
+        # The policy was trained on Microban v1, whose shoulder pitch is 0 with the arm down: a quarter turn from the
+        # motors' zero used here. Its inputs (angle - default) and outputs (default + action) stay the same.
+        self._default_pose: dict[str, float] = {n: p + WALK_V1_SHOULDER_OFFSET.get(n, 0.0) for n, p in zip(names, positions)}
 
         # Detect reference phase from model input size:
         # base_obs = gyro(3) + proj_grav(3) + pos(N) + vel(N) + action(N) + cmd(3)

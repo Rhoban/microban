@@ -13,7 +13,6 @@ sync:
 		--exclude='logs' \
 		--exclude='src/debug' \
 		--exclude='src/sim' \
-		--exclude='src/model/mjcf' \
 		--exclude='src/humanoid_dashboard/web' \
 		./ $(HOST):microban
 
@@ -50,7 +49,8 @@ gamepad-headless-disable:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh --uninstall'"
 
 # Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while `make run` is running.
-# MODEL: the robot model shown (climbing mode: MODEL=src/model/mjcf/robot_climb.xml)
-MODEL ?= src/model/mjcf/robot.xml
+# MODEL: the robot model shown (default: microban_model's robot.xml; CLIMB=1: robot_climb.xml)
+CLIMB ?=
+MODEL ?= $(shell uv run --group dashboard python -c "import microban_model; print(microban_model.mjcf($(if $(CLIMB),True,False)))")
 dashboard:
 	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --robot $(HOST) --model $(MODEL) --title Microban

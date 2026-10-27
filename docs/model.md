@@ -1,16 +1,11 @@
-# Robot model (Microban v2, Radxa)
+# Robot model
 
-`src/model/` holds the robot (Onshape export converted by onshape-to-robot 1.8.3, masses from the CAD) in two versions
-that are the same robot except for the forearms and the feet:
+The robot's model is the package [microban_model](https://github.com/Rhoban/microban_model) (a dependency: MuJoCo XML
+and URDF of Microban v2, in two versions that differ only by the forearms and the feet: walking, the default, and
+climbing). The simulation builds its scene around it (`src/sim/scene.py`; `make sim` or `--climb`), the squat's
+inverse kinematics reads its URDF, the dashboard shows it (`make dashboard HOST=... [CLIMB=1]`).
 
-| | MuJoCo | URDF (kinematics, PlaCo) |
-|---|---|---|
-| default: walking forearms and feet | `mjcf/robot.xml`, `mjcf/scene.xml` | `urdf/robot.urdf` |
-| climbing mode: ball hands, climbing feet | `mjcf/robot_climb.xml`, `mjcf/scene_climb.xml` | `urdf/robot_climb.urdf` |
-
-Both have the same joints, actuators (XL330 torque motors for the BAM model, class `xl330`) and IMU sensors (site
-`imu`). Collisions: boxes for the servos that stick out, the trunk as four hulls, the other parts as convex pieces;
-the walking forearms and feet as primitives; the climbing hands and feet with their 25 mm balls (sites `*_ball`).
-
-Joint angles follow the code's convention (the neutral pose, the walk): shoulder pitch 0 is the arm down. The real
-shoulder horns are a quarter turn from it, which `MOTOR_OFFSET` (`src/constants.py`) applies on the robot only.
+Joint angles everywhere (model, code, motors) have the motors' zero as their zero (Dynamixel Wizard: 180 deg): the
+shoulder pitch holds the arm forward at 0, along the body at +90 deg (`NEUTRAL_POSE`). The walking policy was trained
+on Microban v1 (arm down at 0): `moves/walk.py` turns its default pose by a quarter turn on the shoulders, which leaves
+its inputs and outputs unchanged.
