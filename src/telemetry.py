@@ -57,12 +57,16 @@ class Telemetry:
                 "q": self.names, "q_target": self.names, "dq": self.names, "current": self.names,
                 "torque": self.names, "hw_error": self.names, "voltage": self.names, "temperature": self.names,
                 "imu_quat": ["w", "x", "y", "z"], "gyro": ["x", "y", "z"], "acc": ["x", "y", "z"],
-                "tick_ms": ["tick"], "safety_est_A": ["total"], "powered": ["on"], "init": ["on"],
+                "tick_ms": ["tick"], "powered": ["on"], "init": ["on"],
                 "moves": [m["name"] for m in listed]},
                 meta={"motor_ids": MOTOR_TO_ID, "limits": {"current": CURRENT_LIMIT_A, "temperature": TEMPERATURE_LIMIT_C},
                       "hw_error_bits": {"0": "input voltage", "2": "overheating", "3": "motor encoder",
                                         "4": "electrical shock", "5": "overload"},
-                      "hw_error_ignore": VOLTAGE_BIT, "commands": cmds, "moves": listed})
+                      "hw_error_ignore": VOLTAGE_BIT, "commands": cmds, "moves": listed,
+                      # how the page shows the one-value fields: a label and unit, or a flag's texts (on / off)
+                      "scalars": {"tick_ms": {"label": "loop", "unit": "ms"},
+                                  "powered": {"flag": ["torque off", "torque on"]},
+                                  "init": {"flag": ["", "init: zero pose held"]}}})
         except OSError as e:          # port taken (another session): the robot runs without the dashboard
             print(f"Warning: dashboard link off ({e})", end="\r\n", flush=True)
             self.enabled = False
@@ -114,7 +118,7 @@ class Telemetry:
             current=[state.measured_currents.get(n, math.nan) for n in names] if state.measured_currents else None,
             torque=self.torque, hw_error=self.error, voltage=self.voltage, temperature=self.temperature,
             imu_quat=state.body_quat or None, gyro=state.gyro or None, acc=state.acc or None,
-            tick_ms=tick_ms, safety_est_A=total_current, powered=status.get("powered"), init=status.get("init"),
+            tick_ms=tick_ms, powered=status.get("powered"), init=status.get("init"),
             moves=moves)
         for cmd in self.link.commands():
             self._run(cmd)

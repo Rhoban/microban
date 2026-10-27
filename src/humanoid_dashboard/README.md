@@ -23,7 +23,7 @@ for cmd in link.commands():                     # {"name": "reboot", "args": {"j
 link.event("overcurrent safety: torque off", level="error")
 ```
 
-Nothing is sent while no PC listens (a PC subscribes for 3 s with every hello it sends, once a second); `publish` and
+Frames go out at 30 Hz at most (`Link(..., max_hz=30)`, whatever the loop's rate). Nothing is sent while no PC listens (a PC subscribes for 3 s with every hello it sends, once a second); `publish` and
 `commands` never block. A frame is a 20-byte header and one float32 per value (NaN when not given): ~1 kB at most for
 a 20-motor robot, ~50 kB/s at 50 Hz.
 
@@ -38,7 +38,7 @@ a 20-motor robot, ~50 kB/s at 50 Hz.
 | `hw_error` | joint names | the bits named by `meta.hw_error_bits`, minus `meta.hw_error_ignore` |
 | `torque` | joint names | 1 / 0; "torque off" and the torque button |
 | `imu_quat` | w x y z | trunk orientation in the world (3D view, roll / pitch plot) |
-| any one-value field | its name | in the header (e.g. `tick_ms`) |
+| any one-value field | its name | in the header: `meta.scalars[name]` = `{label, unit}`, or `{flag: [off text, on text]}` for a 0 / 1 |
 
 Other fields are recorded. Joint labels are matched to the model's joints by name.
 

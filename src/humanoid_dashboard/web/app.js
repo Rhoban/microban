@@ -283,7 +283,13 @@ function onFrame(m) {
   last = m;
   if (scene3d && m.poses) scene3d.pose(m.poses);
   // scalar fields (one value each) in the header
-  const sc = Object.entries(names).filter(([k, l]) => l.length === 1).map(([k]) => `${k} <b>${m.values[k][0] === null ? "–" : (+m.values[k][0]).toFixed(1)}</b>`);
+  // one-value fields: as the robot describes them (meta.scalars: label + unit, or a flag's texts), else name = value
+  const desc = meta.scalars || {};
+  const sc = Object.entries(names).filter(([k, l]) => l.length === 1 && k !== "moves").map(([k]) => {
+    const v = m.values[k][0], d = desc[k] || {};
+    if (d.flag) { const t = d.flag[v ? 1 : 0]; return t ? `<span class="pill ${v ? "ok" : "warn"}">${t}</span>` : ""; }
+    return `${d.label || k} <b>${v === null ? "–" : (+v).toFixed(1)}</b>${d.unit ? " " + d.unit : ""}`;
+  }).filter(Boolean);
   $("scalars").innerHTML = sc.join(" · ");
   const cur = m.values.current ? m.values.current.reduce((a, b) => a + Math.abs(b || 0), 0) : null;
   const [roll, pitch] = quatRollPitch(m.values.imu_quat);

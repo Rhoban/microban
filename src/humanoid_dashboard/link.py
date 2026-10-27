@@ -30,8 +30,11 @@ SUBSCRIPTION_S = 3.0
 
 
 class Link:
-    def __init__(self, robot: str, fields: dict, meta: dict | None = None, port: int = PORT):
+    def __init__(self, robot: str, fields: dict, meta: dict | None = None, port: int = PORT, max_hz: float | None = 30.0):
+        """max_hz: frames sent per second at most (publish() called faster sends one call in a few)."""
         self.robot = robot
+        self.min_period = 1.0 / max_hz if max_hz else 0.0
+        self._last_sent = 0.0
         self.fields = [(name, list(labels)) for name, labels in fields.items()]
         self.meta = meta or {}
         self.size = sum(len(labels) for _, labels in self.fields)
@@ -108,6 +111,10 @@ class Link:
         self._receive()
         if not self.listening:
             return
+        now = time.monotonic()
+        if now - self._last_sent < self.min_period:
+            return
+        self._last_sent = now
         buf = [math.nan] * self.size
         for name, v in values.items():
             if v is None or name not in self.offset:
