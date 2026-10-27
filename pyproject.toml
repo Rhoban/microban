@@ -18,7 +18,7 @@ dashboard = [            # the live dashboard on the PC (make dashboard): src/hu
     "aiohttp>=3.9",
 ]
 sim = [
-    "better-actuator-models @ git+https://github.com/Rhoban/bam.git@0007411bd82c48f1bc12ae8382f98e4d8b879c95",   # vin_drop_gain (sim/mujoco_controller.py)
+    "better-actuator-models @ git+https://github.com/Rhoban/bam.git@e9a619d56da5236206f4de6ceec2c1ee1b497b5c",   # latest (2026-09-13); PyPI 1.0.2 lacks MujocoController.reset
     "mujoco>=3.8.1",
 ]
 

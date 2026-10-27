@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 from bam.model import load_model as bam_load_model
 from bam.mujoco import MujocoController as BamController
 
-from constants import MOTOR_TO_ID, ID_TO_MOTOR, NEUTRAL_POSE, KP_DEFAULT, BAM_VIN, BAM_VOLTAGE_DROP_GAIN, BAM_VIN_MIN, BAM_MAX_CURRENT
+from constants import MOTOR_TO_ID, ID_TO_MOTOR, NEUTRAL_POSE, KP_DEFAULT, BAM_VIN, BAM_VIN_DROP_RESISTANCE, BAM_VIN_MIN, BAM_MAX_CURRENT
 
 
 class _DelayBuffer:
@@ -116,16 +116,16 @@ class MuJoCoController:
         bam_model = bam_load_model(motor_name="xl330", model="m6")
         bam_model.actuator.kp = KP_DEFAULT
         bam_model.actuator.vin = BAM_VIN
+        bam_model.actuator.max_current = BAM_MAX_CURRENT   # firmware current limit (an actuator setting in BAM >= 1.0.2)
         self._bam = BamController(
             bam_model,
             list(MOTOR_TO_ID.keys()),
             self._model,
             self._data,
-            vin_drop_gain=BAM_VOLTAGE_DROP_GAIN,
+            vin_drop_resistance=BAM_VIN_DROP_RESISTANCE,
             vin_min=BAM_VIN_MIN,
-            max_current=BAM_MAX_CURRENT,
         )
-        self._bam.reset(self._data.qpos)
+        self._reset_bam()
 
         self._viewer = mujoco.viewer.launch_passive(
             self._model, self._data, key_callback=key_callback
@@ -134,6 +134,13 @@ class MuJoCoController:
         # Sensor indices for IMU readout
         self._sensor_orientation = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_SENSOR, "orientation")
         self._sensor_gyro = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_SENSOR, "angular-velocity")
+
+    def _reset_bam(self) -> None:
+        """Clear BAM's controller state and hold every motor where it is (BAM >= 1.0.2: reset() no longer sets
+        the targets)."""
+        self._bam.reset()
+        for name in MOTOR_TO_ID:
+            self._bam.set_q_target(name, self._data.qpos[self._name_to_qpos_idx[name]])
 
     @property
     def viewer_opt(self) -> mujoco.MjvOption:
@@ -265,7 +272,7 @@ class MuJoCoController:
             if name in self._name_to_qpos_idx:
                 self._data.qpos[self._name_to_qpos_idx[name]] = angle
         mujoco.mj_forward(self._model, self._data)
-        self._bam.reset(self._data.qpos)
+        self._reset_bam()
         for mid in MOTOR_TO_ID.values():
             neutral = self._data.qpos[self._name_to_qpos_idx[ID_TO_MOTOR[mid]]]
             self._delay_act[mid].fill(neutral)
