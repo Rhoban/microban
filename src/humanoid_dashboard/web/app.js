@@ -305,6 +305,7 @@ function connectTo(host, name) {
 }
 function renderSaved() {
   const box = $("saved"); box.innerHTML = "";
+  $("savedsec").style.display = Object.keys(robot.saved).length ? "" : "none";
   for (const [name, host] of Object.entries(robot.saved).sort()) {
     const row = document.createElement("div"); row.className = "saved";
     const go = document.createElement("button"); go.type = "button"; go.className = host === robot.host ? "cur" : "";
@@ -318,9 +319,10 @@ function renderSaved() {
 $("robotbtn").onclick = ev => {
   ev.stopPropagation();
   const box = $("robotbox"); box.classList.toggle("show");
-  if (box.classList.contains("show")) { $("host").value = robot.host || ""; $("rname").value = ""; $("host").focus(); }
+  if (box.classList.contains("show")) { $("host").value = ""; $("rname").value = ""; $("hostgo").textContent = "Connect"; }
 };
 $("robotbox").onclick = ev => ev.stopPropagation();
+$("rname").oninput = () => { $("hostgo").textContent = $("rname").value.trim() ? "Save and connect" : "Connect"; };
 document.addEventListener("click", () => $("robotbox").classList.remove("show"));
 $("robotbox").onsubmit = ev => {
   ev.preventDefault();
