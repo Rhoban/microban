@@ -135,6 +135,8 @@ class Scheduler:
                     break
 
                 # Send command to motors
+                if self.telemetry is not None:          # the dashboard's zero pose, while it runs or is held
+                    self.telemetry.apply(command)
                 self._cmd_history.append(dict(command.target_angles))
                 self._send_to_motors(command)
 

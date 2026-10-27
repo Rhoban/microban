@@ -30,6 +30,8 @@
   button.danger { border-color: var(--bad); color: var(--bad); }
   button.confirm { background: var(--bad); border-color: var(--bad); color: #fff; }
   button.small { padding: 2px 8px; font-size: 12px; }
+  button.stop { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
+  button.stop:hover { filter: brightness(1.1); }
 
   main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 640px; grid-template-rows: minmax(0, 1fr) 230px; gap: 10px; padding: 10px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
@@ -70,6 +72,7 @@
   <span class="pill" id="link">no robot</span>
   <div class="chips" id="scalars"></div>
   <div class="spacer"></div>
+  <span id="robotcmds" class="chips"></span>
   <button class="rec" id="rec">● Record</button>
 </header>
 <main>

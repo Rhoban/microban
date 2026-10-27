@@ -138,7 +138,7 @@ function button(label, cls, onClick, confirmText) {
     ev.stopPropagation();
     if (confirmText && confirmKey[label + b.dataset.j] !== true) {
       confirmKey[label + b.dataset.j] = true; b.textContent = confirmText; b.classList.add("confirm");
-      setTimeout(() => { confirmKey[label + b.dataset.j] = false; renderTable(true); }, 3000);
+      setTimeout(() => { confirmKey[label + b.dataset.j] = false; renderTable(true); robotCmdsKey = ""; renderRobotCmds(); }, 3000);
       return;
     }
     confirmKey[label + b.dataset.j] = false; onClick();
@@ -266,7 +266,7 @@ function connect() {
     const m = JSON.parse(ev.data);
     if (m.type === "schema") {
       schema = m.schema; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
-      $("title").textContent = schema.robot; document.title = schema.robot + " · dashboard";
+      $("title").textContent = schema.robot; document.title = schema.robot + " · dashboard"; robotCmdsKey = ""; renderRobotCmds();
     }
     else if (m.type === "frame") onFrame(m);
     else if (m.type === "ack" || m.type === "event") log(m);
@@ -291,6 +291,28 @@ function onFrame(m) {
   while (hist.length && hist[0].t < m.robot_t - HISTORY_S) hist.shift();
   if (scene3d) { const st = {}; for (const j of jointsList()) st[j] = j === selected ? "sel" : motorState(j); scene3d.tint(st); }
   renderTable();
+  renderRobotCmds();
+}
+// whole-robot commands (the ones the robot lists): emergency torque off, zero pose (confirmed), release
+let robotCmdsKey = "";
+function renderRobotCmds() {
+  const cmds = meta.commands || [], hold = last && last.values && last.values.pose_hold ? last.values.pose_hold[0] === 1 : false;
+  const key = cmds.join() + hold;
+  if (key === robotCmdsKey) return;
+  robotCmdsKey = key;
+  const box = $("robotcmds"); box.innerHTML = "";
+  if (cmds.includes("zero_pose")) {
+    const b = button("Zero pose", "", () => cmd("zero_pose", {}), "Robot held? Move to zero");
+    b.dataset.j = "*"; b.classList.remove("small"); b.title = "every motor to its zero (2 s), then held"; box.appendChild(b);
+  }
+  if (cmds.includes("release") && hold) {
+    const b = document.createElement("button"); b.textContent = "Release"; b.title = "the robot's moves command the motors again";
+    b.onclick = () => cmd("release", {}); box.appendChild(b);
+  }
+  if (cmds.includes("torque_all")) {
+    const b = document.createElement("button"); b.className = "stop"; b.textContent = "⏻ Torque off (all)";
+    b.title = "cut the torque of every motor now"; b.onclick = () => cmd("torque_all", { on: false }); box.appendChild(b);
+  }
 }
 $("rec").onclick = () => send({ type: "record", on: !recording });
 setInterval(drawPlots, 100);
