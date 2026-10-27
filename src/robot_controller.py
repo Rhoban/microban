@@ -4,7 +4,7 @@
 from rustypot import Xl330PyController
 import numpy as np
 
-from constants import MOTOR_TO_ID, MOTOR_SIGN, IMU_I2C_BUS, PRESENT_CURRENT_UNIT_A
+from constants import MOTOR_TO_ID, MOTOR_SIGN, MOTOR_OFFSET, IMU_I2C_BUS, PRESENT_CURRENT_UNIT_A
 from imu_reader import ThreadedIMUReader
 
 
@@ -14,6 +14,7 @@ class RobotController:
     def __init__(self, serial_port: str = "/dev/ttyAMA0", baudrate: int = 1_000_000, timeout: float = 0.1) -> None:
         self._controller = Xl330PyController(serial_port=serial_port, baudrate=baudrate, timeout=timeout)
         self._id_to_sign: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_SIGN[name] for name in MOTOR_TO_ID}
+        self._id_to_offset: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_OFFSET.get(name, 0.0) for name in MOTOR_TO_ID}
         self._imu_reader = ThreadedIMUReader(i2c_bus=IMU_I2C_BUS, frequency_hz=200.0)
         self._imu_reader.start()
 
@@ -24,16 +25,17 @@ class RobotController:
         self._controller.sync_write_status_return_level(ids, levels)
 
     def sync_write_goal_position(self, ids: list[int], positions: list[float]) -> None:
-        hw_positions = [pos * self._id_to_sign[motor_id] for motor_id, pos in zip(ids, positions)]
+        hw_positions = [(pos + self._id_to_offset[motor_id]) * self._id_to_sign[motor_id]
+                        for motor_id, pos in zip(ids, positions)]
         self._controller.sync_write_goal_position(ids, hw_positions)
 
     def sync_read_present_position(self, ids: list[int]) -> list[float]:
         raw = self._controller.sync_read_present_position(ids)
-        return [r * self._id_to_sign[motor_id] for motor_id, r in zip(ids, raw)]
+        return [r * self._id_to_sign[motor_id] - self._id_to_offset[motor_id] for motor_id, r in zip(ids, raw)]
 
     def read_present_position(self, motor_id: int) -> float:
         raw = self._controller.read_present_position(motor_id)
-        return raw * self._id_to_sign[motor_id]
+        return raw * self._id_to_sign[motor_id] - self._id_to_offset[motor_id]
 
     def sync_read_present_velocity(self, ids: list[int]) -> list[float]:
         raw = np.array(self._controller.sync_read_present_velocity(ids)) * 0.229 * np.pi / 30

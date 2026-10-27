@@ -71,6 +71,13 @@ MOTOR_SIGN = {
     "head": 1.0,
 }
 
+# Microban v2: both shoulder pitch horns are mounted a quarter turn from the model's zero (arm down in the model,
+# arm forward at the motor's zero): hardware joint = model joint + MOTOR_OFFSET (before MOTOR_SIGN). 0 for the others.
+MOTOR_OFFSET = {
+    "left_shoulder_pitch": float(np.pi / 2),
+    "right_shoulder_pitch": float(np.pi / 2),
+}
+
 # Position P Gain (Dynamixel register value)
 KP_DEFAULT: int = 400        # ~0.886 Nm/rad in MuJoCo
 KP_RL: int = 125             # ~0.277 Nm/rad in MuJoCo
