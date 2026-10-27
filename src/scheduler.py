@@ -98,6 +98,8 @@ class Scheduler:
 
         if self.input_source:
             self.input_source.start()
+        if self.telemetry is not None:          # the moves are loaded now (preload may expose more variables)
+            self.telemetry.options_changed()
 
         try:
             while True:
