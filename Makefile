@@ -1,4 +1,4 @@
-.PHONY: sync setup run stop shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
+.PHONY: sync setup run stop robot-service-enable robot-service-disable robot-service-start robot-service-stop robot-service-logs shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
 
 HOST ?= microban
 ID ?=
@@ -29,7 +29,20 @@ viewer:
 
 run: sync
 	$(if $(CONTROLLER),scp $(CONTROLLER) $(HOST):microban/user_controller.py)
+	-ssh $(HOST) "systemctl is-active -q microban.service && sudo systemctl stop microban.service && echo 'robot service stopped for this session (make robot-service-start to restart it)'"
 	ssh -tt $(HOST) "bash -l -c 'cd microban && $(if $(CONTROLLER),MICROBAN_CONTROLLER=user_controller.py) PYTHONPATH=src .venv/bin/python src/main.py'"
+
+# The robot service: the control loop starts at boot (torque off until a move is launched), for the dashboard
+robot-service-enable: setup
+	ssh -tt $(HOST) "cd microban && sudo bash systemd/install-robot-service.sh"
+robot-service-disable:
+	ssh -tt $(HOST) "cd microban && sudo bash systemd/install-robot-service.sh --uninstall"
+robot-service-start:
+	ssh $(HOST) "sudo systemctl start microban.service"
+robot-service-stop:
+	ssh $(HOST) "sudo systemctl stop microban.service"
+robot-service-logs:
+	ssh -tt $(HOST) "journalctl -u microban.service -f -n 50"
 
 stop:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && PYTHONPATH=src .venv/bin/python src/stop.py'"

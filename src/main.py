@@ -2,6 +2,7 @@
 # Copyright 2026 Marc Duclusaud
 
 import os
+import sys
 from pathlib import Path
 
 from constants import MOTOR_TO_ID, KP_DEFAULT
@@ -46,9 +47,16 @@ def _controller_move(controller) -> dict:
 def build_input_source() -> InputSource:
     """Use the gamepad when one is connected, otherwise fall back to the keyboard.
 
+    Without a terminal (the robot service): a gamepad whenever one connects, else none (the dashboard drives).
     Override with MICROBAN_INPUT=keyboard|gamepad.
     """
     requested = os.environ.get("MICROBAN_INPUT", "auto").lower()
+
+    if requested == "auto" and not sys.stdin.isatty():
+        # the robot service (no terminal): a gamepad whenever one connects, else the dashboard alone
+        from input.hotplug_input import HotplugGamepadInputSource
+        print("No terminal: gamepad when connected, moves from the dashboard otherwise.")
+        return HotplugGamepadInputSource(button_moves=GAMEPAD_BUTTON_MOVES)
 
     if requested in ("auto", "gamepad"):
         from input.gamepad_input import GamepadInputSource, find_gamepad_path

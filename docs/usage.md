@@ -36,6 +36,8 @@ by default; add `HOST=microban-ext` to operate over the secondary network (see t
    robot then ramps to its neutral pose in 2 s with the torque on, and the move starts. When no move runs, the
    torque goes off again.
 2. `make run` — the control loop starts at 50 Hz and stays attached to your terminal. Some latency is expected due to the SSH connection.
+   With the robot service (`make robot-service-enable`, [dashboard.md](dashboard.md)) the loop already runs from boot:
+   start moves from the dashboard or a gamepad instead, or `make run` for the keyboard (it stops the service).
 3. Toggle moves and drive the robot (see below).
 4. `make stop` (or press `q`) to stop; `make shutdown` to power off.
 

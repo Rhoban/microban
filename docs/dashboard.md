@@ -1,5 +1,18 @@
 # Live dashboard
 
+## Starting it
+
+**On the robot, once:** `make robot-service-enable HOST=<robot>` installs the robot service: the control loop
+(`src/main.py`, what `make run` runs) starts at every boot. Torque off until a move is launched; a gamepad is used
+whenever one connects; otherwise the moves are started from the dashboard. It is the robot's program itself, not an
+extra one: it costs nothing more (the dashboard link sends only while a PC listens). It holds the motors' port: stop it
+(`make robot-service-stop`, then `make robot-service-start`) before a tool that talks to the motors on the robot
+(`tools/motor_ids.py`, `tools/motor_setup.py`); `make run` (a keyboard session) stops it for you. `make
+robot-service-logs` follows its output; `make robot-service-disable` removes it.
+
+**On the PC, when you want to watch:** `make dashboard HOST=<robot>` (`CLIMB=1`: the climbing forearms and feet in
+the 3D view) opens http://127.0.0.1:8780. Close it any time: the robot does not depend on it.
+
 `make dashboard HOST=<robot>` opens, on the PC, a page with the robot in 3D, every motor (angle and error to its
 target, current, temperature, hardware error, torque), the trunk orientation, plots of the last 10 s and the robot's
 events. A motor in overheating / overload error can be rebooted from it (its torque stays off: **Torque on** puts it
