@@ -219,8 +219,14 @@ class Scheduler:
     def _requested_moves(self, obs: Observation) -> set[str]:
         """The moves to run this tick, after the dashboard's requests (em, init, start / stop a move or switch) and the
         torque power-up. user_input.active_moves gets what the dashboard asks too (moves read their switches there)."""
-        for op, name in (self.telemetry.take_requests() if self.telemetry is not None else []):
-            if op == "start":
+        for op, name, *extra in (self.telemetry.take_requests() if self.telemetry is not None else []):
+            if op == "option":
+                opt, value = extra[0]
+                move = self.registered_moves[name]
+                move.options[opt] = value
+                move.on_option(opt, value)
+                self.telemetry.options_changed()
+            elif op == "start":
                 self._dash_requested.add(name)
             elif op == "stop":
                 self._dash_requested.discard(name)

@@ -319,7 +319,7 @@ function renderMoves() {
   const list = meta.moves || [], card = $("moves");
   card.classList.toggle("show", list.length > 0 && (meta.commands || []).includes("move_start"));
   const vals = last && last.values && last.values.moves ? last.values.moves : [];
-  const key = JSON.stringify(list.map(m => m.name)) + vals.join() + JSON.stringify(Object.values(confirmKey));
+  const key = JSON.stringify(list.map(m => [m.name, m.options])) + vals.join() + JSON.stringify(Object.values(confirmKey));
   if (key === movesKey) return;
   movesKey = key;
   const box = $("movelist"); box.innerHTML = "";
@@ -330,7 +330,17 @@ function renderMoves() {
     el.innerHTML = `<b>${m.name}</b><small>${["off", "starting", "on", "stopping"][st] || ""}</small>`;
     const b = st === 0 ? button("Start", "", () => cmd("move_start", { move: m.name }), m.kind === "move" ? "Robot ready? Start" : null)
                        : button("Stop", "", () => cmd("move_stop", { move: m.name }));
-    b.dataset.j = "move:" + m.name; el.appendChild(b); box.appendChild(el);
+    b.dataset.j = "move:" + m.name; el.appendChild(b);
+    for (const [opt, v] of Object.entries(m.options || {})) {        // settings the robot lets the page change
+      const lab = document.createElement("label"); lab.className = "opt"; lab.textContent = opt + " ";
+      const inp = document.createElement("input");
+      if (typeof v === "boolean") { inp.type = "checkbox"; inp.checked = v; }
+      else { inp.type = "number"; inp.value = v; inp.step = Number.isInteger(v) ? "1" : "any"; }
+      inp.onchange = () => cmd("move_option", { move: m.name, option: opt,
+                                                value: inp.type === "checkbox" ? inp.checked : Number(inp.value) });
+      lab.appendChild(inp); el.appendChild(lab);
+    }
+    box.appendChild(el);
   });
 }
 $("rec").onclick = () => send({ type: "record", on: !recording });

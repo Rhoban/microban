@@ -40,8 +40,7 @@ class Link:
         for name, labels in self.fields:
             self.offset[name] = (k, len(labels))
             k += len(labels)
-        self.schema = json.dumps({"op": "schema", "robot": robot, "fields": self.fields, "meta": self.meta}).encode()
-        self.schema_id = zlib.crc32(self.schema)
+        self._set_schema()
         self.pack = struct.Struct(f"<{self.size}f").pack
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -50,6 +49,17 @@ class Link:
         self.clients = {}          # address -> last hello (monotonic s)
         self.seq = 0
         self._commands = []
+
+    def _set_schema(self):
+        self.schema = json.dumps({"op": "schema", "robot": self.robot, "fields": self.fields, "meta": self.meta}).encode()
+        self.schema_id = zlib.crc32(self.schema)
+
+    def set_meta(self, meta: dict) -> None:
+        """New meta (e.g. settings changed): sent to the listening PCs now; the frames carry the new schema id."""
+        self.meta = meta
+        self._set_schema()
+        for addr in self.clients:
+            self._send(self.schema, addr)
 
     # ---- receiving ------------------------------------------------------------------------------------------------
     def _receive(self):

@@ -34,8 +34,14 @@ class Move(ABC):
     power_up: str = "neutral"     # launched with the torque off: "neutral" ramps to NEUTRAL_POSE first (2 s),
                                   # "current" holds where the robot is (e.g. a move that may start on the wall)
 
+    options: dict = {}            # settings the dashboard can change while the robot runs: name -> int / float / bool
+
     def __init__(self) -> None:
         self.state: MoveState = MoveState.INACTIVE
+        self.options = dict(type(self).options)
+
+    def on_option(self, name: str, value) -> None:
+        """Called when the dashboard changed self.options[name] (already set), between two ticks."""
 
     def preload(self) -> None:
         """Called before the control loop starts. Override to load heavy resources."""

@@ -57,4 +57,16 @@ It then appears in the dashboard's Moves list (`make dashboard HOST=...`), with 
 * Switches: a name a key toggles that is not a move (a move reads it in `obs.user_input.active_moves`, e.g. a
   "go" for a move that waits): pass it as `Scheduler(..., switches=["name"])` and it is listed in the dashboard too.
 
+## Options the dashboard can change
+
+```python
+class WaveMove(Move):
+    options = {"amplitude": 0.4, "both_arms": False}     # int / float / bool, shown next to the move in the dashboard
+
+    def on_option(self, name, value):                    # called when one changed (self.options[name] already set)
+        print(f"wave: {name} = {value}")
+```
+
+The move reads `self.options[...]` where it needs them; a change applies at once, the robot running (no restart).
+
 Your own controller written for the climbing simulator runs as a move with no code here: docs/controller.md.

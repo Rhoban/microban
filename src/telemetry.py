@@ -49,9 +49,9 @@ class Telemetry:
         if not self.enabled or self.link is not None:
             return
         self.moves, self.switches = moves, list(switches or [])
-        listed = [{"name": k, "kind": "move", "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
-                  for k, m in moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
-        cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop"]
+        listed = self._listing()
+        cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop",
+                                                                                     "move_option"]
         try:
             self.link = Link("Microban", fields={
                 "q": self.names, "q_target": self.names, "dq": self.names, "current": self.names,
@@ -67,8 +67,19 @@ class Telemetry:
             print(f"Warning: dashboard link off ({e})", end="\r\n", flush=True)
             self.enabled = False
 
-    def take_requests(self) -> list[tuple[str, str | None]]:
-        """The scheduler asks once per tick: [("em" | "init" | "start" | "stop", move or None), ...]."""
+    def _listing(self) -> list[dict]:
+        return [{"name": k, "kind": "move", "options": dict(getattr(m, "options", {}) or {}),
+                 "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
+                for k, m in self.moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
+
+    def options_changed(self) -> None:
+        """A move's options changed: the page gets the new values."""
+        if self.link is not None:
+            self.link.set_meta({**self.link.meta, "moves": self._listing()})
+
+    def take_requests(self) -> list[tuple]:
+        """The scheduler asks once per tick: [("em" | "init" | "start" | "stop" | "option", move or None[, (option,
+        value)]), ...]."""
         out, self.requests = self.requests, []
         return out
 
@@ -121,6 +132,21 @@ class Telemetry:
             self.requests.append((name, None))
             self.link.ack(cmd, True, "emergency stop: moves stopped, torque off" if name == "em" else
                           "init: moves stopped, every motor to its zero (held until a move is launched)")
+            return
+        if name == "move_option":
+            move, opt, value = cmd["args"].get("move"), cmd["args"].get("option"), cmd["args"].get("value")
+            m = self.moves.get(move)
+            if m is None or opt not in getattr(m, "options", {}):
+                self.link.ack(cmd, False, f"{move} has no option {opt}")
+                return
+            old = m.options[opt]
+            try:
+                value = type(old)(value) if not isinstance(old, bool) else bool(value)
+            except (TypeError, ValueError):
+                self.link.ack(cmd, False, f"{move}.{opt}: {value!r} is not a {type(old).__name__}")
+                return
+            self.requests.append(("option", move, (opt, value)))
+            self.link.ack(cmd, True, f"{move}.{opt} = {value}")
             return
         if name in ("move_start", "move_stop"):
             move = cmd["args"].get("move")
