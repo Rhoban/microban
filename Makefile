@@ -1,4 +1,4 @@
-.PHONY: sync setup run stop shutdown voltage imu sim viewer gamepad-headless-enable gamepad-headless-disable
+.PHONY: sync setup run stop shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
 
 HOST ?= microban
 ID ?=
@@ -47,3 +47,9 @@ gamepad-headless-enable: sync
 
 gamepad-headless-disable:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh --uninstall'"
+
+# Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while `make run` is running.
+# DASHBOARD: the humanoid-dashboard command (default: fetched by uvx from its repository)
+DASHBOARD ?= uvx --from "humanoid-dashboard[pc] @ git+https://github.com/cgaspard3333/humanoid-dashboard" humanoid-dashboard
+dashboard:
+	$(DASHBOARD) --robot $(HOST) --model src/model/mjcf/robot.xml --title Microban

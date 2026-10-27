@@ -39,6 +39,7 @@ class Scheduler:
         stop_flag_path: str = "/tmp/microban_scheduler.stop",
         input_source: Optional[InputSource] = None,
         moves: Optional[dict[str, Move]] = None,
+        telemetry=None,
     ):
         self.dt = 1.0 / frequency_hz
         self.controller = controller
@@ -47,6 +48,8 @@ class Scheduler:
         self.input_source = input_source
 
         self.observer = Observer(self.controller)
+        self.telemetry = telemetry          # live dashboard (telemetry.Telemetry), or None
+        self._last_total_current: Optional[float] = None
 
         # All moves are registered here. They only run when activated via user_input.active_moves.
         self.registered_moves: dict[str, Move] = moves if moves is not None else {
@@ -135,6 +138,11 @@ class Scheduler:
                 self._cmd_history.append(dict(command.target_angles))
                 self._send_to_motors(command)
 
+                # Live dashboard: what was just read and sent, and its commands (the bus is free here)
+                if self.telemetry is not None:
+                    self.telemetry.tick(robot_state, command.target_angles, (time.perf_counter() - start_time) * 1000,
+                                        self._last_total_current)
+
                 # IMU / gyro terminal display
                 if obs.user_input.show_imu and (start_time - self._last_imu_print_s) >= 0.5:
                     acc = obs.robot_state.acc
@@ -185,6 +193,9 @@ class Scheduler:
         if self.input_source:
             self.input_source.stop()
 
+        if self.telemetry is not None:
+            self.telemetry.close()
+
         shutdown = getattr(self.controller, "shutdown", None)
         if callable(shutdown):
             shutdown()
@@ -234,6 +245,7 @@ class Scheduler:
         leaving the robot compliant so the BMS does not trip on the current spike.
         """
         total_current = self._estimate_total_current(robot_state, target_angles)
+        self._last_total_current = total_current
         if total_current >= OVERCURRENT_CUTOFF_A:
             self._overcurrent_ticks += 1
         else:

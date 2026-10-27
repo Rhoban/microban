@@ -27,6 +27,7 @@ class RobotState:
     motor_positions: dict[str, float] = field(default_factory=dict)
     motor_velocities: dict[str, float] = field(default_factory=dict)
     motor_currents: dict[str, float] = field(default_factory=dict)  # Amps, signed (overcurrent safety)
+    measured_currents: dict[str, float] = field(default_factory=dict)  # Amps, whenever read (dashboard)
 
     # Logging
     motor_voltages: dict[str, float] = field(default_factory=dict)
@@ -69,6 +70,8 @@ class Observer:
             currents = self.controller.sync_read_present_current(motor_ids) if self.observe_current else None
         state.motor_positions = dict(zip(motor_names, angles))
         state.motor_velocities = dict(zip(motor_names, velocities))
+        if currents is not None:
+            state.measured_currents = dict(zip(motor_names, currents))
 
         if self.observe_current:
             state.motor_currents = dict(zip(motor_names, currents))

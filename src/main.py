@@ -9,6 +9,7 @@ from pathlib import Path
 from constants import MOTOR_TO_ID, NEUTRAL_POSE, KP_DEFAULT
 from robot_controller import RobotController
 from scheduler import Scheduler
+from telemetry import Telemetry
 from input.input_source import InputSource
 from input.keyboard_input import KeyboardInputSource
 from moves.rotate_head import RotateHeadMove
@@ -99,6 +100,7 @@ def main() -> None:
                 "squat": SquatMove(),
                 "walk": WalkMove(controller=controller),
             },
+            telemetry=Telemetry(controller),
         )
 
         for move in scheduler.registered_moves.values():

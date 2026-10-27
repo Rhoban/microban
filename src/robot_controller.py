@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2026 Marc Duclusaud
 
+import time
+
 from rustypot import Xl330PyController
 import numpy as np
 
@@ -16,6 +18,7 @@ class RobotController:
         # Fast Sync Read (protocol 2.0): every motor answers a sync read in one status packet (one header instead of
         # one per motor): sync_read_state takes 3.7 ms for 18 motors at 1 Mbps (Radxa, 2026-10-27)
         self._controller.set_fast_sync_read(True)
+        self._kp: dict[int, int] = {}              # last position gain written to each motor
         self._id_to_sign: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_SIGN[name] for name in MOTOR_TO_ID}
         self._id_to_offset: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_OFFSET.get(name, 0.0) for name in MOTOR_TO_ID}
         self._imu_reader = ThreadedIMUReader(i2c_bus=IMU_I2C_BUS, frequency_hz=200.0)
@@ -84,6 +87,44 @@ class RobotController:
 
     def sync_write_kp(self, ids: list[int], gains: list[int]) -> None:
         self._controller.sync_write_position_p_gain(ids, gains)
+        self._kp.update(zip(ids, gains))           # a reboot loses it (RAM): reboot() writes it back
+
+    def sync_read_health(self, ids: list[int]) -> tuple[list[int], list[int], list[float], list[int]]:
+        """Torque enable (64), hardware error status (70), input voltage (144, V) and temperature (146, degC): two
+        small sync reads, for the dashboard about once a second."""
+        torque, error, voltage, temperature = [], [], [], []
+        for raw in self._controller.sync_read_raw_data(ids, 64, 7):
+            b = bytes(raw)
+            torque.append(b[0])
+            error.append(b[6])
+        for raw in self._controller.sync_read_raw_data(ids, 144, 3):
+            b = bytes(raw)
+            voltage.append(int.from_bytes(b[0:2], "little") / 10)
+            temperature.append(b[2])
+        return torque, error, voltage, temperature
+
+    def reboot(self, motor_id: int, timeout_s: float = 1.5) -> float:
+        """Reboot one motor (clears a hardware error: overheating, overload...), wait until it answers again, write
+        back its position gain. Its torque stays off. Returns the time it took (s); raises if it does not come back."""
+        t0 = time.perf_counter()
+        self._controller.reboot(motor_id)
+        time.sleep(0.1)
+        while not self._ping(motor_id):
+            if time.perf_counter() - t0 > timeout_s:
+                raise RuntimeError(f"motor {motor_id} does not answer after its reboot")
+            time.sleep(0.02)
+        if motor_id in self._kp:
+            self._controller.write_position_p_gain(motor_id, self._kp[motor_id])
+        return time.perf_counter() - t0
+
+    def _ping(self, motor_id: int) -> bool:
+        try:
+            return bool(self._controller.ping(motor_id))
+        except RuntimeError:
+            return False
+
+    def write_torque_enable(self, motor_id: int, on: bool) -> None:
+        self._controller.write_torque_enable(motor_id, on)
 
     def read_acc(self) -> tuple[float, float, float]:
         """Return raw accelerometer (ax, ay, az) in g."""
