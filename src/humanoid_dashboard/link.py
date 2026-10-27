@@ -30,8 +30,8 @@ SUBSCRIPTION_S = 3.0
 
 
 class Link:
-    def __init__(self, robot: str, fields: dict, meta: dict | None = None, port: int = PORT, max_hz: float | None = 30.0):
-        """max_hz: frames sent per second at most (publish() called faster sends one call in a few)."""
+    def __init__(self, robot: str, fields: dict, meta: dict | None = None, port: int = PORT, max_hz: float | None = None):
+        """max_hz: frames sent per second at most (None: every publish(); faster calls send one in a few)."""
         self.robot = robot
         self.min_period = 1.0 / max_hz if max_hz else 0.0
         self._last_sent = 0.0

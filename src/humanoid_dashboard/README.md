@@ -23,7 +23,7 @@ for cmd in link.commands():                     # {"name": "reboot", "args": {"j
 link.event("overcurrent safety: torque off", level="error")
 ```
 
-Frames go out at 30 Hz at most (`Link(..., max_hz=30)`, whatever the loop's rate). Nothing is sent while no PC listens (a PC subscribes for 3 s with every hello it sends, once a second); `publish` and
+Every `publish()` sends a frame (Microban: 50 Hz, ~50 kB/s); `Link(..., max_hz=...)` caps the rate if needed. Nothing is sent while no PC listens (a PC subscribes for 3 s with every hello it sends, once a second); `publish` and
 `commands` never block. A frame is a 20-byte header and one float32 per value (NaN when not given): ~1 kB at most for
 a 20-motor robot, ~50 kB/s at 50 Hz.
 
