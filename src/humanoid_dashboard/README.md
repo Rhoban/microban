@@ -44,8 +44,10 @@ Other fields are recorded. Joint labels are matched to the model's joints by nam
 
 ### Commands the page sends
 
-`reboot {joint}` (shown on a motor in error) and `torque {joint, on}`, each with a confirmation click; the robot answers
-each with `ack` (shown in Events) and decides what is safe. List the ones it accepts in `meta.commands`.
+`reboot {joint}` (shown on a motor in error) and `torque {joint, on}`, each with a confirmation click, and two
+whole-robot buttons in the header: `em` (emergency: torque off on every motor, no confirmation) and `init` (every motor
+to its zero, confirmed). The robot answers each with `ack` (shown in Events) and decides what is safe; it lists the
+ones it accepts in `meta.commands`, and the page shows only those.
 
 ## On the PC
 

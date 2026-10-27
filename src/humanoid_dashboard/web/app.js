@@ -293,25 +293,22 @@ function onFrame(m) {
   renderTable();
   renderRobotCmds();
 }
-// whole-robot commands (the ones the robot lists): emergency torque off, zero pose (confirmed), release
+// whole-robot commands (the ones the robot lists), as em / init on Rhoban's robots
 let robotCmdsKey = "";
 function renderRobotCmds() {
-  const cmds = meta.commands || [], hold = last && last.values && last.values.pose_hold ? last.values.pose_hold[0] === 1 : false;
-  const key = cmds.join() + hold;
+  const cmds = meta.commands || [];
+  const key = cmds.join();
   if (key === robotCmdsKey) return;
   robotCmdsKey = key;
   const box = $("robotcmds"); box.innerHTML = "";
-  if (cmds.includes("zero_pose")) {
-    const b = button("Zero pose", "", () => cmd("zero_pose", {}), "Robot held? Move to zero");
-    b.dataset.j = "*"; b.classList.remove("small"); b.title = "every motor to its zero (2 s), then held"; box.appendChild(b);
+  if (cmds.includes("init")) {
+    const b = button("Init (zero)", "", () => cmd("init", {}), "Robot held? Go to zero");
+    b.dataset.j = "*"; b.classList.remove("small");
+    b.title = "stop the moves, every motor to its zero (2 s), held until a move is launched"; box.appendChild(b);
   }
-  if (cmds.includes("release") && hold) {
-    const b = document.createElement("button"); b.textContent = "Release"; b.title = "the robot's moves command the motors again";
-    b.onclick = () => cmd("release", {}); box.appendChild(b);
-  }
-  if (cmds.includes("torque_all")) {
-    const b = document.createElement("button"); b.className = "stop"; b.textContent = "⏻ Torque off (all)";
-    b.title = "cut the torque of every motor now"; b.onclick = () => cmd("torque_all", { on: false }); box.appendChild(b);
+  if (cmds.includes("em")) {
+    const b = document.createElement("button"); b.className = "stop"; b.textContent = "⏻ Torque off (em)";
+    b.title = "emergency: stop the moves, torque off on every motor"; b.onclick = () => cmd("em", {}); box.appendChild(b);
   }
 }
 $("rec").onclick = () => send({ type: "record", on: !recording });

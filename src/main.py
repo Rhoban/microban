@@ -1,12 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2026 Marc Duclusaud
 
-import time
-import numpy as np
 import os
 from pathlib import Path
 
-from constants import MOTOR_TO_ID, NEUTRAL_POSE, KP_DEFAULT
+from constants import MOTOR_TO_ID, KP_DEFAULT
 from robot_controller import RobotController
 from scheduler import Scheduler
 from telemetry import Telemetry
@@ -55,26 +53,6 @@ def build_input_source() -> InputSource:
     return KeyboardInputSource(move_keys=MOVE_KEYS)
 
 
-def ramp_to_neutral(controller: RobotController, duration_s: float = 2.0) -> None:
-    """Ramp all motors smoothly to neutral position before starting the control loop."""
-    motor_ids = list(MOTOR_TO_ID.values())
-    initial_positions = np.array(controller.sync_read_present_position(motor_ids))
-    target_neutral = np.array([NEUTRAL_POSE[name] for name in MOTOR_TO_ID])
-
-    print("Ramping all motors to neutral position...")
-    start_time = time.perf_counter()
-    elapsed_time = 0.0
-
-    while elapsed_time < duration_s:
-        elapsed_time = time.perf_counter() - start_time
-        progress = min(elapsed_time / duration_s, 1.0)
-        target_positions = initial_positions + progress * (target_neutral - initial_positions)
-        controller.sync_write_goal_position(motor_ids, target_positions.flatten().tolist())
-
-    controller.sync_write_goal_position(motor_ids, target_neutral.tolist())
-    print("All motors reached neutral position.")
-
-
 def main() -> None:
     if _another_session_running():
         print("A control loop is already running (see the PID file); aborting.")
@@ -84,13 +62,12 @@ def main() -> None:
 
     controller = RobotController()
     motor_ids = list(MOTOR_TO_ID.values())
-    controller.sync_write_torque_enable(motor_ids, [True] * len(motor_ids))
+    # torque off until a move is launched (the scheduler then ramps to the neutral pose first)
+    controller.sync_write_torque_enable(motor_ids, [False] * len(motor_ids))
     controller.sync_write_status_return_level(motor_ids, [1] * len(motor_ids))
     controller.sync_write_kp(motor_ids, [KP_DEFAULT] * len(motor_ids))
 
     try:
-        ramp_to_neutral(controller)
-
         scheduler = Scheduler(
             frequency_hz=50.0,
             controller=controller,

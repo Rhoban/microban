@@ -17,3 +17,15 @@ the torque for it): the page ignores it. `MICROBAN_DASHBOARD=0` turns the link o
 
 Without a robot: `PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.fake_robot --model src/model/mjcf/robot.xml`,
 then `make dashboard HOST=127.0.0.1`.
+
+## Torque, em and init
+
+As on Rhoban's other robots, the motors have no torque until a move is launched (keyboard, gamepad): the robot then
+goes to the neutral pose in 2 s with the torque on, and the move starts. When no move runs any more, the torque goes
+off again. The page has the two whole-robot commands:
+
+* **⏻ Torque off (em)**: emergency stop, the moves stop and every motor goes limp at once;
+* **Init (zero)**: the moves stop, every motor goes to its zero in 2 s (the shoulders: arm forward) and stays there.
+
+After either, a move that was already asked does not restart by itself: launch it again (release its key or button
+and press it) to leave em / init.

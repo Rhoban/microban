@@ -126,6 +126,7 @@ class MuJoCoController:
             vin_min=BAM_VIN_MIN,
         )
         self._reset_bam()
+        self._torque_off: set[int] = set()            # actuators whose torque is off (sync_write_torque_enable)
 
         self._viewer = mujoco.viewer.launch_passive(
             self._model, self._data, key_callback=key_callback
@@ -157,7 +158,8 @@ class MuJoCoController:
         self._bam.model.actuator.kp = gains[0]
 
     def sync_write_torque_enable(self, ids: list[int], values: list[bool]) -> None:
-        pass
+        for motor_id, on in zip(ids, values):
+            (self._torque_off.discard if on else self._torque_off.add)(self._model.actuator(ID_TO_MOTOR[motor_id]).id)
 
     def sync_write_status_return_level(self, ids: list[int], levels: list[int]) -> None:
         pass
@@ -174,6 +176,8 @@ class MuJoCoController:
                 delayed_pos = self._delay_act[motor_id].push_and_read(pos)
                 self._bam.set_q_target(ID_TO_MOTOR[motor_id], delayed_pos)
             self._bam.update()
+            for act in self._torque_off:              # torque off: no motor torque (BAM's frictions stay)
+                self._data.ctrl[act] = 0.0
             mujoco.mj_step(self._model, self._data)
 
         if self._reset_source is not None and self._reset_source.consume_reset():

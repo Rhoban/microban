@@ -10,6 +10,9 @@ from typing import Optional
 
 from constants import (
     MOTOR_TO_ID,
+    MOTOR_OFFSET,
+    NEUTRAL_POSE,
+    KP_DEFAULT,
     BAM_MAX_CURRENT,
     OVERCURRENT_CUTOFF_A,
     OVERCURRENT_DEBOUNCE_TICKS,
@@ -29,6 +32,9 @@ from moves.move import MotorCommand, Move, MoveState
 from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
+
+POWER_UP_S = 2.0      # a move launched with the torque off (or from the zero pose): ramp to the neutral pose first
+INIT_S = 2.0          # init: ramp to every motor's zero
 
 
 class Scheduler:
@@ -66,6 +72,15 @@ class Scheduler:
         # History of sent target_angles, to align the current proxy with the delayed feedback:
         # the oldest entry is the command issued OVERCURRENT_PROXY_DELAY_TICKS ticks ago.
         self._cmd_history: deque[dict[str, float]] = deque(maxlen=OVERCURRENT_PROXY_DELAY_TICKS + 1)
+
+        # Torque and modes (as em / init on Rhoban's robots): the torque is off until a move is launched; it goes off
+        # again when no move runs. "em" (emergency) cuts it and stops the moves; "init" stops the moves and brings
+        # every motor to its zero, held until a move is launched again (a move asked before em / init stays off until
+        # it is asked anew: the keyboard or gamepad still lists it).
+        self.powered = False
+        self._pose: Optional[dict] = None           # a ramp: {t0, duration, start, target, hold}
+        self._locked = False
+        self._prev_requested: set[str] = set()
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -108,10 +123,12 @@ class Scheduler:
                         print(f"Warning: stale IMU data ({age_s * 1000.0:.1f} ms old)", end="\r\n", flush=True)
                         self._last_imu_stale_warn_s = start_time
 
+                requested = self._requested_moves(obs)
+
                 # Update move states and dispatch one call per move per tick
                 command = MotorCommand()
                 for name, move in self.registered_moves.items():
-                    in_active = name in obs.user_input.active_moves
+                    in_active = name in requested
 
                     if in_active and move.state == MoveState.INACTIVE:
                         move.state = MoveState.STARTING
@@ -134,16 +151,22 @@ class Scheduler:
                 if self._check_overcurrent(robot_state, aligned_targets):
                     break
 
+                # A power-up or init ramp replaces the moves' targets; no move running: torque off
+                self._apply_pose(command)
+                if (self.powered and self._pose is None and (self._locked or not self._prev_requested)
+                        and all(m.state == MoveState.INACTIVE for m in self.registered_moves.values())):
+                    self._set_torque(False)
+
                 # Send command to motors
-                if self.telemetry is not None:          # the dashboard's zero pose, while it runs or is held
-                    self.telemetry.apply(command)
                 self._cmd_history.append(dict(command.target_angles))
                 self._send_to_motors(command)
 
                 # Live dashboard: what was just read and sent, and its commands (the bus is free here)
                 if self.telemetry is not None:
                     self.telemetry.tick(robot_state, command.target_angles, (time.perf_counter() - start_time) * 1000,
-                                        self._last_total_current)
+                                        self._last_total_current,
+                                        status={"powered": int(self.powered),
+                                                "init": int(self._pose is not None and self._pose["hold"])})
 
                 # IMU / gyro terminal display
                 if obs.user_input.show_imu and (start_time - self._last_imu_print_s) >= 0.5:
@@ -184,6 +207,66 @@ class Scheduler:
             print("Control loop interrupted by user", end="\r\n", flush=True)
         finally:
             self._cleanup()
+
+    # ---- torque, em, init ---------------------------------------------------------------------------------
+    def _requested_moves(self, obs: Observation) -> set[str]:
+        """The moves to run this tick, after the dashboard's requests (em, init) and the torque power-up."""
+        requested = set(obs.user_input.active_moves)
+        launched = requested - self._prev_requested
+        self._prev_requested = set(requested)
+        req = self.telemetry.take_request() if self.telemetry is not None else None
+        if req == "em":
+            self._stop_moves()
+            self._pose = None
+            self._set_torque(False)
+            self._locked = True
+            print("Emergency stop: torque off on every motor", end="\r\n", flush=True)
+        elif req == "init":
+            self._stop_moves()
+            self._start_pose(obs.robot_state, {n: -MOTOR_OFFSET.get(n, 0.0) for n in MOTOR_TO_ID}, INIT_S, hold=True)
+            self._locked = True
+        if self._locked:
+            if not launched:
+                return set()
+            self._locked = False                       # a move launched again: it leaves em / init
+        if requested and (not self.powered or (self._pose is not None and self._pose["hold"])):
+            self._start_pose(obs.robot_state, dict(NEUTRAL_POSE), POWER_UP_S, hold=False)
+        if self._pose is not None and not self._pose["hold"]:
+            return set()                               # the moves start once at the neutral pose
+        return requested
+
+    def _stop_moves(self) -> None:
+        for move in self.registered_moves.values():
+            move.state = MoveState.INACTIVE
+        write_kp = getattr(self.controller, "sync_write_kp", None)
+        if callable(write_kp):                         # a move may have changed the gain (the walk: KP_RL)
+            ids = list(MOTOR_TO_ID.values())
+            write_kp(ids, [KP_DEFAULT] * len(ids))
+
+    def _set_torque(self, on: bool) -> None:
+        ids = list(MOTOR_TO_ID.values())
+        self.controller.sync_write_torque_enable(ids, [on] * len(ids))
+        self.powered = on
+        if self.telemetry is not None:
+            self.telemetry.torque_changed(on)
+
+    def _start_pose(self, robot_state, target: dict[str, float], duration: float, hold: bool) -> None:
+        """Ramp from where the motors are to target; the torque goes on without a jump (goal = present first)."""
+        start = {n: robot_state.motor_positions.get(n, target[n]) for n in MOTOR_TO_ID}
+        if not self.powered:
+            self.controller.sync_write_goal_position(list(MOTOR_TO_ID.values()), [start[n] for n in MOTOR_TO_ID])
+            self._set_torque(True)
+        self._pose = {"t0": time.perf_counter(), "duration": duration, "start": start, "target": target, "hold": hold}
+
+    def _apply_pose(self, command: MotorCommand) -> None:
+        p = self._pose
+        if p is None:
+            return
+        a = min(1.0, (time.perf_counter() - p["t0"]) / p["duration"])
+        s = a * a * (3 - 2 * a)
+        command.target_angles = {n: p["start"][n] + s * (p["target"][n] - p["start"][n]) for n in MOTOR_TO_ID}
+        if a >= 1.0 and not p["hold"]:
+            self._pose = None                          # at the neutral pose: the launched moves start next tick
 
     def _cleanup(self) -> None:
         """Disable torque, stop input source, and clear stop artifacts."""
