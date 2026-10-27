@@ -118,8 +118,22 @@ VY_MAX: float = 0.3
 VTHETA_MAX_STATIONARY: float = 3.0
 VTHETA_MAX_MOVING: float = 1.5
 
-# IMU (BMI088) I2C bus number on the Raspberry Pi
-IMU_I2C_BUS: int = 1
+# The board, from the device tree: the Raspberry Pi Zero 2 W (Microban) or the Radxa ROCK 3C of the climbing robots
+# (UART2 and I2C3 overlays: motors on /dev/ttyS2, BMI088 on i2c-3; checked 2026-10-27)
+def _board_model() -> str:
+    try:
+        with open("/proc/device-tree/model") as f:
+            return f.read().strip("\x00\n")
+    except OSError:
+        return ""
+
+
+BOARD_MODEL: str = _board_model()
+IS_RADXA: bool = "Radxa" in BOARD_MODEL
+
+# Dynamixel bus (UART, 1 Mbps) and IMU (BMI088) I2C bus number
+MOTOR_SERIAL_PORT: str = "/dev/ttyS2" if IS_RADXA else "/dev/ttyAMA0"
+IMU_I2C_BUS: int = 3 if IS_RADXA else 1
 
 # Rotation from trunk frame (body) to IMU sensor frame
 IMU_MOUNT_QUAT: tuple[float, float, float, float] = (0.5, -0.5, -0.5, 0.5)

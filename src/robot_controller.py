@@ -4,14 +4,14 @@
 from rustypot import Xl330PyController
 import numpy as np
 
-from constants import MOTOR_TO_ID, MOTOR_SIGN, MOTOR_OFFSET, IMU_I2C_BUS, PRESENT_CURRENT_UNIT_A
+from constants import MOTOR_TO_ID, MOTOR_SIGN, MOTOR_OFFSET, IMU_I2C_BUS, MOTOR_SERIAL_PORT, PRESENT_CURRENT_UNIT_A
 from imu_reader import ThreadedIMUReader
 
 
 class RobotController:
     """Wraps Xl330PyController."""
 
-    def __init__(self, serial_port: str = "/dev/ttyAMA0", baudrate: int = 1_000_000, timeout: float = 0.1) -> None:
+    def __init__(self, serial_port: str = MOTOR_SERIAL_PORT, baudrate: int = 1_000_000, timeout: float = 0.1) -> None:
         self._controller = Xl330PyController(serial_port=serial_port, baudrate=baudrate, timeout=timeout)
         # Fast Sync Read (protocol 2.0): every motor answers a sync read in one status packet (one header instead of
         # one per motor): sync_read_state takes 3.7 ms for 18 motors at 1 Mbps (Radxa, 2026-10-27)
