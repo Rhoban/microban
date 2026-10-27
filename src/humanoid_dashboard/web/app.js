@@ -132,8 +132,10 @@ function motorState(j) {
   return null;                  // torque off: shown in the table, not in 3D (often every motor at once)
 }
 const confirmKey = {};
-function button(label, cls, onClick, confirmText) {
+function button(label, cls, onClick, confirmText, j) {
   const b = document.createElement("button"); b.className = "small " + (cls || ""); b.textContent = label;
+  b.dataset.j = j;
+  if (confirmText && confirmKey[label + j] === true) { b.textContent = confirmText; b.classList.add("confirm"); }  // redrawn while asking
   b.onclick = ev => {
     ev.stopPropagation();
     if (confirmText && confirmKey[label + b.dataset.j] !== true) {
@@ -185,11 +187,11 @@ function renderTable(force) {
     const want = !show ? "" : (cmds.includes("reboot") && (bad.length || j === selected) ? "R" : "") + (cmds.includes("torque") ? (tq === 0 ? "T1" : tq === 1 ? "T0" : "") : "");
     if (r.cells[7].dataset.want !== want || force) {
       r.cells[7].dataset.want = want; r.cells[7].innerHTML = "";
-      if (want.includes("R")) { const b = button("Reboot", "danger", () => cmd("reboot", { joint: j }), "Confirm reboot"); b.dataset.j = j; r.cells[7].appendChild(b); }
+      if (want.includes("R")) { const b = button("Reboot", "danger", () => cmd("reboot", { joint: j }), "Confirm reboot", j); r.cells[7].appendChild(b); }
       if (want.includes("T1")) {
-        const b = button("Torque on", "", () => cmd("torque", { joint: j, on: true }), "It will move: sure?"); b.dataset.j = j; r.cells[7].appendChild(b);
+        const b = button("Torque on", "", () => cmd("torque", { joint: j, on: true }), "It will move: sure?", j); r.cells[7].appendChild(b);
       } else if (want.includes("T0")) {
-        const b = button("Torque off", "", () => cmd("torque", { joint: j, on: false }), "Goes limp: sure?"); b.dataset.j = j; r.cells[7].appendChild(b);
+        const b = button("Torque off", "", () => cmd("torque", { joint: j, on: false }), "Goes limp: sure?", j); r.cells[7].appendChild(b);
       }
     }
   }
@@ -310,8 +312,8 @@ function renderRobotCmds() {
   robotCmdsKey = key;
   const box = $("robotcmds"); box.innerHTML = "";
   if (cmds.includes("init")) {
-    const b = button("Init (zero)", "", () => cmd("init", {}), "Robot held? Go to zero");
-    b.dataset.j = "*"; b.classList.remove("small");
+    const b = button("Init (zero)", "", () => cmd("init", {}), "Robot held? Go to zero", "*");
+    b.classList.remove("small");
     b.title = "stop the moves, every motor to its zero (2 s), held until a move is launched"; box.appendChild(b);
   }
   if (cmds.includes("em")) {
@@ -334,9 +336,9 @@ function renderMoves() {
     el.className = "mv" + (m.kind === "switch" ? " switch" : "") + (st === 2 ? " on" : st === 1 || st === 3 ? " busy" : "");
     el.title = m.doc || m.name;
     el.innerHTML = `<b>${m.name}</b><small>${["off", "starting", "on", "stopping"][st] || ""}</small>`;
-    const b = st === 0 ? button("Start", "", () => cmd("move_start", { move: m.name }), m.kind === "move" ? "Robot ready? Start" : null)
-                       : button("Stop", "", () => cmd("move_stop", { move: m.name }));
-    b.dataset.j = "move:" + m.name; el.appendChild(b);
+    const b = st === 0 ? button("Start", "", () => cmd("move_start", { move: m.name }), m.kind === "move" ? "Robot ready? Start" : null, "move:" + m.name)
+                       : button("Stop", "", () => cmd("move_stop", { move: m.name }), null, "move:" + m.name);
+    el.appendChild(b);
     if (Object.keys(m.options || {}).length) {                       // the variables the move exposes: its editor
       const e = document.createElement("button"); e.className = "small"; e.textContent = "⚙"; e.title = "edit its variables";
       e.onclick = ev => { ev.stopPropagation(); openEditor(m.name); }; el.appendChild(e);
