@@ -64,7 +64,8 @@ gamepad-headless-enable: sync
 gamepad-headless-disable:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh --uninstall'"
 
-# Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while `make run` is running.
+# Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while its program runs (service or
+# `make run`). HOST: the robot to open with; another one can be chosen, and saved under a name, in the page.
 # MODEL: the robot model shown (default: microban_model's robot.xml; CLIMB=1: robot_climb.xml)
 CLIMB ?=
 MODEL ?= $(shell uv run --group dashboard python -c "import microban_model; print(microban_model.mjcf($(if $(CLIMB),True,False)))")

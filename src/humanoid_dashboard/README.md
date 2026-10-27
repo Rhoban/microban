@@ -56,6 +56,11 @@ PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --robot
 # Microban: make dashboard HOST=ROBOT_HOST                     # opens http://127.0.0.1:8780
 ```
 
+`--robot` is optional: the robot's address is chosen in the page too (the button next to the link state), and can be
+changed there at any time; give it a name to keep it in `~/.config/humanoid_dashboard/robots.json`, listed there next
+time. The PC asks the robot (UDP `hello` once a second to its port 7350) and the robot answers to that PC only while
+it asks: no SSH, nothing to start on the robot beyond its program.
+
 The model is a MuJoCo XML or a URDF. The page: the robot in 3D (a motor in error glows red, a hot or limp one orange; click a part to select its motor),
 the motor table (angle, error to target, current, temperature, state, Reboot / Torque buttons), plots of the last 10 s
 (total current, the selected motor's angle and target, trunk roll and pitch), the robot's events, and **Record**

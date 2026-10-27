@@ -10,7 +10,8 @@ extra one: it costs nothing more (the dashboard link sends only while a PC liste
 (`tools/motor_ids.py`, `tools/motor_setup.py`); `make run` (a keyboard session) stops it for you. `make
 robot-service-logs` follows its output; `make robot-service-disable` removes it.
 
-**On the PC, when you want to watch:** `make dashboard HOST=<robot>` (`CLIMB=1`: the climbing forearms and feet in
+**On the PC, when you want to watch:** `make dashboard HOST=<robot>` (or choose the robot in the page: its address, saved
+under a name for next time; `CLIMB=1`: the climbing forearms and feet in
 the 3D view) opens http://127.0.0.1:8780. Close it any time: the robot does not depend on it.
 
 `make dashboard HOST=<robot>` opens, on the PC, a page with the robot in 3D, every motor (angle and error to its

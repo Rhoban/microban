@@ -84,6 +84,23 @@
   #events div.error { color: var(--bad); } #events div.warn { color: var(--warn); } #events div.ack { color: var(--ok); } #events div.nack { color: var(--bad); }
   #events small { color: var(--muted); }
   #empty { padding: 20px; color: var(--muted); }
+  .robotpick { position: relative; }
+  #rname { font-family: inherit !important; }
+  #robotbtn { font-family: ui-monospace, monospace; font-size: 12px; }
+  #robotbox { position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; width: min(330px, calc(100vw - 32px)); padding: 10px 12px;
+              display: none; gap: 6px; flex-direction: column; box-shadow: 0 8px 30px rgba(0, 0, 0, .18); overflow: visible; }
+  #robotbox.show { display: flex; }
+  @media (max-width: 600px) { #robotbox { position: fixed; left: 16px; right: 16px; top: 56px; width: auto; } }
+  #robotbox label { font-weight: 600; } #robotbox small { color: var(--muted); }
+  #robotbox .row { display: flex; gap: 6px; }
+  #saved { display: flex; flex-direction: column; gap: 4px; }
+  #saved:not(:empty) { padding-bottom: 8px; margin-bottom: 2px; border-bottom: 1px solid var(--line); }
+  .saved { display: flex; align-items: center; gap: 6px; }
+  .saved > button:first-child { flex: 1; min-width: 0; text-align: left; display: flex; gap: 8px; align-items: baseline; overflow: hidden; }
+  .saved > button:first-child.cur { border-color: var(--accent); background: var(--accent-soft); }
+  .saved b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved small { color: var(--muted); font-family: ui-monospace, monospace; white-space: nowrap; }
+  #host, #rname { flex: 1; min-width: 0; font: 13px ui-monospace, monospace; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); }
   button#replay.on { background: var(--accent-soft); border-color: var(--accent); }
   #replaybar { position: absolute; left: 8px; right: 8px; bottom: 8px; display: none; align-items: center; gap: 6px; flex-wrap: wrap;
                padding: 6px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 4px 16px rgba(0, 0, 0, .12); }
@@ -111,6 +128,15 @@
 <header>
   <h1 id="title">Robot</h1>
   <span class="pill" id="link">no robot</span>
+  <span class="robotpick"><button id="robotbtn" title="the robot to watch (host name or IP)">choose a robot ▾</button>
+    <form id="robotbox" class="card">
+      <div id="saved"></div>
+      <label for="host">Robot address (host name or IP)</label>
+      <input id="host" placeholder="192.168.0.232" autocomplete="off" spellcheck="false">
+      <label for="rname">Name <small>(optional: saved for next time)</small></label>
+      <div class="row"><input id="rname" placeholder="Microban Radxa" autocomplete="off" maxlength="40">
+        <button type="submit">Connect</button></div>
+      <small>The robot's program sends to this PC while the page asks (UDP, port 7350).</small></form></span>
   <div class="chips" id="scalars"></div>
   <div class="spacer"></div>
   <span id="robotcmds" class="chips"></span>

@@ -3,7 +3,9 @@ model with MuJoCo (forward kinematics from the joint angles and the trunk orient
 with the motors, the IMU, plots, the robot's events and its commands (reboot a motor, torque on/off). Records frames and replays them (any speed, frame
 by frame, back and forth: the page asks for one frame at a time, its 3D pose computed here).
 
-    python -m humanoid_dashboard.app --robot HOST --model path/to/robot.xml [--http 8780]
+    python -m humanoid_dashboard.app --model path/to/robot.xml [--robot HOST] [--http 8780]
+
+The robot (host name or IP) can also be chosen, or changed, in the page.
 
 The model is a MuJoCo XML or a URDF; joint fields of the telemetry are matched to the model's joints by name.
 """
@@ -12,6 +14,7 @@ import asyncio
 import json
 import math
 import pathlib
+import socket
 import struct
 import time
 import webbrowser
@@ -24,7 +27,8 @@ from aiohttp import web, WSMsgType
 from .link import HEADER, MAGIC, PORT
 
 WEB = pathlib.Path(__file__).parent / "web"
-PUSH_HZ = 30
+PUSH_HZ = 50                       # to the page, as the robot's telemetry (the latest frame only: nothing piles up)
+ROBOTS_FILE = pathlib.Path.home() / ".config" / "humanoid_dashboard" / "robots.json"    # saved robots: name -> host
 
 
 # ---------------------------------------------------------------------------------------------------- robot model
@@ -124,6 +128,8 @@ class RobotLink(asyncio.DatagramProtocol):
         self.transport = transport
 
     def datagram_received(self, data, addr):
+        if self.hub.robot_addr is None or addr[0] != self.hub.robot_addr[0]:    # an earlier robot still sending
+            return
         if data[:4] == MAGIC:
             self.hub.frame(data)
             return
@@ -134,8 +140,20 @@ class RobotLink(asyncio.DatagramProtocol):
         self.hub.message(msg, data)
 
     def send(self, msg):
-        if self.transport:
-            self.transport.sendto(json.dumps(msg).encode())
+        if self.transport and self.hub.robot_addr:
+            self.transport.sendto(json.dumps(msg).encode(), self.hub.robot_addr)
+
+
+def saved_robots() -> dict:
+    try:
+        return json.loads(ROBOTS_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_robots(robots: dict) -> None:
+    ROBOTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    ROBOTS_FILE.write_text(json.dumps(robots, indent=1, sort_keys=True))
 
 
 class Hub:
@@ -153,6 +171,26 @@ class Hub:
         self.cmd_seq = 0
         self.recording = None
         self.events = []
+        self.robot_host, self.robot_addr = None, None
+
+    async def connect(self, host, port):
+        """Talk to another robot (host name or IP): the page starts over with its schema."""
+        try:
+            info = await asyncio.get_running_loop().getaddrinfo(host, port, family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        except OSError as e:
+            return f"{host}: {e}"
+        self.robot_host, self.robot_addr = host, info[0][4]
+        self.schema, self.names, self.unpack, self.schema_id = None, {}, None, None
+        self.values, self.robot_t, self.seq, self.rx_time, self.new, self.rates = {}, 0.0, 0, 0.0, False, []
+        self.recording, self.events = None, []
+        self.broadcast(self.robot_msg())
+        self.link.send({"op": "hello"})
+        return None
+
+    def robot_msg(self):
+        return {"type": "robot", "host": self.robot_host, "addr": self.robot_addr[0] if self.robot_addr else None,
+                "saved": saved_robots()}
+
 
     # robot -> PC
     def message(self, msg, raw=b""):
@@ -255,7 +293,7 @@ class Recording:
 
 
 # ---------------------------------------------------------------------------------------------------- web server
-def make_app(hub, model, title, rec_dir):
+def make_app(hub, model, title, rec_dir, port=PORT):
     app = web.Application()
     scene = model.scene()
 
@@ -291,6 +329,7 @@ def make_app(hub, model, title, rec_dir):
         ws = web.WebSocketResponse(heartbeat=10)
         await ws.prepare(request)
         hub.browsers.add(ws)
+        await ws.send_str(json.dumps(hub.robot_msg()))
         if hub.schema:
             await ws.send_str(json.dumps({"type": "schema", "schema": hub.schema}))
         for e in hub.events[-50:]:
@@ -299,7 +338,20 @@ def make_app(hub, model, title, rec_dir):
             if msg.type != WSMsgType.TEXT:
                 continue
             req = json.loads(msg.data)
-            if req.get("type") == "cmd":
+            if req.get("type") == "connect":
+                err = await hub.connect(str(req.get("host", "")).strip(), port)
+                if err:
+                    await ws.send_str(json.dumps({"type": "event", "level": "error", "text": f"connect {err}",
+                                                  "pc_time": time.time()}))
+            elif req.get("type") in ("save_robot", "forget_robot"):     # the page's saved robots (name -> host)
+                robots, name = saved_robots(), str(req.get("name", "")).strip()[:40]
+                if req["type"] == "save_robot" and name and str(req.get("host", "")).strip():
+                    robots[name] = str(req["host"]).strip()
+                else:
+                    robots.pop(name, None)
+                save_robots(robots)
+                hub.broadcast(hub.robot_msg())
+            elif req.get("type") == "cmd":
                 hub.command(req["name"], req.get("args") or {})
             elif req.get("type") == "record":
                 if req.get("on"):
@@ -354,7 +406,7 @@ async def hello(hub):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--robot", required=True, help="robot host or IP (its link port: --port)")
+    ap.add_argument("--robot", default=None, help="robot host or IP (its link port: --port); else chosen in the page")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--model", required=True, help="MuJoCo XML or URDF of the robot")
     ap.add_argument("--title", default=None)
@@ -371,13 +423,17 @@ def main():
 
     async def run():
         loop = asyncio.get_running_loop()
-        _, hub.link = await loop.create_datagram_endpoint(lambda: RobotLink(hub), remote_addr=(a.robot, a.port))
-        app = make_app(hub, model, a.title or pathlib.Path(a.model).stem, pathlib.Path(a.recordings))
+        _, hub.link = await loop.create_datagram_endpoint(lambda: RobotLink(hub), local_addr=("0.0.0.0", 0))
+        if a.robot:
+            err = await hub.connect(a.robot, a.port)
+            if err:
+                print(f"robot {err}: choose it in the page")
+        app = make_app(hub, model, a.title or pathlib.Path(a.model).stem, pathlib.Path(a.recordings), a.port)
         runner = web.AppRunner(app)
         await runner.setup()
         await web.TCPSite(runner, "127.0.0.1", a.http).start()
         url = f"http://127.0.0.1:{a.http}"
-        print(f"{url}  (robot {a.robot}:{a.port}; Ctrl+C to stop)")
+        print(f"{url}  (robot {a.robot or 'chosen in the page'}, port {a.port}; Ctrl+C to stop)")
         if not a.no_browser:
             webbrowser.open(url)
         await asyncio.gather(hello(hub), pusher(hub, model))

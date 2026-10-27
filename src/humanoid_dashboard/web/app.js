@@ -270,6 +270,7 @@ function connect() {
     const m = JSON.parse(ev.data);
     if (m.type === "schema") { liveSchema = m.schema; if (!replay) applySchema(liveSchema); robotCmdsKey = ""; renderRobotCmds(); }
     else if (m.type === "replay_frame") onReplayFrame(m);
+    else if (m.type === "robot") onRobot(m);
     else if (m.type === "frame") onFrame(m);
     else if (m.type === "ack" || m.type === "event") log(m);
     else if (m.type === "recording") {
@@ -279,6 +280,52 @@ function connect() {
   };
   ws.onclose = () => { $("link").className = "pill"; $("link").textContent = "dashboard server stopped"; setTimeout(connect, 1500); };
 }
+// the robot watched: chosen here (the server talks to it); named robots are saved on this PC (the server's file)
+let robot = { host: null, saved: {} };
+function onRobot(m) {
+  const changed = m.host !== robot.host || !m.host;
+  robot = { host: m.host, addr: m.addr, saved: m.saved || {} };
+  const name = Object.keys(robot.saved).find(k => robot.saved[k] === m.host);
+  $("robotbtn").textContent = !m.host ? "choose a robot ▾" : (name ? `${name} · ${m.host} ▾` : `${m.host} ▾`);
+  renderSaved();
+  if (!changed) return;
+  if (replay) closeReplay();
+  $("link").className = "pill"; $("link").textContent = m.host ? "waiting for the robot" : "no robot";
+  liveSchema = schema = null; names = {}; meta = {}; last = null; hist.length = 0;
+  tableKey = ""; $("table").innerHTML = ""; $("empty").style.display = "";
+  robotCmdsKey = movesKey = ""; $("robotcmds").innerHTML = ""; renderMoves();
+  $("scalars").innerHTML = "";
+  if (!m.host) $("robotbox").classList.add("show");
+}
+function connectTo(host, name) {
+  send({ type: "connect", host });
+  if (name) send({ type: "save_robot", name, host });
+  $("robotbox").classList.remove("show");
+  log({ level: "info", text: `→ connect to ${name ? name + " (" + host + ")" : host}` });
+}
+function renderSaved() {
+  const box = $("saved"); box.innerHTML = "";
+  for (const [name, host] of Object.entries(robot.saved).sort()) {
+    const row = document.createElement("div"); row.className = "saved";
+    const go = document.createElement("button"); go.type = "button"; go.className = host === robot.host ? "cur" : "";
+    go.innerHTML = "<b></b><small></small>"; go.querySelector("b").textContent = name; go.querySelector("small").textContent = host;
+    go.onclick = () => connectTo(host);
+    const del = document.createElement("button"); del.type = "button"; del.className = "small"; del.textContent = "✕";
+    del.title = `forget ${name}`; del.onclick = () => send({ type: "forget_robot", name });
+    row.append(go, del); box.appendChild(row);
+  }
+}
+$("robotbtn").onclick = ev => {
+  ev.stopPropagation();
+  const box = $("robotbox"); box.classList.toggle("show");
+  if (box.classList.contains("show")) { $("host").value = robot.host || ""; $("rname").value = ""; $("host").focus(); }
+};
+$("robotbox").onclick = ev => ev.stopPropagation();
+document.addEventListener("click", () => $("robotbox").classList.remove("show"));
+$("robotbox").onsubmit = ev => {
+  ev.preventDefault();
+  const h = $("host").value.trim(); if (h) connectTo(h, $("rname").value.trim());
+};
 function applySchema(s) {          // the live robot's, or a recording's while it is replayed
   schema = s; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
   $("title").textContent = schema.robot + (replay ? " · replay" : ""); document.title = schema.robot + " · dashboard";
