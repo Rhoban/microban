@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motor IDs</title>
+<style>
+  :root { --bg: #f4f4f1; --panel: #fff; --ink: #1f2328; --muted: #6a6f76; --line: #e2e2dc; --accent: #d9622b;
+          --accent-soft: #fbe6da; --ok: #2e8b57; --ok-soft: #e1f2e8; --warn: #b7791f; --bad: #c0392b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; padding: 8px 20px;
+           background: var(--panel); border-bottom: 1px solid var(--line); }
+  h1 { font-size: 17px; margin: 0; }
+  .steps { display: flex; gap: 6px; margin-left: auto; }
+  .steps span { padding: 4px 10px; border-radius: 999px; background: #eee; color: var(--muted); font-size: 12px; }
+  .steps span.on { background: var(--accent); color: #fff; }
+  .steps span.done { background: var(--ok-soft); color: var(--ok); }
+  .badge { font-size: 12px; color: var(--muted); }
+
+  .status { margin: 10px 20px 0; padding: 10px 16px; background: var(--panel); border: 1px solid var(--line);
+            border-radius: 10px; display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; }
+  #status { font-size: 16px; font-weight: 600; }
+  #hint { color: var(--muted); grid-column: 1; }
+  .actions { grid-row: 1 / span 3; grid-column: 2; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .bar { grid-column: 1; height: 8px; background: #eee; border-radius: 99px; overflow: hidden; visibility: hidden; position: relative; }
+  .bar.show { visibility: visible; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .2s; }
+  .bar.busy i { width: 30%; position: absolute; animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { from { left: -30%; } to { left: 100%; } }
+  #bartext { grid-column: 1; font-size: 12px; color: var(--muted); min-height: 1.2em; }
+
+  button { font: inherit; padding: 7px 14px; border-radius: 7px; border: 1px solid #c9c9c2; background: #fff; cursor: pointer; color: var(--ink); }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .45; cursor: default; }
+
+  .stage { position: relative; display: grid; grid-template-columns: 210px minmax(0, 1fr) 210px; gap: 14px;
+           margin: 10px 20px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+  .col h3 { margin: 0 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .group { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px; display: flex;
+           flex-direction: column; gap: 4px; }
+  .group b { font-size: 12px; color: var(--muted); font-weight: 600; padding: 0 2px; }
+  .joint { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left;
+           padding: 5px 9px; border-radius: 8px; border: 1.5px solid var(--line); background: #fafaf8; }
+  .joint .id { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .joint.done { background: var(--ok-soft); border-color: #9fd3b4; }
+  .joint.done .id { color: var(--ok); font-weight: 600; }
+  .joint.hot, .joint:hover { border-color: var(--accent); background: var(--accent-soft); }
+  body.choosing .joint:not(.done) { border-style: dashed; border-color: var(--accent); }
+  .center { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .center .joint { width: 220px; }
+  .views { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; width: 100%; }
+  .views canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 420px); min-height: 280px;
+                  margin: 0 auto; cursor: pointer; }
+  .captions { display: flex; justify-content: space-around; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  svg.links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+
+  .found { margin: 0 20px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+  .found h2 { font-size: 14px; margin: 0 0 8px; }
+  #chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 4px 10px; border-radius: 999px; border: 1.5px solid var(--line); background: #fafaf8; font-size: 13px; cursor: pointer; }
+  .chip.todo { border-color: #e7b98f; }
+  .chip.done { background: var(--ok-soft); border-color: #9fd3b4; color: var(--ok); }
+  .chip.current { background: var(--accent); border-color: var(--accent); color: #fff; animation: pulse 1s ease-in-out infinite alternate; }
+  @keyframes pulse { to { opacity: .65; } }
+  .chip small { opacity: .7; }
+  .write { margin: 0 20px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+           display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .write p { margin: 0; color: var(--muted); flex: 1; min-width: 260px; }
+  details { margin: 0 20px 20px; color: var(--muted); }
+  #log { font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; max-height: 180px; overflow: auto; }
+  @media (max-width: 900px) { .stage { grid-template-columns: 1fr; } svg.links { display: none; }
+    .status { grid-template-columns: 1fr; } .actions { grid-row: auto; grid-column: 1; justify-content: flex-start; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Motor IDs</h1>
+  <span class="badge" id="target"></span>
+  <div class="steps"><span id="st1">1 · Find the motors</span><span id="st2">2 · Say which is which</span><span id="st3">3 · Write</span></div>
+</header>
+
+<div class="status">
+  <div id="status">Lay the robot down or hold it, then scan.</div>
+  <div class="actions">
+    <button class="primary" id="scan">Scan</button>
+    <button id="watch">New motors…</button>
+    <button id="again" disabled>Move it again</button>
+    <button id="skip" disabled>Skip</button>
+  </div>
+  <div id="hint">Each motor in turn moves ±8° around where it is (LED on), then its torque is released. Click the joint
+    that moved: on the robot or in the lists.</div>
+  <div class="bar" id="bar"><i></i></div>
+  <div id="bartext"></div>
+</div>
+
+<div class="stage" id="stage">
+  <div class="col" id="left"><h3>Robot's left side</h3></div>
+  <div class="center">
+    <div id="headslot"></div>
+    <div class="views">
+      <canvas id="view"></canvas>
+      <div class="captions"><span>seen from behind</span><span>seen from the front</span></div>
+    </div>
+  </div>
+  <div class="col" id="right"><h3>Robot's right side</h3></div>
+  <svg class="links" id="links"></svg>
+</div>
+
+<div class="found"><h2>Motors on the bus <span class="badge" id="count"></span></h2><div id="chips"></div></div>
+
+<div class="write">
+  <p id="applyhint">Identify motors first.</p>
+  <button class="primary" id="apply" disabled>Write IDs and settings</button>
+</div>
+
+<details><summary>Log</summary><div id="log"></div></details>
+
+<script>
+"use strict";
+let S = null, meta = null, current = null, hoverJ = null, labels = null, masks = {}, centres = {};
+let watching = false, timer = null, busy = false;
+const $ = id => document.getElementById(id);
+const cv = $("view"), ctx = cv.getContext("2d"), img = new Image(), lab = new Image();
+const PART = {shoulder_pitch: "Shoulder pitch", shoulder_roll: "Shoulder roll", elbow: "Elbow", hip_yaw: "Hip yaw",
+              hip_roll: "Hip roll", hip_pitch: "Hip pitch", knee: "Knee", ankle_pitch: "Ankle pitch", ankle_roll: "Ankle roll"};
+const ARM = ["shoulder_pitch", "shoulder_roll", "elbow"], LEG = ["hip_yaw", "hip_roll", "hip_pitch", "knee", "ankle_pitch", "ankle_roll"];
+const btn = {};
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"},
+                                                          body: JSON.stringify(body)});
+  const j = await r.json();
+  if (j.found) S = j;
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+// ---- long actions: progress bar fed by the server's progress while the request runs ----
+function bar(p, text) {
+  const b = $("bar"), i = b.querySelector("i");
+  b.classList.toggle("show", !!p); b.classList.toggle("busy", p === "busy");
+  i.style.width = p && p !== "busy" ? Math.round(100 * Math.min(1, p)) + "%" : "";
+  $("bartext").textContent = text || "";
+}
+async function run(path, body, label) {
+  busy = true; setButtons();
+  bar(0.02, label);
+  const poll = setInterval(async () => {
+    try {
+      const s = await (await fetch("/api/state")).json();
+      if (s.progress) bar((s.progress.done + 0.5) / s.progress.total,
+                          `${s.progress.task}${s.progress.text ? " — " + s.progress.text : ""} (${s.progress.done + 1}/${s.progress.total})`);
+    } catch (e) {}
+  }, 150);
+  try { return await api(path, body); }
+  finally { clearInterval(poll); bar(null); busy = false; setButtons(); }
+}
+
+// ---- pictures ----
+function prep() {
+  cv.width = img.width; cv.height = img.height;
+  const c = document.createElement("canvas"); c.width = lab.width; c.height = lab.height;
+  const x = c.getContext("2d"); x.drawImage(lab, 0, 0);
+  labels = x.getImageData(0, 0, lab.width, lab.height).data;
+  const sums = {};
+  for (let i = 0, p = 0; i < labels.length; i += 4, p++) {
+    const l = labels[i]; if (!l) continue;
+    if (!masks[l]) masks[l] = new ImageData(img.width, img.height);
+    masks[l].data[i] = 255; masks[l].data[i + 3] = 255;
+    const px = p % img.width, py = Math.floor(p / img.width), view = px < meta.view_width ? 0 : 1, k = l + ":" + view;
+    (sums[k] = sums[k] || [0, 0, 0]); sums[k][0] += px; sums[k][1] += py; sums[k][2]++;
+  }
+  for (const k in sums) { const l = +k.split(":")[0]; (centres[l] = centres[l] || []).push([sums[k][0] / sums[k][2], sums[k][1] / sums[k][2], sums[k][2]]); }
+}
+const cache = {};
+function layer(l, rgba) {
+  const key = l + ":" + rgba;
+  if (!cache[key] && masks[l]) {
+    const m = masks[l], out = new ImageData(m.width, m.height);
+    for (let i = 0; i < m.data.length; i += 4) if (m.data[i + 3]) out.data.set(rgba, i);
+    const c = document.createElement("canvas"); c.width = m.width; c.height = m.height; c.getContext("2d").putImageData(out, 0, 0);
+    cache[key] = c;
+  }
+  return cache[key];
+}
+const L = name => meta.joints.indexOf(name) + 1;
+function assignedIds() { const r = {}; for (const [id, n] of Object.entries(S ? S.joint : {})) r[n] = +id; return r; }
+
+function draw() {
+  if (!labels) return;
+  ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(img, 0, 0);
+  const asg = assignedIds();
+  for (const n in asg) { const c = layer(L(n), [46, 139, 87, 170]); if (c) ctx.drawImage(c, 0, 0); }
+  if (hoverJ) { const c = layer(L(hoverJ), [217, 98, 43, 230]); if (c) ctx.drawImage(c, 0, 0); }
+  ctx.font = "bold 14px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const n in asg) for (const [x, y, k] of centres[L(n)] || []) {
+    if (k < 120) continue;
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, 13, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#2e8b57"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#1f2328"; ctx.fillText(S.motors[n], x, y);
+  }
+  links();
+}
+function links() {           // a line from the hovered joint's button to that servo on the picture
+  const svg = $("links"); svg.innerHTML = "";
+  if (!hoverJ || !btn[hoverJ] || !centres[L(hoverJ)]) return;
+  const st = $("stage").getBoundingClientRect(), b = btn[hoverJ].getBoundingClientRect(), r = cv.getBoundingClientRect();
+  const leftOf = b.right <= r.left, rightOf = b.left >= r.right;
+  const bx = leftOf ? b.right : rightOf ? b.left : (b.left + b.right) / 2;
+  const by = leftOf || rightOf ? (b.top + b.bottom) / 2 : b.bottom;
+  let best = null;
+  for (const [x, y, k] of centres[L(hoverJ)]) {
+    if (k < 40) continue;
+    const px = r.left + x * r.width / cv.width, py = r.top + y * r.height / cv.height, d = Math.hypot(px - bx, py - by);
+    if (!best || d < best[2]) best = [px, py, d];
+  }
+  if (!best) return;
+  svg.innerHTML = `<line x1="${bx - st.left}" y1="${by - st.top}" x2="${best[0] - st.left}" y2="${best[1] - st.top}"
+    stroke="#d9622b" stroke-width="2.5" stroke-dasharray="6 4"/><circle cx="${best[0] - st.left}" cy="${best[1] - st.top}" r="6" fill="#d9622b"/>`;
+}
+function pick(ev) {
+  const r = cv.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) * cv.width / r.width), y = Math.floor((ev.clientY - r.top) * cv.height / r.height);
+  const l = labels[(y * cv.width + x) * 4] || 0;
+  return l ? meta.joints[l - 1] : null;
+}
+function hover(n) { if (n === hoverJ) return; hoverJ = n; for (const k in btn) btn[k].classList.toggle("hot", k === n); draw(); }
+cv.addEventListener("mousemove", ev => { const n = pick(ev); hover(n); cv.title = n ? label(n) : ""; });
+cv.addEventListener("mouseleave", () => hover(null));
+cv.addEventListener("click", ev => { const n = pick(ev); if (n) choose(n); });
+
+// ---- joint buttons ----
+function label(n) { if (n === "head") return "Head"; const side = n.startsWith("left") ? "Left" : "Right"; return side + " " + PART[n.replace(/^(left|right)_/, "")].toLowerCase(); }
+function makeButtons() {
+  const mk = (n, parent) => {
+    const b = document.createElement("button"); b.className = "joint";
+    b.innerHTML = `<span>${n === "head" ? "Head" : PART[n.replace(/^(left|right)_/, "")]}</span><span class="id"></span>`;
+    b.onmouseenter = () => hover(n); b.onmouseleave = () => hover(null); b.onclick = () => choose(n);
+    parent.appendChild(b); btn[n] = b;
+  };
+  for (const side of ["left", "right"]) for (const [title, parts] of [["Arm", ARM], ["Leg", LEG]]) {
+    const g = document.createElement("div"); g.className = "group"; g.innerHTML = `<b>${title}</b>`;
+    $(side).appendChild(g); for (const p of parts) mk(`${side}_${p}`, g);
+  }
+  mk("head", $("headslot"));
+}
+async function choose(n) {
+  if (busy) return;
+  if (current === null) {                       // nothing waiting: show which motor is on this joint
+    const id = assignedIds()[n];
+    if (id !== undefined) ask(id); else setStatus(`${label(n)}: no motor yet.`, "Scan, then click the joint that moves.");
+    return;
+  }
+  await api("/api/assign", {id: current, joint: n});
+  if (watching) { current = null; render(); waitNew(); } else next();
+}
+
+// ---- state ----
+function setStatus(t, h) { $("status").textContent = t; if (h !== undefined) $("hint").textContent = h; }
+function rate(b) { return b >= 1e6 ? (b / 1e6) + " Mbps" : (b / 1e3) + " kbps"; }
+function ids() { return S ? Object.keys(S.found).map(Number).sort((a, b) => a - b) : []; }
+function setButtons() {
+  $("scan").disabled = busy || watching; $("apply").disabled = busy || !Object.keys(S ? S.joint : {}).length;
+  $("again").disabled = $("skip").disabled = busy || current === null; $("watch").disabled = busy;
+}
+function render() {
+  const asg = assignedIds();
+  for (const n in btn) {
+    const id = asg[n], b = btn[n];
+    b.classList.toggle("done", id !== undefined);
+    b.querySelector(".id").textContent = id !== undefined ? (id === S.motors[n] ? `ID ${id} ✓` : `ID ${id} → ${S.motors[n]}`) : `→ ID ${S ? S.motors[n] : ""}`;
+  }
+  const chips = $("chips"); chips.innerHTML = "";
+  for (const id of ids()) {
+    const n = S.joint[id], c = document.createElement("span");
+    c.className = "chip " + (id === current ? "current" : n ? "done" : "todo");
+    c.innerHTML = `ID ${id} <small>${rate(S.found[id])}</small>` + (n ? ` · ${label(n)}` : "");
+    c.title = "move it"; c.onclick = () => !busy && ask(id); chips.appendChild(c);
+  }
+  if (!ids().length) chips.innerHTML = `<span class="badge">None yet: scan.</span>`;
+  const n = ids().length, done = Object.keys(S ? S.joint : {}).length;
+  $("count").textContent = n ? `${done} of ${n} identified (the robot has 19)` : "";
+  $("target").textContent = S ? `baud rate after writing: ${rate(S.target)}` : "";
+  $("applyhint").textContent = done ? `Writes ${done} motor${done > 1 ? "s" : ""}: robot ID, Return Delay 0, PWM Slope 255, Shutdown 52, ${S ? rate(S.target) : ""}. `
+    + `A motor you did not identify that holds a needed ID is first moved to ID 100+.` : "Identify motors first.";
+  $("log").textContent = (S ? S.log : []).join("\n");
+  $("st1").className = n ? "done" : "on"; $("st2").className = !n ? "" : (done < n ? "on" : "done"); $("st3").className = n && done === n ? "on" : "";
+  document.body.classList.toggle("choosing", current !== null);
+  setButtons(); draw();
+}
+
+async function ask(id) {
+  current = id; render();
+  setStatus(`ID ${id} is moving — watch the robot`, "");
+  try { await run("/api/wiggle", {id}, `ID ${id} is moving`); }
+  catch (e) { setStatus(`ID ${id} did not move`, e.message); render(); return; }
+  setStatus(`Which joint just moved (ID ${id})?`, "Click it on the robot or in the lists. Missed it? “Move it again”.");
+  render();
+}
+function next() {
+  const todo = ids().filter(i => !(i in S.joint) && i !== current);
+  const after = todo.filter(i => i > (current ?? -1));
+  const id = after.length ? after[0] : todo[0];
+  if (id === undefined) { current = null; render(); setStatus("Every motor found is identified: write the IDs.", ""); return; }
+  ask(id);
+}
+function waitNew() {
+  clearTimeout(timer);
+  if (!watching) return;
+  const n = Object.keys(S ? S.joint : {}).length;
+  setStatus(`Plug the next brand-new motor (${n} identified so far)`, "One motor at a time, from the board outwards.");
+  bar("busy", "Waiting for a motor at ID 1, 57600 bps…");
+  const poll = async () => {
+    if (!watching) return;
+    try {
+      const r = await api("/api/new", {});
+      if (r.new !== null && r.new !== undefined) { bar(null); await ask(r.new); return; }
+    } catch (e) { setStatus("Problem with the new motor", e.message); }
+    timer = setTimeout(poll, 1200);
+  };
+  timer = setTimeout(poll, 300);
+}
+
+$("scan").onclick = async () => {
+  setStatus("Scanning every baud rate…", "");
+  try { await run("/api/scan", {}, "Scanning"); } catch (e) { setStatus("Scan failed", e.message); }
+  current = null; render();
+  if (!ids().length) { setStatus("No motor answers", "Check the cable, the power and the port."); return; }
+  next();
+};
+$("again").onclick = () => current !== null && ask(current);
+$("skip").onclick = () => { if (current === null) return; if (watching) { current = null; render(); waitNew(); } else next(); };
+$("watch").onclick = () => {
+  watching = !watching; $("watch").textContent = watching ? "Stop waiting" : "New motors…";
+  if (watching) waitNew(); else { clearTimeout(timer); bar(null); setStatus("Stopped waiting for new motors."); }
+  setButtons();
+};
+$("apply").onclick = async () => {
+  setStatus("Writing IDs and settings…", "Do not unplug anything.");
+  try { await run("/api/apply", {}, "Writing"); setStatus(S.log[S.log.length - 1].slice(9).replace(/^applied: /, "Written: ").replace(/ 1000000 bps/, " 1 Mbps").replace(/ 2000000 bps/, " 2 Mbps"), ""); }
+  catch (e) { setStatus("Writing stopped", e.message); }
+  current = null; render();
+};
+window.addEventListener("resize", links);
+
+(async () => {
+  meta = await (await fetch("/assets/joints.json")).json();
+  await Promise.all([new Promise(r => { img.onload = r; img.src = "/assets/views.png"; }),
+                     new Promise(r => { lab.onload = r; lab.src = "/assets/labels.png"; })]);
+  makeButtons(); prep(); await api("/api/state"); render();
+})();
+</script>
+</body>
+</html>
