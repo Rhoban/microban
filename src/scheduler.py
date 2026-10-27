@@ -224,13 +224,14 @@ class Scheduler:
             self._stop_moves()
             self._start_pose(obs.robot_state, {n: 0.0 for n in MOTOR_TO_ID}, INIT_S, hold=True)
             self._locked = True
+        launched &= set(self.registered_moves)        # a switch that is not a move (a move's own) launches nothing
         if self._locked:
             if not launched:
                 return set()
             self._locked = False                       # a move launched again: it leaves em / init
-        if requested and (not self.powered or (self._pose is not None and self._pose["hold"])):
-            if all(getattr(self.registered_moves[n], "power_up", "neutral") == "current" for n in requested
-                   if n in self.registered_moves):
+        moves = requested & set(self.registered_moves)
+        if moves and (not self.powered or (self._pose is not None and self._pose["hold"])):
+            if all(getattr(self.registered_moves[n], "power_up", "neutral") == "current" for n in moves):
                 # moves that start where the robot is (a user's controller, maybe hanging on the wall)
                 here = {n: obs.robot_state.motor_positions.get(n, NEUTRAL_POSE[n]) for n in MOTOR_TO_ID}
                 self._start_pose(obs.robot_state, here, 0.1, hold=False)
