@@ -22,7 +22,7 @@ by default; add `HOST=microban-ext` to operate over the secondary network (see t
 | `make run` | Sync the code and start the control loop on the robot (50 Hz). Stays attached to your terminal for live control. |
 | `make stop` | Stop the control loop and disable torque on all motors. |
 | `make shutdown` | Power off the Pi cleanly. |
-| `make setup` | Sync the code and (re)install dependencies on the robot (`uv sync --frozen`). Run after changing dependencies. |
+| `make setup` | Sync the code and (re)install dependencies on the robot (`uv sync`, from `pyproject.toml`). Run after changing dependencies. |
 | `make sync` | Sync your local copy to the robot without touching dependencies. |
 | `make imu` | Stream the robot's IMU/gyro readings to your terminal. |
 | `make voltage` | Read the voltage of all motors. |

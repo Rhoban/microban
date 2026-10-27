@@ -17,7 +17,7 @@ sync:
 		./ $(HOST):microban
 
 setup: sync
-	ssh $(HOST) "bash -l -c 'cd microban && uv sync --frozen'"
+	ssh $(HOST) "bash -l -c 'cd microban && uv sync'"
 
 sim:
 	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50

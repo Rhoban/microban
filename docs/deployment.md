@@ -241,7 +241,7 @@ installs the dependencies there.
    ```bash
    make setup
    ```
-   This rsyncs your local copy to the robot and runs `uv sync --frozen` there.
+   This rsyncs your local copy to the robot and runs `uv sync` there (dependencies from `pyproject.toml`, Python 3.12).
 
 ## Step 6: Run the Robot
 
