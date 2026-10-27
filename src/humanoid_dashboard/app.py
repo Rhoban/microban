@@ -14,6 +14,7 @@ import pathlib
 import struct
 import time
 import webbrowser
+import zlib
 
 import mujoco
 import numpy as np
@@ -126,9 +127,10 @@ class RobotLink(asyncio.DatagramProtocol):
             self.hub.frame(data)
             return
         try:
-            self.hub.message(json.loads(data))
+            msg = json.loads(data)
         except ValueError:
-            pass
+            return
+        self.hub.message(msg, data)
 
     def send(self, msg):
         if self.transport:
@@ -152,15 +154,17 @@ class Hub:
         self.events = []
 
     # robot -> PC
-    def message(self, msg):
+    def message(self, msg, raw=b""):
         op = msg.get("op")
         if op == "schema":
+            # the frames carry the CRC of the schema they follow (the robot computes it on the same bytes): every
+            # schema received sets it again, so a restarted robot is followed even with the same fields
+            self.schema_id = zlib.crc32(raw)
             if msg != self.schema:
                 self.schema = msg
                 self.names = {name: labels for name, labels in msg["fields"]}
                 n = sum(len(labels) for _, labels in msg["fields"])
                 self.unpack = struct.Struct(f"<{n}f").unpack_from
-                self.schema_id = None
                 self.broadcast({"type": "schema", "schema": msg})
         elif op in ("ack", "event"):
             msg = {**msg, "type": op, "pc_time": time.time()}
@@ -171,10 +175,7 @@ class Hub:
         if self.unpack is None:
             return
         magic, sid, seq, t = HEADER.unpack_from(data)
-        if self.schema_id is None:
-            self.schema_id = sid
-        if sid != self.schema_id:          # the robot restarted with other fields: wait for its schema
-            self.schema_id, self.unpack = None, None
+        if sid != self.schema_id:          # frames of another schema (the robot restarted): wait for its schema
             return
         flat = self.unpack(data, HEADER.size)
         vals, k = {}, 0
