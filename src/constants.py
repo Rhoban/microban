@@ -96,7 +96,9 @@ BAM_MAX_CURRENT: float = 1.75 # XL330 firmware current limit [A]: clips motor to
 # motors stays above OVERCURRENT_CUTOFF_A for OVERCURRENT_DEBOUNCE_TICKS consecutive ticks.
 # Goal: cut the robot before a current spike (e.g. all motors snapping during a fall) trips the BMS.
 PRESENT_CURRENT_UNIT_A: float = 0.001   # XL330 present_current register unit (1.0 mA/LSB)
-OVERCURRENT_CUTOFF_A: float = 15.0      # total pack current threshold (CALIBRATE: below BMS trip, above normal walk peak)
+# No BMS for now (bench power supply, 2026-10-27): the safety is off. With a battery and its BMS, set it again
+# (15 A was the threshold: below the BMS trip, above the normal walk peak).
+OVERCURRENT_CUTOFF_A: float | None = None   # total pack current threshold [A]; None: no overcurrent safety
 OVERCURRENT_DEBOUNCE_TICKS: int = 2     # consecutive over-threshold ticks before cutting
 
 # Current proxy used when present_current is NOT read (Observer.observe_current = False), so the

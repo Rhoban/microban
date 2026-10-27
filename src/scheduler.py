@@ -246,6 +246,8 @@ class Scheduler:
         """
         total_current = self._estimate_total_current(robot_state, target_angles)
         self._last_total_current = total_current
+        if OVERCURRENT_CUTOFF_A is None:          # no BMS to protect: no safety cut (the estimate is still shown)
+            return False
         if total_current >= OVERCURRENT_CUTOFF_A:
             self._overcurrent_ticks += 1
         else:
