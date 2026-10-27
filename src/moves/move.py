@@ -35,6 +35,7 @@ class Move(ABC):
                                   # "current" holds where the robot is (e.g. a move that may start on the wall)
 
     options: dict = {}            # settings the dashboard can change while the robot runs: name -> int / float / bool
+    option_docs: dict = {}        # name -> one line, shown in the dashboard's editor
 
     def __init__(self) -> None:
         self.state: MoveState = MoveState.INACTIVE

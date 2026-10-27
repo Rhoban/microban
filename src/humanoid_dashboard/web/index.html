@@ -50,9 +50,18 @@
   .mv.busy { border-color: var(--warn); background: var(--warn-soft); }
   .mv b { font-weight: 600; } .mv small { color: var(--muted); }
   .mv.switch { border-style: dashed; }
-  .mv .opt { font-size: 12px; color: var(--muted); padding-left: 4px; border-left: 1px solid var(--line); }
-  .mv .opt input[type=number] { width: 52px; font: inherit; padding: 1px 4px; border: 1px solid var(--line);
-                                border-radius: 5px; background: var(--panel); color: var(--ink); }
+  #editor { position: fixed; right: 16px; top: 64px; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 90px);
+            z-index: 10; display: none; box-shadow: 0 8px 30px rgba(0, 0, 0, .18); }
+  #editor.show { display: flex; }
+  #editor .head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  #editor .head b { font-size: 15px; } #editor .head .spacer { flex: 1; }
+  #eddoc { padding: 6px 12px 0; color: var(--muted); font-size: 12px; }
+  #edrows { overflow: auto; padding: 6px 12px 12px; }
+  .edrow { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .edrow > div { flex: 1; display: flex; flex-direction: column; }
+  .edrow small { color: var(--muted); font-size: 12px; }
+  .edrow input[type=number] { width: 90px; font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px;
+                              background: var(--panel); color: var(--ink); text-align: right; }
   .scroll { overflow: auto; min-height: 0; flex: 1; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th { position: sticky; top: 0; background: var(--panel); text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; padding: 5px 6px; border-bottom: 1px solid var(--line); }
@@ -111,6 +120,13 @@
     <div class="card"><h2>Events</h2><div class="scroll" id="events"></div></div>
   </div>
 </main>
+<div class="card" id="editor">
+  <div class="head"><b id="edtitle"></b><span class="badge">variables</span><span class="spacer"></span>
+    <button id="edsave" title="keep these values on the robot (move_options.json, loaded at start)">Save on robot</button>
+    <button id="edclose">Close</button></div>
+  <div id="eddoc"></div>
+  <div id="edrows"></div>
+</div>
 <script type="module" src="/static/app.js"></script>
 </body>
 </html>

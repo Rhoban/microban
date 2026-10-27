@@ -5,3 +5,4 @@ uv.lock
 logs/
 
 placo_test.py
+move_options.json

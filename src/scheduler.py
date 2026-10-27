@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2026 Marc Duclusaud
 
+import json
 import time
 import math
 from collections import deque
@@ -32,6 +33,7 @@ from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
 
+OPTIONS_FILE = Path("move_options.json")   # the moves' options saved from the dashboard (repo root on the robot)
 POWER_UP_S = 2.0      # a move launched with the torque off (or from the zero pose): ramp to the neutral pose first
 INIT_S = 2.0          # init: ramp to every motor's zero
 
@@ -85,6 +87,7 @@ class Scheduler:
         # toggle them as well as the moves: what it asks is added to what the keyboard / gamepad asks
         self.switches = list(switches or [])
         self._dash_requested: set[str] = set()
+        self._load_options()
         if self.telemetry is not None:
             self.telemetry.configure(self.registered_moves, self.switches)
 
@@ -226,6 +229,8 @@ class Scheduler:
                 move.options[opt] = value
                 move.on_option(opt, value)
                 self.telemetry.options_changed()
+            elif op == "save_options":
+                self.telemetry.event(self._save_options())
             elif op == "start":
                 self._dash_requested.add(name)
             elif op == "stop":
@@ -262,6 +267,30 @@ class Scheduler:
         if self._pose is not None and not self._pose["hold"]:
             return set()                               # the moves start once at the neutral pose
         return requested
+
+    # ---- the moves' options (dashboard) -----------------------------------------------------------------------
+    def _load_options(self) -> None:
+        """The values saved from the dashboard (OPTIONS_FILE), over the moves' defaults: known options only, same type."""
+        if not OPTIONS_FILE.exists():
+            return
+        try:
+            saved = json.loads(OPTIONS_FILE.read_text())
+        except ValueError as e:
+            print(f"Warning: {OPTIONS_FILE} unreadable ({e}): the moves' defaults", end="\r\n", flush=True)
+            return
+        for name, values in saved.items():
+            move = self.registered_moves.get(name)
+            for opt, value in (values or {}).items():
+                if move is not None and opt in move.options:
+                    old = move.options[opt]
+                    move.options[opt] = bool(value) if isinstance(old, bool) else type(old)(value)
+                    move.on_option(opt, move.options[opt])
+        print(f"Move options from {OPTIONS_FILE}", end="\r\n", flush=True)
+
+    def _save_options(self) -> str:
+        data = {name: dict(m.options) for name, m in self.registered_moves.items() if m.options}
+        OPTIONS_FILE.write_text(json.dumps(data, indent=1) + "\n")
+        return f"move options saved to {OPTIONS_FILE.resolve()}"
 
     def _stop_moves(self) -> None:
         for move in self.registered_moves.values():

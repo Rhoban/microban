@@ -267,7 +267,7 @@ function connect() {
     if (m.type === "schema") {
       schema = m.schema; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
       $("title").textContent = schema.robot; document.title = schema.robot + " · dashboard"; robotCmdsKey = ""; renderRobotCmds();
-      movesKey = ""; renderMoves();
+      movesKey = ""; renderMoves(); renderEditor(false);
     }
     else if (m.type === "frame") onFrame(m);
     else if (m.type === "ack" || m.type === "event") log(m);
@@ -331,18 +331,37 @@ function renderMoves() {
     const b = st === 0 ? button("Start", "", () => cmd("move_start", { move: m.name }), m.kind === "move" ? "Robot ready? Start" : null)
                        : button("Stop", "", () => cmd("move_stop", { move: m.name }));
     b.dataset.j = "move:" + m.name; el.appendChild(b);
-    for (const [opt, v] of Object.entries(m.options || {})) {        // settings the robot lets the page change
-      const lab = document.createElement("label"); lab.className = "opt"; lab.textContent = opt + " ";
-      const inp = document.createElement("input");
-      if (typeof v === "boolean") { inp.type = "checkbox"; inp.checked = v; }
-      else { inp.type = "number"; inp.value = v; inp.step = Number.isInteger(v) ? "1" : "any"; }
-      inp.onchange = () => cmd("move_option", { move: m.name, option: opt,
-                                                value: inp.type === "checkbox" ? inp.checked : Number(inp.value) });
-      lab.appendChild(inp); el.appendChild(lab);
+    if (Object.keys(m.options || {}).length) {                       // the variables the move exposes: its editor
+      const e = document.createElement("button"); e.className = "small"; e.textContent = "⚙"; e.title = "edit its variables";
+      e.onclick = ev => { ev.stopPropagation(); openEditor(m.name); }; el.appendChild(e);
     }
     box.appendChild(el);
   });
 }
+// the editor of a move's variables (as RhIO's parameters): applied at once on the robot, Save keeps them there
+let editing = null;
+function openEditor(name) { editing = name; renderEditor(true); $("editor").classList.add("show"); }
+function renderEditor(force) {
+  if (!editing) return;
+  const m = (meta.moves || []).find(x => x.name === editing);
+  if (!m) return;
+  const box = $("edrows");
+  if (!force && box.contains(document.activeElement)) return;      // do not redraw under the cursor
+  $("edtitle").textContent = m.name; $("eddoc").textContent = m.doc || "";
+  box.innerHTML = "";
+  for (const [opt, v] of Object.entries(m.options || {})) {
+    const row = document.createElement("div"); row.className = "edrow";
+    const inp = document.createElement("input");
+    if (typeof v === "boolean") { inp.type = "checkbox"; inp.checked = v; }
+    else { inp.type = "number"; inp.value = v; inp.step = Number.isInteger(v) ? "1" : "any"; }
+    inp.onchange = () => cmd("move_option", { move: m.name, option: opt,
+                                              value: inp.type === "checkbox" ? inp.checked : Number(inp.value) });
+    row.innerHTML = `<div><b>${opt}</b><small>${(m.option_docs || {})[opt] || ""}</small></div>`;
+    row.appendChild(inp); box.appendChild(row);
+  }
+}
+$("edclose").onclick = () => { editing = null; $("editor").classList.remove("show"); };
+$("edsave").onclick = () => cmd("save_options", {});
 $("rec").onclick = () => send({ type: "record", on: !recording });
 setInterval(drawPlots, 100);
 build3d().then(s => { scene3d = s; }).catch(e => log({ level: "error", text: "3D view: " + e }));

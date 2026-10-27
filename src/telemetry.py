@@ -51,7 +51,7 @@ class Telemetry:
         self.moves, self.switches = moves, list(switches or [])
         listed = self._listing()
         cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop",
-                                                                                     "move_option"]
+                                                                                     "move_option", "save_options"]
         try:
             self.link = Link("Microban", fields={
                 "q": self.names, "q_target": self.names, "dq": self.names, "current": self.names,
@@ -69,8 +69,13 @@ class Telemetry:
 
     def _listing(self) -> list[dict]:
         return [{"name": k, "kind": "move", "options": dict(getattr(m, "options", {}) or {}),
+                 "option_docs": dict(getattr(m, "option_docs", {}) or {}),
                  "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
                 for k, m in self.moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
+
+    def event(self, text: str, level: str = "info") -> None:
+        if self.link is not None:
+            self.link.event(text, level)
 
     def options_changed(self) -> None:
         """A move's options changed: the page gets the new values."""
@@ -132,6 +137,10 @@ class Telemetry:
             self.requests.append((name, None))
             self.link.ack(cmd, True, "emergency stop: moves stopped, torque off" if name == "em" else
                           "init: moves stopped, every motor to its zero (held until a move is launched)")
+            return
+        if name == "save_options":                    # written by the scheduler (it owns the moves)
+            self.requests.append(("save_options", None))
+            self.link.ack(cmd, True, "saving the move options")
             return
         if name == "move_option":
             move, opt, value = cmd["args"].get("move"), cmd["args"].get("option"), cmd["args"].get("value")
