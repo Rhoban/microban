@@ -84,11 +84,12 @@ KP_RL: int = 125             # ~0.277 Nm/rad in MuJoCo
 KP_GAIN_PRM: float = 0.0022  # Nm/rad per register unit (for Xl330)
 
 # BAM motor model (bam package, XL330 m6)
-# The robot runs on a bench power supply (no battery): 8.1-8.2 V read by the motors (2026-10-27)
-BAM_VIN: float = 8.1
+# The robot runs on a bench power supply (no battery for now): 8.4 V, then 5 m of 16 AWG cable (~13.2 mOhm/m, 10 m
+# of conductor: 0.13 Ohm) and the robot's own wiring. At rest (~1 A) the motors read 8.1-8.2 V: ~0.25 Ohm in all
+# (estimate; to measure: motor voltage at rest and under load, e.g. on the dashboard)
+BAM_VIN: float = 8.4
 BAM_VIN_MIN: float = 6.0
-BAM_VIN_DROP_RESISTANCE: float = 0.073  # supply wires [Ohm]: vin drops by R * sum(|torque|) / kt (BAM >= 1.0.2;
-                                        # the former vin_drop_gain 0.2 V per N m = 0.2 * kt)
+BAM_VIN_DROP_RESISTANCE: float = 0.25   # [Ohm]: vin drops by R * sum(|torque|) / kt (BAM >= 1.0.2)
 BAM_MAX_CURRENT: float = 1.75 # XL330 firmware current limit [A]: clips motor torque to ±BAM_MAX_CURRENT * kt
 
 # Overcurrent safety: emergency torque-off when the summed |present_current| of all
