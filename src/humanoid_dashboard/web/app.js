@@ -42,7 +42,8 @@ async function build3d() {
     })();
     return meshCache[i];
   }
-  const geoms = await Promise.all(sc.geoms.map(async gm => {
+  const geomMats = [];
+  const geoms = await Promise.all(sc.geoms.map(async (gm, gi) => {
     let geo, s = gm.size;
     if (gm.type === 7) geo = await meshGeometry(gm.mesh);
     else if (gm.type === 6) geo = new THREE.BoxGeometry(2 * s[0], 2 * s[1], 2 * s[2]);
@@ -55,13 +56,14 @@ async function build3d() {
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(...gm.pos);
     mesh.quaternion.set(gm.quat[1], gm.quat[2], gm.quat[3], gm.quat[0]);
-    mesh.userData.body = gm.body;
-    bodies[gm.body].add(mesh); mats[gm.body].push(mat);
+    mesh.userData.body = gm.body; mesh.userData.geom = gi;
+    bodies[gm.body].add(mesh); mats[gm.body].push(mat); geomMats[gi] = mat;
     return mesh;
   }));
   const pickable = geoms.filter(Boolean);
-  const bodyJoint = {};
+  const bodyJoint = {}, motorJoint = {};
   for (const [j, b] of Object.entries(sc.joint_body)) bodyJoint[b] = j;
+  for (const [j, g] of Object.entries(sc.joint_motor || {})) motorJoint[g] = j;
 
   function resize() {
     const w = el.clientWidth, h = el.clientHeight;
@@ -77,7 +79,8 @@ async function build3d() {
     mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(mouse, camera);
     const hit = ray.intersectObjects(pickable, false)[0];
-    if (hit && bodyJoint[hit.object.userData.body]) select(bodyJoint[hit.object.userData.body]);
+    const j = hit && (motorJoint[hit.object.userData.geom] || bodyJoint[hit.object.userData.body]);
+    if (j) select(j);
   });
   (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
   function theme() { scene.background = new THREE.Color(css("--scene")); }
@@ -98,11 +101,16 @@ async function build3d() {
         camera.near = size / 100; camera.far = size * 100; camera.updateProjectionMatrix();
       }
     },
-    tint(state) {   // joint -> "bad" | "warn" | "sel" | null : the joint's moving body glows
+    tint(state) {   // joint -> "bad" | "warn" | "sel" | null : its servo glows (or the part it moves, without one)
       const col = { bad: 0xc63b2f, warn: 0xc27a12, sel: 0xd9622b };
-      const want = {};
-      for (const [j, s] of Object.entries(state)) if (s && sc.joint_body[j] !== undefined) want[sc.joint_body[j]] = col[s];
-      mats.forEach((ms, b) => ms.forEach(m => { m.emissive.setHex(want[b] || 0); m.emissiveIntensity = want[b] ? 0.55 : 0; }));
+      const want = new Map();
+      for (const [j, s] of Object.entries(state)) {
+        if (!s) continue;
+        const g = (sc.joint_motor || {})[j];
+        if (g !== undefined) want.set(geomMats[g], col[s]);
+        else if (sc.joint_body[j] !== undefined) mats[sc.joint_body[j]].forEach(m => want.set(m, col[s]));
+      }
+      geomMats.forEach(m => { if (m) { const c = want.get(m); m.emissive.setHex(c || 0); m.emissiveIntensity = c ? 0.9 : 0; } });
     },
   };
 }

@@ -29,7 +29,8 @@ PUSH_HZ = 30
 class Model:
     """The robot model: visual geoms for the page, forward kinematics from telemetry values."""
 
-    def __init__(self, path, visual_groups=None, quat_field="imu_quat", joint_fields=("q",)):
+    def __init__(self, path, visual_groups=None, quat_field="imu_quat", joint_fields=("q",), motor_mesh="xl330"):
+        self.motor_mesh = motor_mesh
         self.m = mujoco.MjModel.from_xml_path(str(path))
         self.d = mujoco.MjData(self.m)
         self.quat_field, self.joint_fields = quat_field, joint_fields
@@ -62,7 +63,29 @@ class Model:
         joint_body = {name: self.bodies.index(int(m.jnt_bodyid[j])) for name, j in self.joints.items()
                       if int(m.jnt_bodyid[j]) in self.bodies}
         return {"bodies": [m.body(b).name for b in self.bodies], "geoms": geoms, "joint_body": joint_body,
+                "joint_motor": self.motor_geoms(),
                 "joints": {name: [float(x) for x in m.jnt_range[j]] for name, j in self.joints.items()}}
+
+    def motor_geoms(self):
+        """joint -> index (in the page's geoms) of the servo that drives it: the visual mesh whose name contains
+        motor_mesh and whose centre lies closest to the joint's axis (the servo's output axis is the joint's)."""
+        m, d = self.m, mujoco.MjData(self.m)
+        mujoco.mj_forward(m, d)
+        cases = [k for k, g in enumerate(self.geoms) if m.geom_type[g] == mujoco.mjtGeom.mjGEOM_MESH
+                 and self.motor_mesh and self.motor_mesh in m.mesh(m.geom_dataid[g]).name]
+        out, taken = {}, set()
+        for name, j in self.joints.items():
+            if not cases:
+                break
+            v = d.geom_xpos[[self.geoms[k] for k in cases]] - d.xanchor[j]
+            along = v @ d.xaxis[j]
+            off = np.linalg.norm(v - along[:, None] * d.xaxis[j], axis=1) + 0.2 * np.abs(along)
+            for i in np.argsort(off):
+                if cases[i] not in taken and off[i] < 0.05:
+                    out[name] = cases[i]
+                    taken.add(cases[i])
+                    break
+        return out
 
     def mesh(self, i):
         m = self.m
@@ -273,6 +296,7 @@ def main():
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--model", required=True, help="MuJoCo XML or URDF of the robot")
     ap.add_argument("--title", default=None)
+    ap.add_argument("--motor-mesh", default="xl330", help="name part of the servo meshes (lit on a motor error)")
     ap.add_argument("--visual-groups", type=int, nargs="*", default=None,
                     help="geom groups to draw (default: the geoms that do not collide)")
     ap.add_argument("--http", type=int, default=8780)
@@ -280,7 +304,7 @@ def main():
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args()
 
-    model = Model(a.model, a.visual_groups)
+    model = Model(a.model, a.visual_groups, motor_mesh=a.motor_mesh)
     hub = Hub(model)
 
     async def run():
