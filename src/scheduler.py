@@ -45,6 +45,7 @@ class Scheduler:
         input_source: Optional[InputSource] = None,
         moves: Optional[dict[str, Move]] = None,
         telemetry=None,
+        switches: Optional[list[str]] = None,
     ):
         self.dt = 1.0 / frequency_hz
         self.controller = controller
@@ -80,6 +81,12 @@ class Scheduler:
         self._pose: Optional[dict] = None           # a ramp: {t0, duration, start, target, hold}
         self._locked = False
         self._prev_requested: set[str] = set()
+        # names a key toggles that are not moves (a move reads them in user_input.active_moves); the dashboard can
+        # toggle them as well as the moves: what it asks is added to what the keyboard / gamepad asks
+        self.switches = list(switches or [])
+        self._dash_requested: set[str] = set()
+        if self.telemetry is not None:
+            self.telemetry.configure(self.registered_moves, self.switches)
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -165,7 +172,8 @@ class Scheduler:
                     self.telemetry.tick(robot_state, command.target_angles, (time.perf_counter() - start_time) * 1000,
                                         self._last_total_current,
                                         status={"powered": int(self.powered),
-                                                "init": int(self._pose is not None and self._pose["hold"])})
+                                                "init": int(self._pose is not None and self._pose["hold"])},
+                                        requested=self._prev_requested)
 
                 # IMU / gyro terminal display
                 if obs.user_input.show_imu and (start_time - self._last_imu_print_s) >= 0.5:
@@ -209,21 +217,29 @@ class Scheduler:
 
     # ---- torque, em, init ---------------------------------------------------------------------------------
     def _requested_moves(self, obs: Observation) -> set[str]:
-        """The moves to run this tick, after the dashboard's requests (em, init) and the torque power-up."""
-        requested = set(obs.user_input.active_moves)
+        """The moves to run this tick, after the dashboard's requests (em, init, start / stop a move or switch) and the
+        torque power-up. user_input.active_moves gets what the dashboard asks too (moves read their switches there)."""
+        for op, name in (self.telemetry.take_requests() if self.telemetry is not None else []):
+            if op == "start":
+                self._dash_requested.add(name)
+            elif op == "stop":
+                self._dash_requested.discard(name)
+            elif op == "em":
+                self._dash_requested.clear()
+                self._stop_moves()
+                self._pose = None
+                self._set_torque(False)
+                self._locked = True
+                print("Emergency stop: torque off on every motor", end="\r\n", flush=True)
+            elif op == "init":
+                self._dash_requested.clear()
+                self._stop_moves()
+                self._start_pose(obs.robot_state, {n: 0.0 for n in MOTOR_TO_ID}, INIT_S, hold=True)
+                self._locked = True
+        requested = set(obs.user_input.active_moves) | self._dash_requested
+        obs.user_input.active_moves = set(requested)
         launched = requested - self._prev_requested
         self._prev_requested = set(requested)
-        req = self.telemetry.take_request() if self.telemetry is not None else None
-        if req == "em":
-            self._stop_moves()
-            self._pose = None
-            self._set_torque(False)
-            self._locked = True
-            print("Emergency stop: torque off on every motor", end="\r\n", flush=True)
-        elif req == "init":
-            self._stop_moves()
-            self._start_pose(obs.robot_state, {n: 0.0 for n in MOTOR_TO_ID}, INIT_S, hold=True)
-            self._locked = True
         launched &= set(self.registered_moves)        # a switch that is not a move (a move's own) launches nothing
         if self._locked:
             if not launched:

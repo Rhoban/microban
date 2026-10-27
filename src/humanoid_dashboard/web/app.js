@@ -138,7 +138,7 @@ function button(label, cls, onClick, confirmText) {
     ev.stopPropagation();
     if (confirmText && confirmKey[label + b.dataset.j] !== true) {
       confirmKey[label + b.dataset.j] = true; b.textContent = confirmText; b.classList.add("confirm");
-      setTimeout(() => { confirmKey[label + b.dataset.j] = false; renderTable(true); robotCmdsKey = ""; renderRobotCmds(); }, 3000);
+      setTimeout(() => { confirmKey[label + b.dataset.j] = false; renderTable(true); robotCmdsKey = ""; renderRobotCmds(); movesKey = ""; renderMoves(); }, 3000);
       return;
     }
     confirmKey[label + b.dataset.j] = false; onClick();
@@ -267,6 +267,7 @@ function connect() {
     if (m.type === "schema") {
       schema = m.schema; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
       $("title").textContent = schema.robot; document.title = schema.robot + " · dashboard"; robotCmdsKey = ""; renderRobotCmds();
+      movesKey = ""; renderMoves();
     }
     else if (m.type === "frame") onFrame(m);
     else if (m.type === "ack" || m.type === "event") log(m);
@@ -292,6 +293,7 @@ function onFrame(m) {
   if (scene3d) { const st = {}; for (const j of jointsList()) st[j] = j === selected ? "sel" : motorState(j); scene3d.tint(st); }
   renderTable();
   renderRobotCmds();
+  renderMoves();
 }
 // whole-robot commands (the ones the robot lists), as em / init on Rhoban's robots
 let robotCmdsKey = "";
@@ -310,6 +312,26 @@ function renderRobotCmds() {
     const b = document.createElement("button"); b.className = "stop"; b.textContent = "⏻ Torque off (em)";
     b.title = "emergency: stop the moves, torque off on every motor"; b.onclick = () => cmd("em", {}); box.appendChild(b);
   }
+}
+// the robot's moves and switches (meta.moves; their states in the field "moves": 0 off, 1 starting, 2 on, 3 stopping)
+let movesKey = "";
+function renderMoves() {
+  const list = meta.moves || [], card = $("moves");
+  card.classList.toggle("show", list.length > 0 && (meta.commands || []).includes("move_start"));
+  const vals = last && last.values && last.values.moves ? last.values.moves : [];
+  const key = JSON.stringify(list.map(m => m.name)) + vals.join() + JSON.stringify(Object.values(confirmKey));
+  if (key === movesKey) return;
+  movesKey = key;
+  const box = $("movelist"); box.innerHTML = "";
+  list.forEach((m, i) => {
+    const st = vals[i] ?? 0, el = document.createElement("span");
+    el.className = "mv" + (m.kind === "switch" ? " switch" : "") + (st === 2 ? " on" : st === 1 || st === 3 ? " busy" : "");
+    el.title = m.doc || m.name;
+    el.innerHTML = `<b>${m.name}</b><small>${["off", "starting", "on", "stopping"][st] || ""}</small>`;
+    const b = st === 0 ? button("Start", "", () => cmd("move_start", { move: m.name }), m.kind === "move" ? "Robot ready? Start" : null)
+                       : button("Stop", "", () => cmd("move_stop", { move: m.name }));
+    b.dataset.j = "move:" + m.name; el.appendChild(b); box.appendChild(el);
+  });
 }
 $("rec").onclick = () => send({ type: "record", on: !recording });
 setInterval(drawPlots, 100);

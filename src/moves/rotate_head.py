@@ -12,6 +12,7 @@ LOGGING = False
 
 
 class RotateHeadMove(Move):
+    description = "Turn the head left and right"
     """
     Generate a sinusoidal head rotation between +/- *amplitude_rad* with a frequency *frequency*.
 

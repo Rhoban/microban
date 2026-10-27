@@ -28,7 +28,11 @@ class MotorCommand:
 
 
 class Move(ABC):
-    """Base class for all motion behaviors."""
+    """Base class for all motion behaviors (docs/moves.md)."""
+
+    description: str = ""         # one line for the dashboard's Moves list (default: the class docstring's first line)
+    power_up: str = "neutral"     # launched with the torque off: "neutral" ramps to NEUTRAL_POSE first (2 s),
+                                  # "current" holds where the robot is (e.g. a move that may start on the wall)
 
     def __init__(self) -> None:
         self.state: MoveState = MoveState.INACTIVE

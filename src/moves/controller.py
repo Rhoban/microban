@@ -65,6 +65,7 @@ def load_controller(path: str):
 
 
 class ControllerMove(Move):
+    description = "Your Controller file (CONTROLLER=...), the same as in the climbing simulator"
     power_up = "current"          # the torque goes on where the robot is (see Scheduler)
 
     def __init__(self, path: str, controller=None):

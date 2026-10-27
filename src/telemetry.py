@@ -2,16 +2,16 @@
 """The robot's side of the live dashboard (humanoid-dashboard, run on the PC: `make dashboard`).
 
 Once per tick, after the motors were commanded, sends what the loop already read (positions, velocities, currents,
-targets, IMU, tick time) in one UDP packet, only while a PC listens. While one listens, it also reads the motors'
-health about once a second (torque, hardware error, voltage, temperature: two small sync reads) and runs the page's
-commands between two ticks: `reboot` a motor (clears overheating / overload; its torque stays off), `torque` on/off for
-one motor, and the scheduler's `em` (stop the moves, torque off) and `init` (stop the moves, every motor to its zero,
-held until a move is launched).
+targets, IMU, tick time) and the moves' states in one UDP packet, only while a PC listens. While one listens, it also
+reads the motors' health about once a second (torque, hardware error, voltage, temperature: two small sync reads) and
+runs the page's commands between two ticks: `reboot` a motor (clears overheating / overload; its torque stays off),
+`torque` on/off for one motor; and passes the scheduler's to it: `em` (stop the moves, torque off), `init` (stop the
+moves, every motor to its zero, held until a move is launched), `move_start` / `move_stop` (a registered move or
+switch, as its key would).
 Without the humanoid_dashboard package, or with MICROBAN_DASHBOARD=0, it does nothing.
 """
 import math
 import os
-import time
 
 from constants import MOTOR_TO_ID
 
@@ -24,55 +24,73 @@ HEALTH_EVERY = 50                  # ticks (1 s at 50 Hz)
 CURRENT_LIMIT_A = 1.75             # XL330 at 5-8 V (BAM max_current)
 TEMPERATURE_LIMIT_C = 70           # XL330 factory Temperature Limit
 VOLTAGE_BIT = 1                    # always set above 7 V (the robot runs at ~8 V): not an error for Microban
+MOVE_STATE = {"INACTIVE": 0, "STARTING": 1, "ACTIVE": 2, "STOPPING": 3}   # the page's codes (a switch: 0 / 2)
 
 
 class Telemetry:
     def __init__(self, controller):
         self.controller = controller
         self.link = None
-        if Link is None or os.environ.get("MICROBAN_DASHBOARD", "1") == "0":
-            return
+        self.enabled = Link is not None and os.environ.get("MICROBAN_DASHBOARD", "1") != "0"
         self.names = list(MOTOR_TO_ID)
         self.ids = [MOTOR_TO_ID[n] for n in self.names]
         n = len(self.names)
         self.torque, self.error = [math.nan] * n, [math.nan] * n
         self.voltage, self.temperature = [math.nan] * n, [math.nan] * n
         self.health = getattr(controller, "sync_read_health", None)       # the real robot only
-        cmds = (["reboot", "torque"] if hasattr(controller, "reboot") else []) + ["em", "init"]
-        self.request = None           # "em" / "init", for the scheduler (take_request)
+        self.requests: list[tuple[str, str | None]] = []                  # for the scheduler (take_requests)
+        self.moves: dict = {}
+        self.switches: list[str] = []
+        self.tick_count = 0
+
+    def configure(self, moves: dict, switches: list[str] | None = None) -> None:
+        """The scheduler's moves (name -> Move) and switches (names a key toggles that are not moves): the page lists
+        them, with each move's `description`, and can start / stop them."""
+        if not self.enabled or self.link is not None:
+            return
+        self.moves, self.switches = moves, list(switches or [])
+        listed = [{"name": k, "kind": "move", "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
+                  for k, m in moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
+        cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop"]
         try:
             self.link = Link("Microban", fields={
                 "q": self.names, "q_target": self.names, "dq": self.names, "current": self.names,
                 "torque": self.names, "hw_error": self.names, "voltage": self.names, "temperature": self.names,
                 "imu_quat": ["w", "x", "y", "z"], "gyro": ["x", "y", "z"], "acc": ["x", "y", "z"],
-                "tick_ms": ["tick"], "safety_est_A": ["total"], "powered": ["on"], "init": ["on"]},
+                "tick_ms": ["tick"], "safety_est_A": ["total"], "powered": ["on"], "init": ["on"],
+                "moves": [m["name"] for m in listed]},
                 meta={"motor_ids": MOTOR_TO_ID, "limits": {"current": CURRENT_LIMIT_A, "temperature": TEMPERATURE_LIMIT_C},
                       "hw_error_bits": {"0": "input voltage", "2": "overheating", "3": "motor encoder",
                                         "4": "electrical shock", "5": "overload"},
-                      "hw_error_ignore": VOLTAGE_BIT, "commands": cmds})
+                      "hw_error_ignore": VOLTAGE_BIT, "commands": cmds, "moves": listed})
         except OSError as e:          # port taken (another session): the robot runs without the dashboard
             print(f"Warning: dashboard link off ({e})", end="\r\n", flush=True)
-        self.tick_count = 0
+            self.enabled = False
 
-    def take_request(self) -> str | None:
-        """The scheduler asks once per tick: "em", "init" or None."""
-        req, self.request = getattr(self, "request", None), None
-        return req
+    def take_requests(self) -> list[tuple[str, str | None]]:
+        """The scheduler asks once per tick: [("em" | "init" | "start" | "stop", move or None), ...]."""
+        out, self.requests = self.requests, []
+        return out
 
     def torque_changed(self, on: bool) -> None:
-        if self.link is not None:
-            self.torque = [int(on)] * len(self.ids)
+        self.torque = [int(on)] * len(self.ids)
 
     def tick(self, state, target_angles: dict, tick_ms: float, total_current: float | None = None,
-             status: dict | None = None) -> None:
-        """Call once per tick, after the motors were commanded (the bus is free)."""
+             status: dict | None = None, requested: set[str] | None = None) -> None:
+        """Call once per tick, after the motors were commanded (the bus is free). requested: the moves and switches
+        asked this tick (for the switches' state)."""
         if self.link is None:
-            return
+            self.configure({})
+            if self.link is None:
+                return
         self.tick_count += 1
         if self.health and self.link.listening and self.tick_count % HEALTH_EVERY == 0:
             self._read_health()
         names = self.names
         status = status or {}
+        requested = requested or set()
+        moves = [MOVE_STATE.get(m.state.name, 0) for m in self.moves.values()] + \
+                [2 if s in requested else 0 for s in self.switches]
         self.link.publish(
             q=[state.motor_positions.get(n, math.nan) for n in names],
             q_target=[target_angles.get(n, math.nan) for n in names],
@@ -80,7 +98,8 @@ class Telemetry:
             current=[state.measured_currents.get(n, math.nan) for n in names] if state.measured_currents else None,
             torque=self.torque, hw_error=self.error, voltage=self.voltage, temperature=self.temperature,
             imu_quat=state.body_quat or None, gyro=state.gyro or None, acc=state.acc or None,
-            tick_ms=tick_ms, safety_est_A=total_current, powered=status.get("powered"), init=status.get("init"))
+            tick_ms=tick_ms, safety_est_A=total_current, powered=status.get("powered"), init=status.get("init"),
+            moves=moves)
         for cmd in self.link.commands():
             self._run(cmd)
 
@@ -97,12 +116,21 @@ class Telemetry:
         self.torque, self.error, self.voltage, self.temperature = torque, error, voltage, temperature
 
     def _run(self, cmd: dict) -> None:
-        if cmd["name"] in ("em", "init"):             # run by the scheduler at its next tick
-            self.request = cmd["name"]
-            self.link.ack(cmd, True, "emergency stop: moves stopped, torque off" if cmd["name"] == "em" else
+        name = cmd["name"]
+        if name in ("em", "init"):                    # run by the scheduler at its next tick
+            self.requests.append((name, None))
+            self.link.ack(cmd, True, "emergency stop: moves stopped, torque off" if name == "em" else
                           "init: moves stopped, every motor to its zero (held until a move is launched)")
             return
-        name, joint = cmd["name"], cmd["args"].get("joint")
+        if name in ("move_start", "move_stop"):
+            move = cmd["args"].get("move")
+            if move not in self.moves and move not in self.switches:
+                self.link.ack(cmd, False, f"unknown move {move}")
+                return
+            self.requests.append(("start" if name == "move_start" else "stop", move))
+            self.link.ack(cmd, True, f"{move}: {'start' if name == 'move_start' else 'stop'}")
+            return
+        joint = cmd["args"].get("joint")
         if joint not in MOTOR_TO_ID:
             self.link.ack(cmd, False, f"unknown joint {joint}")
             return

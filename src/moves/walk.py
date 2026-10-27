@@ -23,6 +23,7 @@ AGENT_NAME = "walk.onnx"
 WALK_V1_SHOULDER_OFFSET = {"left_shoulder_pitch": math.pi / 2, "right_shoulder_pitch": math.pi / 2}
 
 class WalkMove(Move):
+    description = "Walk (learned policy): the velocity from the sticks / arrows"
     """Walk using a RL policy trained in simulation."""
 
     def __init__(self, controller: ControllerProtocol | None = None) -> None:

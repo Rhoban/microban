@@ -29,6 +29,7 @@ LOGGING = False
 
 
 class SquatMove(Move):
+    description = "Squat up and down (inverse kinematics)"
     """Squat motion using placo IK."""
 
     def __init__(

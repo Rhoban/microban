@@ -39,7 +39,17 @@
   #view { grid-row: 1; grid-column: 1; position: relative; }
   #view canvas { display: block; width: 100%; height: 100%; }
   #overlay { position: absolute; left: 10px; top: 8px; color: var(--muted); font-size: 12px; pointer-events: none; }
-  #motors { grid-row: 1 / span 2; grid-column: 2; }
+  #right { grid-row: 1 / span 2; grid-column: 2; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  #motors { flex: 1; min-height: 0; }
+  #moves { flex: none; display: none; }
+  #moves.show { display: flex; }
+  #movelist { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; max-height: 150px; overflow: auto; }
+  .mv { display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border: 1.5px solid var(--line);
+        border-radius: 999px; background: var(--panel); }
+  .mv.on { border-color: var(--ok); background: var(--ok-soft); }
+  .mv.busy { border-color: var(--warn); background: var(--warn-soft); }
+  .mv b { font-weight: 600; } .mv small { color: var(--muted); }
+  .mv.switch { border-style: dashed; }
   .scroll { overflow: auto; min-height: 0; flex: 1; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th { position: sticky; top: 0; background: var(--panel); text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; padding: 5px 6px; border-bottom: 1px solid var(--line); }
@@ -62,7 +72,7 @@
   #events div.error { color: var(--bad); } #events div.warn { color: var(--warn); } #events div.ack { color: var(--ok); } #events div.nack { color: var(--bad); }
   #events small { color: var(--muted); }
   #empty { padding: 20px; color: var(--muted); }
-  @media (max-width: 1100px) { main { grid-template-columns: 1fr; grid-template-rows: 420px auto auto; } #motors { grid-row: 3; grid-column: 1; } #bottom { grid-template-columns: 1fr 1fr; grid-template-rows: 160px 160px; } }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; grid-template-rows: 420px auto auto; } #right { grid-row: 3; grid-column: 1; } #bottom { grid-template-columns: 1fr 1fr; grid-template-rows: 160px 160px; } }
 </style>
 <script type="importmap">{ "imports": { "three": "/static/vendor/three.module.js", "three/addons/": "/static/vendor/addons/" } }</script>
 </head>
@@ -77,7 +87,10 @@
 </header>
 <main>
   <div class="card" id="view"><div id="overlay">drag: rotate · right-drag: pan · wheel: zoom · click a part: select its motor</div></div>
-  <div class="card" id="motors"><h2>Motors <span id="summary" class="legend"></span></h2><div class="scroll"><table id="table"></table><div id="empty">Waiting for the robot…</div></div></div>
+  <div id="right">
+    <div class="card" id="moves"><h2>Moves <span class="legend">start / stop (as their keys); dashed: switches</span></h2><div id="movelist"></div></div>
+    <div class="card" id="motors"><h2>Motors <span id="summary" class="legend"></span></h2><div class="scroll"><table id="table"></table><div id="empty">Waiting for the robot…</div></div></div>
+  </div>
   <div id="bottom">
     <div class="card"><h2>Current <span class="legend"><span style="--c:var(--accent)">total A</span></span></h2><div class="plot"><canvas id="p_cur"></canvas></div></div>
     <div class="card"><h2 id="p_sel_title">Motor <span class="legend"><span style="--c:var(--accent)">angle</span><span style="--c:var(--muted)">target</span></span></h2><div class="plot"><canvas id="p_sel"></canvas></div></div>

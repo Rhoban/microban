@@ -32,8 +32,9 @@ by default; add `HOST=microban-ext` to operate over the secondary network (see t
 
 ## Running the robot
 
-1. Place the robot on a stable surface, or hold it securely — on start it enables
-   torque and ramps to its neutral pose.
+1. Place the robot on a stable surface, or hold it securely. The torque is off until a move is launched: the
+   robot then ramps to its neutral pose in 2 s with the torque on, and the move starts. When no move runs, the
+   torque goes off again.
 2. `make run` — the control loop starts at 50 Hz and stays attached to your terminal. Some latency is expected due to the SSH connection.
 3. Toggle moves and drive the robot (see below).
 4. `make stop` (or press `q`) to stop; `make shutdown` to power off.
@@ -58,13 +59,16 @@ Using a gamepad allows to drive the robot through two different modes: with a te
 
 ## Moves
 
-Moves are toggled independently and run on top of the neutral pose:
+Moves are toggled independently (keys, gamepad, or the dashboard's Moves list: [dashboard.md](dashboard.md)) and run
+on top of the neutral pose:
 
 - **Walk** (`v` / gamepad **A**) — a reinforcement-learning policy. Once active, the
   velocity command drives it: `vx` (forward/back), `vy` (lateral), `vtheta` (turn),
   set from the arrow keys or the gamepad sticks.
 - **Head** (`h`) — oscillates the head.
 - **Squat** (`s`) — squat motion computed with inverse kinematics.
+- **Controller** (`c` / gamepad **B**) — your own controller file (`make run CONTROLLER=...`,
+  [controller.md](controller.md)).
 
 ### Velocity command
 
@@ -81,6 +85,8 @@ keyboard, gamepad and sim. Defaults (in [constants.py](../src/constants.py)):
 | `vtheta` (while translating) | ±1.5 |
 
 ## Developing: adding your own moves
+
+The full guide, with an example: [moves.md](moves.md).
 
 Each behavior is a subclass of `Move` ([src/moves/move.py](../src/moves/move.py)) with
 a simple lifecycle driven by the scheduler:
