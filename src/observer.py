@@ -48,9 +48,10 @@ class Observer:
 
         self.observe_voltage: bool = False
         
-        # When True, reads present_current each tick and the overcurrent safety uses the measured
-        # current. When False (default), no extra bus read — the safety falls back to the cheaper
-        # position-error proxy in the scheduler, keeping the IMU read latency low.
+        # When True, the overcurrent safety uses the measured present_current. When False (default), it
+        # falls back to the position-error proxy in the scheduler. On the real robot the current comes with
+        # position and velocity in the same bus read (RobotController.sync_read_state), so this costs nothing;
+        # other controllers (simulation) read it separately, only when True.
         self.observe_current: bool = False
 
     def read_state(self, dt: float) -> RobotState:
@@ -59,14 +60,17 @@ class Observer:
 
         motor_names = list(MOTOR_TO_ID.keys())
         motor_ids = list(MOTOR_TO_ID.values())
-        angles = self.controller.sync_read_present_position(motor_ids)
+        read_all = getattr(self.controller, "sync_read_state", None)    # the real robot: one bus transaction
+        if read_all is not None:
+            angles, velocities, currents = read_all(motor_ids)
+        else:
+            angles = self.controller.sync_read_present_position(motor_ids)
+            velocities = self.controller.sync_read_present_velocity(motor_ids)
+            currents = self.controller.sync_read_present_current(motor_ids) if self.observe_current else None
         state.motor_positions = dict(zip(motor_names, angles))
-
-        velocities = self.controller.sync_read_present_velocity(motor_ids)
         state.motor_velocities = dict(zip(motor_names, velocities))
 
         if self.observe_current:
-            currents = self.controller.sync_read_present_current(motor_ids)
             state.motor_currents = dict(zip(motor_names, currents))
 
         if self.observe_voltage:

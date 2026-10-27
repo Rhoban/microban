@@ -13,6 +13,9 @@ class RobotController:
 
     def __init__(self, serial_port: str = "/dev/ttyAMA0", baudrate: int = 1_000_000, timeout: float = 0.1) -> None:
         self._controller = Xl330PyController(serial_port=serial_port, baudrate=baudrate, timeout=timeout)
+        # Fast Sync Read (protocol 2.0): every motor answers a sync read in one status packet (one header instead of
+        # one per motor): sync_read_state takes 3.7 ms for 18 motors at 1 Mbps (Radxa, 2026-10-27)
+        self._controller.set_fast_sync_read(True)
         self._id_to_sign: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_SIGN[name] for name in MOTOR_TO_ID}
         self._id_to_offset: dict[int, float] = {MOTOR_TO_ID[name]: MOTOR_OFFSET.get(name, 0.0) for name in MOTOR_TO_ID}
         self._imu_reader = ThreadedIMUReader(i2c_bus=IMU_I2C_BUS, frequency_hz=200.0)
@@ -32,6 +35,21 @@ class RobotController:
     def sync_read_present_position(self, ids: list[int]) -> list[float]:
         raw = self._controller.sync_read_present_position(ids)
         return [r * self._id_to_sign[motor_id] - self._id_to_offset[motor_id] for motor_id, r in zip(ids, raw)]
+
+    def sync_read_state(self, ids: list[int]) -> tuple[list[float], list[float], list[float]]:
+        """Present position (rad), velocity (rad/s) and current (A) in one sync read: the XL330 keeps them side by side
+        (Present Current 126, Present Velocity 128, Present Position 132), so 10 bytes per motor in a single bus
+        transaction instead of one sync read each (3.7 ms instead of 10.3 ms for 18 motors at 1 Mbps). Same values and
+        conventions as sync_read_present_position / _velocity / _current."""
+        positions, velocities, currents = [], [], []
+        for motor_id, raw in zip(ids, self._controller.sync_read_raw_data(ids, 126, 10)):
+            b = bytes(raw)
+            sign = self._id_to_sign[motor_id]
+            currents.append(int.from_bytes(b[0:2], "little", signed=True) * PRESENT_CURRENT_UNIT_A)
+            velocities.append(int.from_bytes(b[2:6], "little", signed=True) * 0.229 * np.pi / 30 * sign)
+            positions.append((int.from_bytes(b[6:10], "little", signed=True) - 2048) * 2 * np.pi / 4096 * sign
+                             - self._id_to_offset[motor_id])
+        return positions, velocities, currents
 
     def read_present_position(self, motor_id: int) -> float:
         raw = self._controller.read_present_position(motor_id)
