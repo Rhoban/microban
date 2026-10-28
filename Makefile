@@ -1,4 +1,4 @@
-.PHONY: sync setup run stop robot-service-enable robot-service-disable robot-service-start robot-service-stop robot-service-logs shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
+.PHONY: sync setup deploy run stop robot-service-enable robot-service-disable robot-service-start robot-service-stop robot-service-logs shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
 
 HOST ?= microban
 ID ?=
@@ -41,6 +41,13 @@ robot-service-start:
 	ssh $(HOST) "sudo systemctl start microban.service"
 robot-service-stop:
 	ssh $(HOST) "sudo systemctl stop microban.service"
+# Your code on the robot, in one command: sends it (as make sync) and restarts the robot's program (the service), which
+# reads the moves at start. An open dashboard page then shows the new Moves list by itself (no reload). The torque goes
+# off for the few seconds of the restart: hold the robot (or let it sit), never on the wall.
+# New Python dependencies (pyproject.toml): make setup first.
+deploy: sync
+	ssh $(HOST) "sudo systemctl restart microban.service && echo 'robot program restarted with your code'"
+
 robot-service-logs:
 	ssh -tt $(HOST) "journalctl -u microban.service -f -n 50"
 

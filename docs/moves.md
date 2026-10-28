@@ -36,6 +36,21 @@ moves={..., "wave": WaveMove()},
 
 It then appears in the dashboard's Moves list (`make dashboard HOST=...`), with Start / Stop.
 
+## Put it on the robot
+
+```bash
+make deploy HOST=microban-1a2b.local     # sends your code and restarts the robot's program
+```
+
+That is all: the robot's program (the service started at boot) reads its moves when it starts, so `make deploy`
+restarts it with your code, and a dashboard page already open shows the new Moves list by itself a few seconds later
+(nothing to reload or type). The same command after **any change to a move's code**: the running program keeps the
+code it started with until it restarts. Only the variables of the ⚙ editor change live, without a restart (see below).
+
+The torque goes off during the restart (a few seconds): hold the robot or let it sit, never on the wall. Check the
+program's messages with `make robot-service-logs`. A new Python dependency in `pyproject.toml` needs `make setup`
+first. To try a move from a terminal instead (keyboard keys, its prints), `make run` stops the service for the session.
+
 ## What a move gets and gives
 
 * `obs.robot_state`: `motor_positions`, `motor_velocities` (joint name -> rad, rad/s; every zero at the motor's zero,
