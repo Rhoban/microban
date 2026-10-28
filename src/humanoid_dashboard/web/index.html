@@ -55,10 +55,14 @@
   #controls { display: none; flex-direction: column; gap: 6px; padding: 0 10px 8px; }
   #controls.show { display: flex; }
   .slrow { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr) 56px; gap: 8px; align-items: center; font-size: 12px; }
-  .slrow.off { opacity: .5; }
   .slrow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .slrow small { color: var(--muted); }
-  .slrow input { width: 100%; accent-color: var(--accent); margin: 0; }
-  .slrow b { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+  .slrow input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+  .slval { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right;
+           color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 1px 3px;
+           cursor: text; -moz-appearance: textfield; }
+  .slval::-webkit-inner-spin-button, .slval::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .slval:hover { border-color: var(--line); }
+  .slval:focus { outline: none; border-color: var(--accent); background: var(--panel); }
   #keyzone { display: none; border: 1.5px dashed var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12px;
              color: var(--muted); cursor: pointer; outline: none; }
   #keyzone.show { display: block; }

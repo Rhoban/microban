@@ -417,44 +417,52 @@ function renderMoves() {
     box.appendChild(el);
   });
 }
-// the moves' live controls (Move.sliders, Move.keys): a slider sends its value while dragged (the frames show the
-// robot's, e.g. back to the start value at a launch); the keyboard zone, once clicked, sends the keys held
+// the moves' live controls (Move.sliders, Move.keys), shown while their move runs (starting or on): a slider starts
+// at its start value (the robot resets it at each launch) and sends its value while dragged (the frames show the
+// robot's); the keyboard zone, once clicked, sends the keys held
 let controlsKey = "";
 function renderControls() {
   const list = meta.moves || [], vals = last && last.values && last.values.moves ? last.values.moves : [];
-  const withSliders = list.filter(m => Object.keys(m.sliders || {}).length), withKeys = list.filter(m => m.keys);
+  const running = list.filter((m, i) => vals[i] === 1 || vals[i] === 2);
+  const withSliders = running.filter(m => Object.keys(m.sliders || {}).length), withKeys = running.filter(m => m.keys && !replay);
   const key = JSON.stringify(withSliders.map(m => [m.name, m.sliders])) + withKeys.map(m => m.name + m.keys).join() + !!replay;
   if (key !== controlsKey) {
     controlsKey = key;
     const box = $("sliders"); box.innerHTML = "";
-    for (const m of withSliders) for (const [n, [lo, hi]] of Object.entries(m.sliders)) {
+    for (const m of withSliders) for (const [n, [lo, hi, start]] of Object.entries(m.sliders)) {
       const row = document.createElement("div"); row.className = "slrow"; row.dataset.label = `${m.name}.${n}`;
       row.innerHTML = `<span>${n} <small>${m.name}</small></span>`;
       const inp = document.createElement("input"); inp.type = "range"; inp.min = lo; inp.max = hi; inp.step = (hi - lo) / 200;
-      inp.disabled = !!replay;
+      inp.value = start; inp.disabled = !!replay; inp.title = `${lo} to ${hi}, starts at ${start}`;
       let sent = 0;
       inp.oninput = () => {                       // at most 20 values a second while dragged, and the last one
         const now = performance.now(); clearTimeout(inp.timer);
         const go = () => { sent = performance.now(); cmdQuiet("slider", { move: m.name, slider: n, value: +inp.value }); };
         if (now - sent > 50) go(); else inp.timer = setTimeout(go, 50);
-        row.querySelector("b").textContent = fmt(+inp.value);
+        num.value = fmt(+inp.value);
       };
-      row.appendChild(inp); row.appendChild(document.createElement("b")); box.appendChild(row);
+      const num = document.createElement("input"); num.type = "number"; num.className = "slval"; num.value = fmt(start);
+      num.step = "any"; num.title = "click to type a value (Enter)";
+      num.onchange = () => {                      // a value typed by hand: within min / max
+        const v = Math.min(Math.max(+num.value, lo), hi);
+        if (!Number.isFinite(v)) return;
+        inp.value = v; num.value = fmt(v); cmdQuiet("slider", { move: m.name, slider: n, value: v });
+      };
+      num.onkeydown = e => { if (e.key === "Enter") num.blur(); };
+      row.appendChild(inp); row.appendChild(num); box.appendChild(row);
     }
     const kz = $("keyzone");
-    kz.classList.toggle("show", withKeys.length > 0 && !replay);
+    kz.classList.toggle("show", withKeys.length > 0);
     kz.innerHTML = "<b>Keyboard</b>: click here, then the keys go to the robot (click elsewhere: released) · " +
       withKeys.map(m => `<kbd>${m.name}</kbd> ${m.keys}`).join(" · ");
-    if (replay) kz.blur();
+    if (!withKeys.length) kz.blur();                         // its move stopped: the keys are released
   }
-  $("controls").classList.toggle("show", withSliders.length > 0 || (withKeys.length > 0 && !replay));
+  $("controls").classList.toggle("show", withSliders.length > 0 || withKeys.length > 0);
   const lab = names.sliders || [], sv = last && last.values && last.values.sliders ? last.values.sliders : [];
   for (const row of $("sliders").children) {
-    const i = lab.indexOf(row.dataset.label), inp = row.querySelector("input");
-    const m = list.findIndex(x => x.name === row.dataset.label.split(".")[0]);
-    row.classList.toggle("off", (vals[m] ?? 0) === 0);
-    if (i < 0 || sv[i] === null || sv[i] === undefined || document.activeElement === inp) continue;   // not under the cursor
-    inp.value = sv[i]; row.querySelector("b").textContent = fmt(sv[i]);
+    const i = lab.indexOf(row.dataset.label), [inp, num] = row.querySelectorAll("input");
+    if (i < 0 || sv[i] === null || sv[i] === undefined || row.contains(document.activeElement)) continue;   // not while edited
+    inp.value = sv[i]; num.value = fmt(sv[i]);
   }
 }
 const fmt = v => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));

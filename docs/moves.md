@@ -100,7 +100,8 @@ next start over the defaults written in the code.
 
 ## Drive it live: sliders and keys
 
-A move can also be driven while it runs, from the dashboard's Moves card: sliders, and a keyboard zone (click it, then
+A move can also be driven while it runs, from the dashboard's Moves card: sliders (shown while the move runs), and a
+keyboard zone (click it, then
 the keys you press go to the robot; click elsewhere and they are released).
 
 ```python
@@ -125,6 +126,8 @@ class LookMove(Move):                                   # src/moves/look.py, the
 * `on_key(key, down)` is called only while the move runs. If the page goes quiet (closed, network lost), the held keys
   are released after 0.6 s.
 
-Unlike the variables above, sliders and keys are not saved: they are for driving, not for settings.
+Variables (⚙) or sliders? A variable is a setting: it keeps its value from one launch to the next, can be saved on
+the robot, and is edited in the ⚙ panel, even while the move is off. A slider is for driving: it shows only while the
+move runs, has a min and a max, starts again from its start value at each launch, and is never saved.
 
 Your own controller written for the climbing simulator runs as a move with no code here: docs/controller.md.

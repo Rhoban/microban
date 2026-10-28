@@ -47,7 +47,8 @@ which sends your code to the robot and restarts its program; see [moves.md](move
 the robot (`ssh-copy-id radxa@<robot>`); it shows its progress in the Events. A move's ⚙ button edits the variables
 it exposes, live; **Save on robot** keeps them for the next start.
 
-A move can be driven live: its sliders show under the moves, and a **Keyboard** zone when a move reads keys. Click
+A move can be driven live: while it runs, its sliders show under the moves (each starts at its start value; click
+the number at its end to type a value), and a **Keyboard** zone when it reads keys. Click
 the zone (it turns orange), then the keys you hold go to the robot; click elsewhere (or Esc) and they are released.
 The moves' code: [moves.md](moves.md#drive-it-live-sliders-and-keys); try the `look` move (the head follows its
 slider, or the ← → keys), or `walk` (the arrows walk at its speed slider, a fraction of the maximum speed; the
