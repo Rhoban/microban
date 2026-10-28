@@ -50,7 +50,8 @@ it exposes, live; **Save on robot** keeps them for the next start.
 A move can be driven live: its sliders show under the moves, and a **Keyboard** zone when a move reads keys. Click
 the zone (it turns orange), then the keys you hold go to the robot; click elsewhere (or Esc) and they are released.
 The moves' code: [moves.md](moves.md#drive-it-live-sliders-and-keys); try the `look` move (the head follows its
-slider, or the ← → keys).
+slider, or the ← → keys), or `walk` (the arrows walk at its speed slider, a fraction of the maximum speed; the
+gamepad still works when no arrow is held).
 
 ![The look move running: its slider and the keyboard zone, clicked (orange): the keys go to the robot](images/dashboard/controls.png)
 

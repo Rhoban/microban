@@ -7,6 +7,7 @@ import numpy as np
 
 from constants import MOTOR_TO_ID, KP_DEFAULT, KP_RL, OBSERVATION_DOF_ORDER
 from controller import ControllerProtocol
+from input.input_source import scale_velocity
 from observer import Observation
 from moves.move import MotorCommand, Move, MoveState
 
@@ -26,11 +27,15 @@ class WalkMove(Move):
     """Walk using a RL policy trained in simulation."""
 
     description = "Walk (learned policy): the velocity from the sticks / arrows"
+    # the dashboard: the arrows held in its keyboard zone walk at the slider's speed (a fraction of the maximum)
+    sliders = {"speed": (0.0, 1.0, 0.5)}
+    keys = "↑ ↓: forward / backward, ← →: turn (at the speed slider)"
 
     def __init__(self, controller: ControllerProtocol | None = None) -> None:
         super().__init__()
         self._controller = controller
         self._last_action = [0.0] * len(OBSERVATION_DOF_ORDER)
+        self._velocity = {"vx": 0.0, "vy": 0.0, "vtheta": 0.0}     # this tick's (see velocity())
 
         # Load ONNX policy
         self._ort_session = ort.InferenceSession(f"src/agents/{AGENT_NAME}")
@@ -111,10 +116,22 @@ class WalkMove(Move):
             self._controller.sync_write_kp(ids, [KP_RL] * len(ids))
         self.state = MoveState.ACTIVE
 
+    def velocity(self, obs: Observation) -> dict[str, float]:
+        """The velocity to walk at: the dashboard's arrows while some are held, else the gamepad's / keyboard's."""
+        arrows = {"ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"} & self.pressed
+        if not arrows:
+            return obs.user_input.velocity
+        speed = self.slider["speed"]
+        forward = ("ArrowUp" in arrows) - ("ArrowDown" in arrows)
+        left = ("ArrowLeft" in arrows) - ("ArrowRight" in arrows)
+        return scale_velocity({"vx": forward * speed, "vy": 0.0, "vtheta": left * speed})
+
     def step(self, obs: Observation, command: MotorCommand) -> None:
+        self._velocity = self.velocity(obs)
+
         # Update reference phase
         if self._use_reference_phase:
-            commanded_vel = np.mean([np.abs(obs.user_input.velocity["vx"]), np.abs(obs.user_input.velocity["vy"]), np.abs(obs.user_input.velocity["vtheta"])])
+            commanded_vel = np.mean([np.abs(self._velocity["vx"]), np.abs(self._velocity["vy"]), np.abs(self._velocity["vtheta"])])
             if commanded_vel > 0.01:
                 self._phase_step += 1
             else:
@@ -163,9 +180,9 @@ class WalkMove(Move):
         input_obs.extend(self._last_action)
 
         # Command
-        input_obs.append(obs.user_input.velocity["vx"])
-        input_obs.append(obs.user_input.velocity["vy"])
-        input_obs.append(obs.user_input.velocity["vtheta"])
+        input_obs.append(self._velocity["vx"])
+        input_obs.append(self._velocity["vy"])
+        input_obs.append(self._velocity["vtheta"])
 
         # Reference phase
         if self._use_reference_phase:
