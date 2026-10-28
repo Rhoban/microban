@@ -4,7 +4,7 @@ A controller written for the climbing simulator ([climbing-sim](https://github.c
 `examples/controller.py`, `climbing_sim.run_controller`) runs unchanged on the robot:
 
 ```bash
-make run HOST=<robot> CONTROLLER=path/to/my_controller.py     # the robot; keyboard [c] / gamepad [B]: start / stop
+make run HOST=radxa@<robot> CONTROLLER=path/to/my_controller.py   # the robot; keyboard [c] / gamepad [Y]: start / stop
 make sim CONTROLLER=path/to/my_controller.py                  # microban's simulation ([c] in the viewer)
 ```
 

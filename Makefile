@@ -24,7 +24,7 @@ sync:
 setup: sync
 	ssh $(HOST) "bash -l -c 'cd microban && uv sync'"
 
-# CONTROLLER=path/to/file.py: your Controller (src/moves/controller.py), started / stopped with [c] (gamepad: B)
+# CONTROLLER=path/to/file.py: your Controller (src/moves/controller.py), started / stopped with [c] (gamepad: Y)
 CONTROLLER ?=
 sim:
 	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50 $(if $(CONTROLLER),--controller $(CONTROLLER))
@@ -69,7 +69,7 @@ shutdown:
 	ssh -tt $(HOST) "sudo shutdown -h now"
 
 # Opt-in headless mode: a service launches the control loop when START is held 2s on
-# the gamepad (no SSH needed); B stops it. See docs/usage.md.
+# the gamepad (no SSH needed); B stops it. See docs/gamepad.md.
 gamepad-headless-enable: sync
 	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh'"
 

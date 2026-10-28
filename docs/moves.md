@@ -44,7 +44,7 @@ GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}
 ## Put it on the robot
 
 ```bash
-make deploy HOST=microban-1a2b.local     # sends your code and restarts the robot's program
+make deploy HOST=radxa@microban-1a2b.local    # sends your code and restarts the robot's program
 ```
 
 Or, without typing anything: the **⟳ Deploy code** button of the dashboard (`make dashboard`) runs the same command
@@ -55,7 +55,8 @@ restarts it with your code, and a dashboard page already open shows the new Move
 (nothing to reload or type). The same command after **any change to a move's code**: the running program keeps the
 code it started with until it restarts. Only the variables of the ⚙ editor change live, without a restart (see below).
 
-The torque goes off during the restart (a few seconds): hold the robot or let it sit, never on the wall. Check the
+The torque goes off during the restart (the old program stops the motors, the new one starts with no torque until a
+move is launched): hold the robot or let it sit, never on the wall. Check the
 program's messages with `make robot-service-logs`. A new Python dependency in `pyproject.toml` needs `make setup`
 first. To try a move from a terminal instead (keyboard keys, its prints), `make run` stops the service for the session.
 

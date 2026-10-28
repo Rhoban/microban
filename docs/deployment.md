@@ -242,6 +242,8 @@ installs the dependencies there.
    make setup
    ```
    This rsyncs your local copy to the robot and runs `uv sync` there (dependencies from `pyproject.toml`, Python 3.12).
+   It needs the robot online (it downloads the packages, and the robot model `microban-model` from GitHub through
+   Git LFS: `git-lfs` installed on the robot). The SD card image ([sd_image.md](sd_image.md)) has all of it already.
 
 ## Step 6: Run the Robot
 
@@ -252,8 +254,9 @@ the control loop from your computer:
 make run
 ```
 
-On start the robot enables torque and ramps to its neutral pose, then runs the control
-loop at 50 Hz attached to your terminal. Press `q` or run `make stop` to stop.
+The control loop runs at 50 Hz attached to your terminal. The torque stays off until a move is launched (a key, the
+gamepad, or the dashboard): the robot then ramps to its neutral pose in 2 s and the move starts. Press `q` or run
+`make stop` to stop.
 
 🎉 For the full set of controls — Makefile commands, keyboard and gamepad driving,
 the available moves, and how to add your own — see the **[Usage Guide](usage.md)**.

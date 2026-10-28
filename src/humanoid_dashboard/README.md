@@ -5,7 +5,10 @@ tick, what it already read (motors, IMU, timing) in one UDP packet, and runs the
 motor, torque on/off). Everything else runs on the PC it is connected to: the robot model's forward kinematics
 (MuJoCo), the 3D view (three.js, in the browser), the plots, the recordings.
 
-![parts](docs/architecture.svg)
+```
+robot: its control loop + link.py  ──UDP 7350──►  PC: app.py (MuJoCo kinematics)  ──WebSocket──►  browser (three.js)
+                                   ◄── commands ──                                 ◄── clicks ──
+```
 
 ## On the robot: `humanoid_dashboard.link` (standard library only)
 
@@ -46,7 +49,9 @@ Other fields are recorded. Joint labels are matched to the model's joints by nam
 
 `reboot {joint}` (shown on a motor in error) and `torque {joint, on}`, each with a confirmation click, and two
 whole-robot buttons in the header: `em` (emergency: torque off on every motor, no confirmation) and `init` (every motor
-to its zero, confirmed). The robot answers each with `ack` (shown in Events) and decides what is safe; it lists the
+to its zero, confirmed). With the robot's moves listed in `meta.moves`: `move_start {move}` and `move_stop {move}` (a
+start is confirmed), `move_option {move, option, value}` (the ⚙ editor) and `save_options`. The **⟳ Deploy code**
+button runs a command on the PC (`--deploy`), not on the robot. The robot answers each with `ack` (shown in Events) and decides what is safe; it lists the
 ones it accepts in `meta.commands`, and the page shows only those.
 
 ## On the PC
@@ -71,7 +76,10 @@ its output in the events (Microban: `make deploy HOST=radxa@{host}`). **Replay**
 back. The live robot keeps running meanwhile (its commands are hidden in the replay, except em in the header).
 
 Options: `--port` (link port, 7350), `--http` (page port, 8780), `--visual-groups` (geom groups to draw; default: the
-geoms that do not collide), `--recordings`, `--title`, `--no-browser`.
+geoms that do not collide), `--motor-mesh` (name part of the servo meshes, lit on a motor error; `xl330`),
+`--deploy CMD`, `--recordings`, `--title`, `--no-browser`. Only the page served here may use the server (its Host and
+Origin are checked): no other web page can drive the robot through it. A recording in progress is saved when the robot
+changes, or restarts with other fields (a new one goes on).
 
 Without a robot:
 

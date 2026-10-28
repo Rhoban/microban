@@ -35,7 +35,7 @@ tools/robot_wifi.sh --list                # the robot's saved networks and addre
 ```
 
 The robot keeps the network and joins it at every boot; then `ssh radxa@microban-XXXX.local` from a PC on that wifi.
-To remove one: `ssh radxa@microban-XXXX.local sudo nmcli con delete <name>`. Your SSH key avoids typing the password:
+To remove one: `ssh -t radxa@microban-XXXX.local sudo nmcli con delete <name>`. Your SSH key avoids typing the password:
 `ssh-copy-id radxa@microban-XXXX.local`.
 
 ## Make the image (from a set-up robot)

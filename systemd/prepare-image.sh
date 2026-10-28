@@ -29,7 +29,7 @@ systemctl daemon-reload
 systemctl enable microban-firstboot.service
 touch /etc/microban-firstboot
 
-# Ethernet: DHCP, else link-local (direct cable to a PC); mDNS announces the robot and its SSH
+# Ethernet: DHCP and link-local side by side (a direct cable to a PC); mDNS announces the robot and its SSH
 "$REPO/systemd/setup-ethernet.sh"
 
 # saved wifi networks

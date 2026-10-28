@@ -33,12 +33,12 @@ Here is a quick overview of what is in the robot:
 | :--- | :---: | :--- |
 | **3D Printed Parts** | ~30 | Check the CAD files. Recommended material is PLA. |
 | **Servo Motors** | 19 | Dynamixel XL330-M288-T servomotor. |
-| **Microcontroller**| 1 | Raspberry Pi Zero 2W. |
-| **Board Hat** | 1 | Pollen RPI Robot Hat for Raspberry Pi Zero 2W. |
+| **Microcontroller**| 1 | Raspberry Pi Zero 2W (v1), or Radxa ROCK 3C (v2, [SD card image](docs/sd_image.md)). |
+| **Board Hat** | 1 | Pollen RPI Robot Hat for Raspberry Pi Zero 2W (v1). |
 | **Power Supply** | 2 | 18650 3.7V Lithium-ion Batteries. |
 | **Battery Holder** | 1 | 2x18650 Battery Holder. |
 | **USB-C Charger** | 1 | Standard USB-C charger. |
-| **BMS** | 1 | Battery Management System for 2x18650 batteries. |
+| **BMS** | 1 | Battery Management System for 2x18650 batteries. (A bench supply at 8.4 V can replace the batteries.) |
 | **Plastic Screws**| ~200 | Standard plastic screws for assembly. |
 | **Steel & POM Shims** | 12 | Alternative to needle bearings for motors without idler horns. | 
 
@@ -74,6 +74,10 @@ To build your own Microban, you will need to follow these steps:
 4. **Deploy the software:** Once the robot is assembled, you can deploy the software on the Raspberry Pi Zero 2W by following the instructions in the [Deployment Guide](docs/deployment.md). For the Radxa version, flash the ready-made SD card image instead: see [SD card image](docs/sd_image.md) (flashing, first boot, Ethernet and wifi). 
 
 5. **Drive it:** See the [Usage Guide](docs/usage.md) to run the robot, control it with the keyboard or a gamepad, and learn how to add your own moves.
+
+6. **Go further:** the [live dashboard](docs/dashboard.md) (motors, IMU, 3D, recordings, deploy), [writing your own
+   moves](docs/moves.md), [your own controller](docs/controller.md) (the same file as in the climbing simulator), the
+   [motor setup tools](docs/motor_setup.md) and the [robot model](docs/model.md).
 
 ---
 

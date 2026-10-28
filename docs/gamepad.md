@@ -33,6 +33,7 @@ When the controller is connected, the `make run` command uses it as input automa
 - **Left stick**: `vx` (up/down), `vy` (left/right)
 - **Right stick** (left/right): `vtheta`
 - **A**: toggle the `walk` move
+- **Y**: toggle your own controller (`make run CONTROLLER=...`, [controller.md](controller.md))
 - **B**: stop the scheduler (writes the stop flag)
 - **View/Back** button: toggle the IMU/gyro display
 
@@ -41,7 +42,7 @@ something doesn't respond as expected, see [Remapping](#remapping-for-your-contr
 
 Every input source emits a **normalized** command in `[-1, 1]` per axis. The physical
 limits are applied centrally by `scale_velocity()` in the scheduler, so they are
-identical for keyboard, gamepad and sim: `vx` ±0.7, `vy` ±0.3, `vtheta` ±3.0 when
+identical for keyboard, gamepad and sim: `vx` +0.7 forward and -0.5 backward, `vy` ±0.3, `vtheta` ±3.0 when
 turning in place (`vx = vy = 0`) and ±1.5 while translating. Tune these via
 `VX_MAX` / `VY_MAX` / `VTHETA_MAX_STATIONARY` / `VTHETA_MAX_MOVING` in
 [constants.py](../src/constants.py).
@@ -69,7 +70,8 @@ Once enabled, it launches a daemon on the Pi that waits for a controller to conn
 The headless mode persists across reboots, which means that you don't need to connect to the Pi over SSH to enable it again. It is particularly useful for demonstration purposes, as it allows to drive the robot without any computer connected to it.
 
 If the **controller disconnects** during a session, the robot's velocity is zeroed so
-it stops moving (torque stays on, holding its pose). Reconnect and press **B** or power off the robot end the session.
+it stops moving: the moves it had started go on (torque on, holding its pose), and the gamepad finds them again when it
+reconnects. Reconnect and press **B**, or power off the robot, to end the session.
 
 Whenever the daemon is left with no controller connected — because it disconnected,
 because the control loop crashed, or because the robot just booted — Wi-Fi is
