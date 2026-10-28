@@ -12,7 +12,6 @@ LOGGING = False
 
 
 class RotateHeadMove(Move):
-    description = "Turn the head left and right"
     """
     Generate a sinusoidal head rotation between +/- *amplitude_rad* with a frequency *frequency*.
 
@@ -23,6 +22,8 @@ class RotateHeadMove(Move):
     :param amplitude_rad: Half amplitude of the head rotation in radians.
     :param lerp_duration: Duration of the transition to/from the head rotation in seconds.
     """
+
+    description = "Turn the head left and right"
 
     def __init__(
         self,
@@ -44,6 +45,9 @@ class RotateHeadMove(Move):
         self._obs_head_velocity: list[float] = []
         self._target_head_angle: list[float] = []
         self._target_head_velocity: list[float] = []
+
+    def reset(self) -> None:
+        self._lerp_start_time_s = None
 
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
         if self._lerp_start_time_s is None:

@@ -174,6 +174,7 @@ class Hub:
         self.events = []
         self.robot_host, self.robot_addr = None, None
         self.deploy_cmd, self.deploy_dir, self.deploying = None, None, False
+        self.rec_dir = pathlib.Path("recordings")
 
     async def connect(self, host, port):
         """Talk to another robot (host name or IP): the page starts over with its schema."""
@@ -184,7 +185,8 @@ class Hub:
         self.robot_host, self.robot_addr = host, info[0][4]
         self.schema, self.names, self.unpack, self.schema_id = None, {}, None, None
         self.values, self.robot_t, self.seq, self.rx_time, self.new, self.rates = {}, 0.0, 0, 0.0, False, []
-        self.recording, self.events = None, []
+        self.end_recording("another robot")
+        self.events = []
         self.broadcast(self.robot_msg())
         self.link.send({"op": "hello"})
         return None
@@ -233,6 +235,8 @@ class Hub:
             # schema received sets it again, so a restarted robot is followed even with the same fields
             self.schema_id = zlib.crc32(raw)
             if msg != self.schema:
+                if self.recording is not None and self.schema is not None:
+                    self.end_recording("the robot restarted with other fields", restart=True)
                 self.schema = msg
                 self.names = {name: labels for name, labels in msg["fields"]}
                 n = sum(len(labels) for _, labels in msg["fields"])
@@ -281,6 +285,18 @@ class Hub:
 
     def start_recording(self):
         self.recording = {"t": [], "frames": [], "schema": self.schema, "start": time.strftime("%Y%m%d_%H%M%S")}
+
+    def end_recording(self, why, restart=False):
+        """A recording in progress is saved before the robot or its fields change (one schema per file); restart: a
+        new recording goes on after it."""
+        if self.recording is None:
+            return
+        out = self.stop_recording(self.rec_dir)
+        self.broadcast({"type": "recording", "on": False, "file": str(out) if out else None})
+        self.event(f"recording saved ({why})" + (": a new one goes on" if restart else ""))
+        if restart:
+            self.start_recording()
+            self.broadcast({"type": "recording", "on": True})
 
     def stop_recording(self, folder):
         rec, self.recording = self.recording, None
@@ -334,8 +350,26 @@ async def no_cache(request, handler):
     return response
 
 
-def make_app(hub, model, title, rec_dir, port=PORT):
-    app = web.Application(middlewares=[no_cache])
+def same_page_only(http_port):
+    """Only this dashboard's own page may use it. The server listens on 127.0.0.1 only, but a browser lets any web
+    page open a WebSocket to localhost, and a site whose name points to 127.0.0.1 (DNS rebinding) could load ours:
+    the Host header must be this server, and a browser's Origin must be this page. A local program without Origin
+    (a test script) is accepted: it can reach the robot anyway."""
+    hosts = {f"127.0.0.1:{http_port}", f"localhost:{http_port}"}
+    origins = {f"http://{h}" for h in hosts}
+
+    @web.middleware
+    async def check(request, handler):
+        origin = request.headers.get("Origin")
+        if request.host not in hosts or (origin is not None and origin not in origins):
+            print(f"refused a request from {origin or request.host} (only this dashboard's page may use it)")
+            raise web.HTTPForbidden(text="only the dashboard's own page may use this server")
+        return await handler(request)
+    return check
+
+
+def make_app(hub, model, title, rec_dir, port=PORT, http_port=8780):
+    app = web.Application(middlewares=[same_page_only(http_port), no_cache])
     scene = model.scene()
 
     async def index(request):
@@ -386,8 +420,11 @@ def make_app(hub, model, title, rec_dir, port=PORT):
                                                   "pc_time": time.time()}))
             elif req.get("type") in ("save_robot", "forget_robot"):     # the page's saved robots (name -> host)
                 robots, name = saved_robots(), str(req.get("name", "")).strip()[:40]
-                if req["type"] == "save_robot" and name and str(req.get("host", "")).strip():
-                    robots[name] = str(req["host"]).strip()
+                host = str(req.get("host", "")).strip()
+                if req["type"] == "save_robot":
+                    if not (name and host):
+                        continue
+                    robots[name] = host
                 else:
                     robots.pop(name, None)
                 save_robots(robots)
@@ -475,7 +512,8 @@ def main():
             err = await hub.connect(a.robot, a.port)
             if err:
                 print(f"robot {err}: choose it in the page")
-        app = make_app(hub, model, a.title or pathlib.Path(a.model).stem, pathlib.Path(a.recordings), a.port)
+        hub.rec_dir = pathlib.Path(a.recordings)
+        app = make_app(hub, model, a.title or pathlib.Path(a.model).stem, hub.rec_dir, a.port, a.http)
         runner = web.AppRunner(app)
         await runner.setup()
         await web.TCPSite(runner, "127.0.0.1", a.http).start()

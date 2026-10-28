@@ -37,6 +37,7 @@ class PlacoViewerController:
         self._dt = dt
 
     def sync_write_goal_position(self, ids: list[int], positions: list[float]) -> None:
+        self._last_angles = dict(self._current_angles)      # the velocity is the change since the last command
         for motor_id, pos in zip(ids, positions):
             self._current_angles[ID_TO_MOTOR[motor_id]] = pos
             self._robot.set_joint(ID_TO_MOTOR[motor_id], pos)
@@ -54,11 +55,11 @@ class PlacoViewerController:
         return self._current_angles.get(name, 0.0)
 
     def sync_read_present_velocity(self, ids: list[int]) -> list[float]:
-        return [(self._last_angles.get(ID_TO_MOTOR.get(mid, ""), 0.0) - self._current_angles.get(ID_TO_MOTOR.get(mid, ""), 0.0)) / self._dt for mid in ids]
+        return [self.read_present_velocity(mid) for mid in ids]
     
     def read_present_velocity(self, motor_id: int) -> float:
         name = ID_TO_MOTOR.get(motor_id, "")
-        return (self._last_angles.get(name, 0.0) - self._current_angles.get(name, 0.0)) / self._dt
+        return (self._current_angles.get(name, 0.0) - self._last_angles.get(name, 0.0)) / self._dt
 
     def sync_read_present_current(self, ids: list[int]) -> list[float]:
         return [0.0] * len(ids)
@@ -79,10 +80,10 @@ class PlacoViewerController:
         pass
 
     def read_acc(self) -> tuple[float, float, float]:
-        """Return pseudo-accelerometer (ax, ay, az) in g from IMU site gravity direction via FK."""
+        """Return pseudo-accelerometer (ax, ay, az) in g via FK: what an accelerometer at rest reads, the world's up
+        (0, 0, +1) g in the IMU frame (as the real IMU and the MuJoCo simulation)."""
         R = self._robot.get_T_world_frame("imu")[:3, :3]
-        # gravity in world frame is (0, 0, -1) g; express in IMU frame
-        g_imu = R.T @ [0.0, 0.0, -1.0]
+        g_imu = R.T @ [0.0, 0.0, 1.0]
         return float(g_imu[0]), float(g_imu[1]), float(g_imu[2])
 
     def read_gyro(self) -> tuple[float, float, float]:

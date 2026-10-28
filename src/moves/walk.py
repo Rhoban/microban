@@ -23,8 +23,9 @@ AGENT_NAME = "walk.onnx"
 WALK_V1_SHOULDER_OFFSET = {"left_shoulder_pitch": math.pi / 2, "right_shoulder_pitch": math.pi / 2}
 
 class WalkMove(Move):
-    description = "Walk (learned policy): the velocity from the sticks / arrows"
     """Walk using a RL policy trained in simulation."""
+
+    description = "Walk (learned policy): the velocity from the sticks / arrows"
 
     def __init__(self, controller: ControllerProtocol | None = None) -> None:
         super().__init__()
@@ -99,7 +100,12 @@ class WalkMove(Move):
             "right_elbow": [],
         }
         
+    def reset(self) -> None:
+        self._last_action = [0.0] * len(OBSERVATION_DOF_ORDER)
+        self._phase_step = 0
+
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
+        self.reset()                                    # a new walk: not the last action of the previous one
         if self._controller is not None:
             ids = list(MOTOR_TO_ID.values())
             self._controller.sync_write_kp(ids, [KP_RL] * len(ids))
@@ -114,8 +120,10 @@ class WalkMove(Move):
             else:
                 self._phase_step = 0
 
-        # Safety check: if the robot is fallen, stop the policy
-        if obs.robot_state.projected_gravity[2] > self._projected_gravity_z_threshold:
+        # Safety check: fallen (or no IMU reading this tick): no policy step, the joints hold where they are
+        gravity = obs.robot_state.projected_gravity
+        if not gravity or gravity[2] > self._projected_gravity_z_threshold:
+            command.target_angles.update(obs.robot_state.motor_positions)
             return
         
         # Run policy

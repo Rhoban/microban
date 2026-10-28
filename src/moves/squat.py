@@ -29,8 +29,9 @@ LOGGING = False
 
 
 class SquatMove(Move):
-    description = "Squat up and down (inverse kinematics)"
     """Squat motion using placo IK."""
+
+    description = "Squat up and down (inverse kinematics)"
 
     def __init__(
         self,
@@ -110,6 +111,10 @@ class SquatMove(Move):
 
         self._start_target_angles = [self._robot.get_joint(name) for name in _LOWER_JOINTS + _UPPER_JOINTS]
         self._placo_ready = True
+
+    def reset(self) -> None:
+        self._start_lerp_time_s = None
+        self._stop_lerp_time_s = None
 
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
         self._initialize()

@@ -44,6 +44,10 @@ class Move(ABC):
     def on_option(self, name: str, value) -> None:
         """Called when the dashboard changed self.options[name] (already set), between two ticks."""
 
+    def reset(self) -> None:
+        """Called when em or init stops the move at once (on_stop is not called then): forget any transition in
+        progress, so that the next launch starts cleanly. Override when on_start / on_stop keep state."""
+
     def preload(self) -> None:
         """Called before the control loop starts. Override to load heavy resources."""
 

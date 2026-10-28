@@ -124,6 +124,11 @@ class GamepadInputSource(InputSource):
                 pass
             self._fd = None
 
+    def set_active_moves(self, moves: set[str]) -> None:
+        """The moves toggled on (e.g. kept from before a reconnection)."""
+        with self._lock:
+            self._state.active_moves = set(moves)
+
     def read(self) -> UserInput:
         with self._lock:
             return UserInput(

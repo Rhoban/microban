@@ -46,7 +46,6 @@ class Link:
         self._set_schema()
         self.pack = struct.Struct(f"<{self.size}f").pack
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(("0.0.0.0", port))
         self.sock.setblocking(False)
         self.clients = {}          # address -> last hello (monotonic s)

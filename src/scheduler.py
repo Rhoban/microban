@@ -118,6 +118,7 @@ class Scheduler:
                         print(f"Serial communication error: {e}", end="\r\n", flush=True)
                         break
                     print(f"Warning: serial read error (attempt {self._serial_errors}/3): {e}", end="\r\n", flush=True)
+                    time.sleep(self.dt)                      # retry at the next tick, not at once
                     continue
                 self._serial_errors = 0
 
@@ -164,7 +165,8 @@ class Scheduler:
 
                 # A power-up or init ramp replaces the moves' targets; no move running: torque off
                 self._apply_pose(command)
-                if (self.powered and self._pose is None and (self._locked or not self._prev_requested)
+                asked = self._prev_requested & set(self.registered_moves)
+                if (self.powered and self._pose is None and (self._locked or not asked)
                         and all(m.state == MoveState.INACTIVE for m in self.registered_moves.values())):
                     self._set_torque(False)
 
@@ -175,7 +177,6 @@ class Scheduler:
                 # Live dashboard: what was just read and sent, and its commands (the bus is free here)
                 if self.telemetry is not None:
                     self.telemetry.tick(robot_state, command.target_angles, (time.perf_counter() - start_time) * 1000,
-                                        self._last_total_current,
                                         status={"powered": int(self.powered),
                                                 "init": int(self._pose is not None and self._pose["hold"])},
                                         requested=self._prev_requested)
@@ -280,13 +281,24 @@ class Scheduler:
         except ValueError as e:
             print(f"Warning: {OPTIONS_FILE} unreadable ({e}): the moves' defaults", end="\r\n", flush=True)
             return
+        if not isinstance(saved, dict):
+            print(f"Warning: {OPTIONS_FILE} is not a {{move: {{option: value}}}} object: the moves' defaults",
+                  end="\r\n", flush=True)
+            return
         for name, values in saved.items():
             move = self.registered_moves.get(name)
-            for opt, value in (values or {}).items():
-                if move is not None and opt in move.options:
-                    old = move.options[opt]
-                    move.options[opt] = bool(value) if isinstance(old, bool) else type(old)(value)
-                    move.on_option(opt, move.options[opt])
+            if move is None or not isinstance(values, dict):
+                continue
+            for opt, value in values.items():
+                if opt not in move.options:
+                    continue
+                old = move.options[opt]
+                try:
+                    new = bool(value) if isinstance(old, bool) else type(old)(value)
+                    move.on_option(opt, new)
+                    move.options[opt] = new
+                except (TypeError, ValueError) as e:      # a value edited by hand: that option keeps its default
+                    print(f"Warning: {OPTIONS_FILE}: {name}.{opt} = {value!r} skipped ({e})", end="\r\n", flush=True)
         print(f"Move options from {OPTIONS_FILE}", end="\r\n", flush=True)
 
     def _save_options(self) -> str:
@@ -295,7 +307,10 @@ class Scheduler:
         return f"move options saved to {OPTIONS_FILE.resolve()}"
 
     def _stop_moves(self) -> None:
+        """em / init: every move stops at once (no on_stop): each forgets its own transition (Move.reset)."""
         for move in self.registered_moves.values():
+            if move.state != MoveState.INACTIVE:
+                move.reset()
             move.state = MoveState.INACTIVE
         write_kp = getattr(self.controller, "sync_write_kp", None)
         if callable(write_kp):                         # a move may have changed the gain (the walk: KP_RL)
@@ -388,6 +403,11 @@ class Scheduler:
         When True, the run loop breaks and _cleanup() disables torque on every motor,
         leaving the robot compliant so the BMS does not trip on the current spike.
         """
+        if not self.powered:                      # torque off: no current, and the targets mean nothing
+            self._overcurrent_ticks = 0
+            self._cmd_history.clear()
+            self._last_total_current = None
+            return False
         total_current = self._estimate_total_current(robot_state, target_angles)
         self._last_total_current = total_current
         if OVERCURRENT_CUTOFF_A is None:          # no BMS to protect: no safety cut (the estimate is still shown)

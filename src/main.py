@@ -2,6 +2,7 @@
 # Copyright 2026 Marc Duclusaud
 
 import os
+import signal
 import sys
 from pathlib import Path
 
@@ -33,7 +34,11 @@ def _another_session_running() -> bool:
 
 # Which moves can be toggled from the gamepad / keyboard.
 MOVE_KEYS = {"h": "head", "s": "squat", "v": "walk", "c": "controller"}
-GAMEPAD_BUTTON_MOVES = {"A": "walk", "B": "controller"}
+GAMEPAD_BUTTON_MOVES = {"A": "walk", "Y": "controller"}   # B is the gamepad's stop button (input/gamepad_input.py)
+
+
+def _stop_like_ctrl_c(signum, frame) -> None:
+    raise KeyboardInterrupt
 
 
 def _controller_move(controller) -> dict:
@@ -77,6 +82,9 @@ def main() -> None:
         return
 
     PID_FILE.write_text(f"{os.getpid()}\n", encoding="ascii")
+    # systemctl stop / restart (make deploy, the dashboard's Deploy, make robot-service-stop) sends SIGTERM: handled as
+    # Ctrl+C, so the scheduler's cleanup runs (torque off on every motor, the IMU thread stopped, the PID file removed)
+    signal.signal(signal.SIGTERM, _stop_like_ctrl_c)
 
     controller = RobotController()
     motor_ids = list(MOTOR_TO_ID.values())

@@ -34,6 +34,7 @@ mac=""
 for i in /sys/class/net/wl*/address /sys/class/net/en*/address; do
     [ -e "$i" ] && mac=$(tr -d ':' < "$i") && break
 done
+[ -n "$mac" ] || mac=$(cat /etc/machine-id)            # no network interface found: the new machine-id
 name="microban-${mac: -4}"
 hostnamectl set-hostname "$name"
 cat > /etc/hosts <<EOF

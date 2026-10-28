@@ -3,6 +3,8 @@
 HOST ?= microban
 ID ?=
 
+# Sends this folder to the robot's ~/microban; the PC's own files stay here: the dashboard's recordings, the options
+# saved from a simulation (move_options.json), the CONTROLLER copy (make run puts it there itself)
 sync:
 	rsync -avz \
 		--exclude='.git' \
@@ -14,6 +16,9 @@ sync:
 		--exclude='src/debug' \
 		--exclude='src/sim' \
 		--exclude='src/humanoid_dashboard/web' \
+		--exclude='recordings' \
+		--exclude='move_options.json' \
+		--exclude='user_controller.py' \
 		./ $(HOST):microban
 
 setup: sync

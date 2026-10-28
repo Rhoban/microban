@@ -240,7 +240,8 @@ def cmd_auto(args):
             print(f"  ID {mid} at {baud} bps is model {model}, not an XL330-M288 ({XL330_M288}): skipped, unplug it")
             wait_unplugged(bus, mid, baud)
             continue
-        target = left[0]
+        # a motor with a table ID not set up yet keeps it (renumbering it could make two motors share an ID)
+        target = name if name and name not in done else left[0]
         print(f"  found ID {mid} at {baud} bps: setting it up as {target} ...", flush=True)
         try:
             configure(bus, baud, mid, MOTORS[target], args.baud, args.factory_reset)

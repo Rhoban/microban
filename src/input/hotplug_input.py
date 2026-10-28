@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Input for the robot service (no terminal): a gamepad when one is connected, at any time; nothing otherwise (the
-dashboard starts and stops the moves then)."""
+dashboard starts and stops the moves then). A gamepad that drops (Bluetooth) does not stop its moves: they keep
+running at zero velocity, so the robot holds its pose, and the gamepad finds them again when it reconnects."""
 import os
 import time
 
@@ -16,6 +17,7 @@ class HotplugGamepadInputSource(InputSource):
         self._pad: GamepadInputSource | None = None
         self._path: str | None = None
         self._last_look = 0.0
+        self._held: set[str] = set()          # the moves the gamepad had started, kept while it is disconnected
 
     def start(self) -> None:
         self._look()
@@ -35,6 +37,7 @@ class HotplugGamepadInputSource(InputSource):
             pad.start()
         except OSError:
             return
+        pad.set_active_moves(self._held)      # a reconnection: the moves it had started go on
         self._pad, self._path = pad, path
         print(f"Gamepad connected ({path})", end="\r\n", flush=True)
 
@@ -45,6 +48,8 @@ class HotplugGamepadInputSource(InputSource):
         if self._pad is None:
             if time.monotonic() - self._last_look > LOOK_EVERY_S:
                 self._look()
-            if self._pad is None:
-                return UserInput()
-        return self._pad.read()
+            if self._pad is None:                       # no gamepad: its moves go on, standing still
+                return UserInput(active_moves=set(self._held))
+        state = self._pad.read()
+        self._held = set(state.active_moves)
+        return state

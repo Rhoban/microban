@@ -70,6 +70,9 @@ echo "Image: $IMG ($((SIZE / 1000000)) MB once written)"
 
 if [ -b "$DEV" ]; then
     [ "$DEV" = "$(system_disk)" ] && { echo "$DEV is the disk this PC runs on: refusing"; exit 1; }
+    if [ "$OS" != Darwin ] && lsblk -n -o MOUNTPOINT "$DEV" 2>/dev/null | grep -qE '^(/|/boot.*|/home|/usr|/var|\[SWAP\])$'; then
+        echo "$DEV holds a system folder of this PC (mounted): refusing"; exit 1
+    fi
     CARD=$(dev_size "$DEV")
     [ "$CARD" -ge "$SIZE" ] || { echo "$DEV holds $((CARD / 1000000)) MB, the image needs $((SIZE / 1000000)) MB: take a 16 GB card"; exit 1; }
     echo "Card: $DEV, $((CARD / 1000000)) MB"

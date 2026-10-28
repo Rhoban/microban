@@ -105,8 +105,8 @@ class Telemetry:
     def torque_changed(self, on: bool) -> None:
         self.torque = [int(on)] * len(self.ids)
 
-    def tick(self, state, target_angles: dict, tick_ms: float, total_current: float | None = None,
-             status: dict | None = None, requested: set[str] | None = None) -> None:
+    def tick(self, state, target_angles: dict, tick_ms: float, status: dict | None = None,
+             requested: set[str] | None = None) -> None:
         """Call once per tick, after the motors were commanded (the bus is free). requested: the moves and switches
         asked this tick (for the switches' state)."""
         if self.link is None:
@@ -185,6 +185,7 @@ class Telemetry:
             return
         mid, i = MOTOR_TO_ID[joint], self.names.index(joint)
         try:
+            # a reboot waits for the motor (0.1 to 1.5 s): the control loop pauses meanwhile (one motor is in error)
             if name == "reboot":
                 took = self.controller.reboot(mid)
                 self.torque[i], self.error[i] = 0, math.nan
