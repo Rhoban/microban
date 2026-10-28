@@ -25,11 +25,12 @@ nothing more while no dashboard watches.
 **On the PC, when you want to watch:**
 
 ```bash
-make dashboard HOST=microban-1a2b.local           # opens http://127.0.0.1:8780
-make dashboard HOST=microban-1a2b.local CLIMB=1   # with the climbing forearms and feet
+make dashboard                                    # opens http://127.0.0.1:8780 on the robot picker
+make dashboard HOST=microban-1a2b.local           # straight to that robot
 ```
 
-`HOST` is the robot's bare host name or IP (no `user@`). Close the page any time: the robot does not depend on it.
+`HOST` is the robot's bare host name or IP (no `user@`); without it, the page opens on its robot picker. `CLIMB=1`
+shows the climbing version first (see below). Close the page any time: the robot does not depend on it.
 
 | Commands of the robot service | |
 | :--- | :--- |
@@ -69,8 +70,10 @@ target. A hot motor (within 10 °C of its 70 °C limit) is shown in orange.
 
 ![The robot picker: saved robots, or a new address](images/dashboard/robot_picker.png)
 
-The button next to the link rate opens the robot picker: click a saved robot, or type a new address (host name or IP);
-give it a name to save it for next time (kept on this PC in `~/.config/humanoid_dashboard/robots.json`).
+The button next to the link rate opens the robot picker: click a saved robot, or type a new address (host name or IP)
+and choose its version: **Classic** (walking hands and feet) or **Climber** (the climbing forearms and feet), the
+model shown in 3D. Give it a name to save it, with its version, for next time (kept on this PC in
+`~/.config/humanoid_dashboard/robots.json`; save it again under the same name to change its version).
 
 ## Record and replay
 

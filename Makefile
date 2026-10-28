@@ -78,11 +78,15 @@ gamepad-headless-disable:
 
 # Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while its program runs (service or
 # `make run`). HOST: the robot to open with; another one can be chosen, and saved under a name, in the page.
-# MODEL: the robot model shown (default: microban_model's robot.xml; CLIMB=1: robot_climb.xml)
+# The page asks for each robot its version, Classic or Climber (the 3D model; saved with the robot). CLIMB=1: Climber
+# first.
 CLIMB ?=
-MODEL ?= $(shell uv run --group dashboard python -c "import microban_model; print(microban_model.mjcf($(if $(CLIMB),True,False)))")
+MODELS ?= $(shell uv run --group dashboard python -c "import microban_model as m; print(f'--model Classic={m.mjcf()} --model Climber={m.mjcf(True)}')")
 # the page's Deploy button runs make deploy for the robot shown, as this user (the SD image's: radxa)
 ROBOT_USER ?= radxa
+# only a HOST given (command line or environment), not the default one: else the page opens on its robot picker
+DASH_ROBOT = $(if $(filter command line environment,$(origin HOST)),--robot $(HOST))
 dashboard:
-	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --robot $(HOST) --model $(MODEL) --title Microban \
+	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app $(DASH_ROBOT) $(MODELS) \
+		$(if $(CLIMB),--model-name Climber) --title Microban \
 		--deploy 'make deploy HOST=$(ROBOT_USER)@{host}'

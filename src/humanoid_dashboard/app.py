@@ -4,8 +4,10 @@ with the motors, the IMU, plots, the robot's events and its commands (reboot a m
 by frame, back and forth: the page asks for one frame at a time, its 3D pose computed here).
 
     python -m humanoid_dashboard.app --model path/to/robot.xml [--robot HOST] [--http 8780]
+    python -m humanoid_dashboard.app --model Classic=robot.xml --model Climber=robot_climb.xml [--robot HOST]
 
-The robot (host name or IP) can also be chosen, or changed, in the page.
+The robot (host name or IP) can also be chosen, or changed, in the page; without --robot the page opens on its robot
+picker. With several models (NAME=PATH), the page picks one per robot too, saved with the robot's name.
 
 The model is a MuJoCo XML or a URDF; joint fields of the telemetry are matched to the model's joints by name.
 """
@@ -29,7 +31,7 @@ from .link import HEADER, MAGIC, PORT
 
 WEB = pathlib.Path(__file__).parent / "web"
 PUSH_HZ = 50                       # to the page, as the robot's telemetry (the latest frame only: nothing piles up)
-ROBOTS_FILE = pathlib.Path.home() / ".config" / "humanoid_dashboard" / "robots.json"    # saved robots: name -> host
+ROBOTS_FILE = pathlib.Path.home() / ".config" / "humanoid_dashboard" / "robots.json"    # name -> {host, model}
 
 
 # ---------------------------------------------------------------------------------------------------- robot model
@@ -60,6 +62,11 @@ class Model:
             self.height = float(-self.d.xpos[self.bodies][:, 2].min())
 
     def scene(self):
+        if getattr(self, "_scene", None) is None:
+            self._scene = self._make_scene()
+        return self._scene
+
+    def _make_scene(self):
         m = self.m
         geoms = []
         for g in self.geoms:
@@ -146,10 +153,16 @@ class RobotLink(asyncio.DatagramProtocol):
 
 
 def saved_robots() -> dict:
+    """name -> {"host", "model"} (a file of an older dashboard: name -> host, model None)."""
     try:
-        return json.loads(ROBOTS_FILE.read_text())
+        robots = json.loads(ROBOTS_FILE.read_text())
     except (OSError, ValueError):
         return {}
+    if not isinstance(robots, dict):
+        return {}
+    return {str(k): ({"host": v, "model": None} if isinstance(v, str) else
+                     {"host": str(v.get("host", "")), "model": v.get("model")})
+            for k, v in robots.items() if isinstance(v, (str, dict))}
 
 
 def save_robots(robots: dict) -> None:
@@ -157,11 +170,25 @@ def save_robots(robots: dict) -> None:
     ROBOTS_FILE.write_text(json.dumps(robots, indent=1, sort_keys=True))
 
 
+class Models:
+    """The robot's models by name (e.g. Classic, Climber), loaded when first shown."""
+
+    def __init__(self, paths: dict, visual_groups=None, motor_mesh="xl330"):
+        self.paths, self.loaded = paths, {}
+        self.visual_groups, self.motor_mesh = visual_groups, motor_mesh
+
+    def get(self, name) -> Model:
+        if name not in self.loaded:
+            self.loaded[name] = Model(self.paths[name], self.visual_groups, motor_mesh=self.motor_mesh)
+        return self.loaded[name]
+
+
 class Hub:
     """Latest robot state, browsers, recording."""
 
-    def __init__(self, model):
-        self.model = model
+    def __init__(self, models: Models, model_name: str):
+        self.models, self.model_name = models, model_name
+        self.model = models.get(model_name)
         self.schema = None
         self.names, self.unpack, self.schema_id = {}, None, None
         self.values, self.robot_t, self.seq, self.rx_time = {}, 0.0, 0, 0.0
@@ -176,12 +203,15 @@ class Hub:
         self.deploy_cmd, self.deploy_dir, self.deploying = None, None, False
         self.rec_dir = pathlib.Path("recordings")
 
-    async def connect(self, host, port):
-        """Talk to another robot (host name or IP): the page starts over with its schema."""
+    async def connect(self, host, port, model=None):
+        """Talk to another robot (host name or IP), shown with that model (a name of --model; None: the current one):
+        the page starts over with its schema (and reloads for another model)."""
         try:
             info = await asyncio.get_running_loop().getaddrinfo(host, port, family=socket.AF_INET, type=socket.SOCK_DGRAM)
         except OSError as e:
             return f"{host}: {e}"
+        if model in self.models.paths and model != self.model_name:
+            self.model_name, self.model = model, await asyncio.to_thread(self.models.get, model)
         self.robot_host, self.robot_addr = host, info[0][4]
         self.schema, self.names, self.unpack, self.schema_id = None, {}, None, None
         self.values, self.robot_t, self.seq, self.rx_time, self.new, self.rates = {}, 0.0, 0, 0.0, False, []
@@ -193,7 +223,8 @@ class Hub:
 
     def robot_msg(self):
         return {"type": "robot", "host": self.robot_host, "addr": self.robot_addr[0] if self.robot_addr else None,
-                "saved": saved_robots(), "deploy": bool(self.deploy_cmd), "deploying": self.deploying}
+                "saved": saved_robots(), "deploy": bool(self.deploy_cmd), "deploying": self.deploying,
+                "model": self.model_name, "models": list(self.models.paths)}
 
     def event(self, text, level="info"):
         msg = {"type": "event", "level": level, "text": text, "pc_time": time.time()}
@@ -368,18 +399,17 @@ def same_page_only(http_port):
     return check
 
 
-def make_app(hub, model, title, rec_dir, port=PORT, http_port=8780):
+def make_app(hub, title, rec_dir, port=PORT, http_port=8780):
     app = web.Application(middlewares=[same_page_only(http_port), no_cache])
-    scene = model.scene()
 
     async def index(request):
         return web.FileResponse(WEB / "index.html")
 
-    async def api_scene(request):
-        return web.json_response({**scene, "title": title})
+    async def api_scene(request):                     # the model shown now (the page reloads when it changes)
+        return web.json_response({**hub.model.scene(), "title": title, "model": hub.model_name})
 
     async def api_mesh(request):
-        return web.Response(body=model.mesh(int(request.match_info["i"])), content_type="application/octet-stream")
+        return web.Response(body=hub.model.mesh(int(request.match_info["i"])), content_type="application/octet-stream")
 
     loaded = {}                                       # file name -> Recording (the last few replayed)
 
@@ -414,17 +444,18 @@ def make_app(hub, model, title, rec_dir, port=PORT, http_port=8780):
                 continue
             req = json.loads(msg.data)
             if req.get("type") == "connect":
-                err = await hub.connect(str(req.get("host", "")).strip(), port)
+                err = await hub.connect(str(req.get("host", "")).strip(), port, req.get("model"))
                 if err:
                     await ws.send_str(json.dumps({"type": "event", "level": "error", "text": f"connect {err}",
                                                   "pc_time": time.time()}))
-            elif req.get("type") in ("save_robot", "forget_robot"):     # the page's saved robots (name -> host)
+            elif req.get("type") in ("save_robot", "forget_robot"):     # the page's saved robots: name -> host, model
                 robots, name = saved_robots(), str(req.get("name", "")).strip()[:40]
                 host = str(req.get("host", "")).strip()
                 if req["type"] == "save_robot":
                     if not (name and host):
                         continue
-                    robots[name] = host
+                    robots[name] = {"host": host, "model": req.get("model") if req.get("model") in hub.models.paths
+                                    else hub.model_name}
                 else:
                     robots.pop(name, None)
                 save_robots(robots)
@@ -449,7 +480,7 @@ def make_app(hub, model, title, rec_dir, port=PORT, http_port=8780):
                 values = rec.values(i)
                 await ws.send_str(json.dumps({"type": "replay_frame", "file": req["file"], "i": i,
                                               "robot_t": float(rec.t[i]), "values": values,
-                                              "poses": model.poses({k: rec.arrays[k][i].tolist() for k in values},
+                                              "poses": hub.model.poses({k: rec.arrays[k][i].tolist() for k in values},
                                                                    rec.names)}))
         hub.browsers.discard(ws)
         return ws
@@ -464,7 +495,7 @@ def make_app(hub, model, title, rec_dir, port=PORT, http_port=8780):
     return app
 
 
-async def pusher(hub, model):
+async def pusher(hub):
     """Frames to the browsers at PUSH_HZ at most, with the 3D poses (only the latest frame: nothing piles up)."""
     while True:
         await asyncio.sleep(1 / PUSH_HZ)
@@ -473,7 +504,7 @@ async def pusher(hub, model):
                    "rate": len(hub.rates), "recording": hub.recording is not None}
             if hub.new:
                 msg["values"] = {k: [None if math.isnan(x) else round(x, 5) for x in v] for k, v in hub.values.items()}
-                msg["poses"] = model.poses(hub.values, hub.names)
+                msg["poses"] = hub.model.poses(hub.values, hub.names)
                 hub.new = False
             hub.broadcast(msg)
 
@@ -488,7 +519,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--robot", default=None, help="robot host or IP (its link port: --port); else chosen in the page")
     ap.add_argument("--port", type=int, default=PORT)
-    ap.add_argument("--model", required=True, help="MuJoCo XML or URDF of the robot")
+    ap.add_argument("--model", required=True, action="append", metavar="[NAME=]PATH",
+                    help="MuJoCo XML or URDF of the robot; repeat with names (Classic=robot.xml Climber=robot_climb.xml) "
+                         "for a robot with several versions: chosen per robot in the page")
+    ap.add_argument("--model-name", default=None, help="the model shown first (default: the first --model)")
     ap.add_argument("--title", default=None)
     ap.add_argument("--motor-mesh", default="xl330", help="name part of the servo meshes (lit on a motor error)")
     ap.add_argument("--visual-groups", type=int, nargs="*", default=None,
@@ -501,20 +535,22 @@ def main():
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args()
 
-    model = Model(a.model, a.visual_groups, motor_mesh=a.motor_mesh)
-    hub = Hub(model)
+    paths = dict(m.split("=", 1) if "=" in m else (pathlib.Path(m).stem, m) for m in a.model)
+    first = a.model_name if a.model_name in paths else next(iter(paths))
+    hub = Hub(Models(paths, a.visual_groups, a.motor_mesh), first)
     hub.deploy_cmd, hub.deploy_dir = a.deploy, os.getcwd()
 
     async def run():
         loop = asyncio.get_running_loop()
         _, hub.link = await loop.create_datagram_endpoint(lambda: RobotLink(hub), local_addr=("0.0.0.0", 0))
         if a.robot:
-            err = await hub.connect(a.robot, a.port)
+            saved = next((r for r in saved_robots().values() if r["host"] == a.robot), None)   # its saved model
+            err = await hub.connect(a.robot, a.port, None if a.model_name else (saved or {}).get("model"))
             if err:
                 print(f"robot {a.robot} not found ({err.split(': ', 1)[-1]}): check its name (microban-XXXX.local, "
                       f"XXXX: the end of its wifi MAC address) or choose it in the page")
         hub.rec_dir = pathlib.Path(a.recordings)
-        app = make_app(hub, model, a.title or pathlib.Path(a.model).stem, hub.rec_dir, a.port, a.http)
+        app = make_app(hub, a.title or pathlib.Path(paths[first]).stem, hub.rec_dir, a.port, a.http)
         runner = web.AppRunner(app)
         await runner.setup()
         try:
@@ -526,7 +562,7 @@ def main():
         print(f"{url}  (robot {a.robot or 'chosen in the page'}, port {a.port}; Ctrl+C to stop)")
         if not a.no_browser:
             webbrowser.open(url)
-        await asyncio.gather(hello(hub), pusher(hub, model))
+        await asyncio.gather(hello(hub), pusher(hub))
 
     try:
         asyncio.run(run())

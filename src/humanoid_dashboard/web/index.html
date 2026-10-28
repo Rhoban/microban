@@ -111,6 +111,8 @@
   #robotbox.show { display: flex; }
   @media (max-width: 600px) { #robotbox { position: fixed; left: 16px; right: 16px; top: 56px; width: auto; } }
   #robotbox label { font-weight: 600; } #robotbox small { color: var(--muted); }
+  #rmodelrow { display: flex; flex-direction: column; gap: 4px; }
+  #rmodel { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); }
   #robotbox .row { display: flex; gap: 6px; }
   #robotbox h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
   #savedsec { display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; margin-bottom: 2px; border-bottom: 1px solid var(--line); }
@@ -155,6 +157,8 @@
       <h3>New robot</h3>
       <label for="host">Address (host name or IP)</label>
       <input id="host" placeholder="192.168.0.232" autocomplete="off" spellcheck="false">
+      <div id="rmodelrow"><label for="rmodel">Version of the robot</label>
+        <select id="rmodel" title="the model shown in 3D (e.g. Classic: walking feet and hands, Climber: climbing ones)"></select></div>
       <label for="rname">Name <small>(to save it for next time; empty: connect only)</small></label>
       <input id="rname" placeholder="Microban Radxa" autocomplete="off" maxlength="40">
       <button type="submit" id="hostgo">Connect</button>

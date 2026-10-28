@@ -10,8 +10,10 @@ let liveSchema = null, replay = null;  // replay: {file, data (its plots' series
 const hist = [];                      // [{t, cur, sel: [q, target], roll, pitch}]
 
 // ------------------------------------------------------------------------------------------------ 3D view
+let builtModel = null;               // the model the 3D view shows (the page reloads when the robot's is another)
 async function build3d() {
   const sc = await (await fetch("/api/scene")).json();
+  builtModel = sc.model;
   if (!schema) { $("title").textContent = sc.title; document.title = sc.title + " · dashboard"; }
   const el = $("view");
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -281,16 +283,19 @@ function connect() {
   ws.onclose = () => { $("link").className = "pill"; $("link").textContent = "dashboard server stopped"; setTimeout(connect, 1500); };
 }
 // the robot watched: chosen here (the server talks to it); named robots are saved on this PC (the server's file)
-let robot = { host: null, saved: {} };
+let robot = { host: null, saved: {}, model: null, models: [] };
 function onRobot(m) {
+  if (builtModel && m.model && m.model !== builtModel) { location.reload(); return; }   // another model: a new 3D view
   const d = $("deploy");                                  // Deploy button: only when the dashboard got --deploy
   d.hidden = !m.deploy || !m.host; d.disabled = !!m.deploying;
   if (m.deploying) { d.textContent = "⟳ Deploying…"; d.classList.remove("confirm"); }
   else if (!d.classList.contains("confirm")) d.textContent = "⟳ Deploy code";
   const changed = m.host !== robot.host || !m.host;
-  robot = { host: m.host, addr: m.addr, saved: m.saved || {} };
-  const name = Object.keys(robot.saved).find(k => robot.saved[k] === m.host);
-  $("robotbtn").textContent = !m.host ? "choose a robot ▾" : (name ? `${name} · ${m.host} ▾` : `${m.host} ▾`);
+  robot = { host: m.host, addr: m.addr, saved: m.saved || {}, model: m.model, models: m.models || [] };
+  const name = Object.keys(robot.saved).find(k => robot.saved[k].host === m.host);
+  const mode = robot.models.length > 1 ? ` · ${m.model}` : "";
+  $("robotbtn").textContent = !m.host ? "choose a robot ▾" : (name ? `${name} · ${m.host}${mode} ▾` : `${m.host}${mode} ▾`);
+  renderModels();
   renderSaved();
   if (!changed) return;
   if (replay) closeReplay();
@@ -301,20 +306,27 @@ function onRobot(m) {
   $("scalars").innerHTML = "";
   if (!m.host) $("robotbox").classList.add("show");
 }
-function connectTo(host, name) {
-  send({ type: "connect", host });
-  if (name) send({ type: "save_robot", name, host });
+function connectTo(host, name, model) {
+  if (name) send({ type: "save_robot", name, host, model });
+  send({ type: "connect", host, model });
   $("robotbox").classList.remove("show");
-  log({ level: "info", text: `→ connect to ${name ? name + " (" + host + ")" : host}` });
+  log({ level: "info", text: `→ connect to ${name ? name + " (" + host + ")" : host}${model ? " as " + model : ""}` });
+}
+function renderModels() {          // the versions of the robot (e.g. Classic / Climber): chosen for a new robot
+  const sel = $("rmodel"), list = robot.models;
+  $("rmodelrow").style.display = list.length > 1 ? "" : "none";
+  if (sel.options.length !== list.length) sel.innerHTML = list.map(n => `<option>${n}</option>`).join("");
 }
 function renderSaved() {
   const box = $("saved"); box.innerHTML = "";
   $("savedsec").style.display = Object.keys(robot.saved).length ? "" : "none";
-  for (const [name, host] of Object.entries(robot.saved).sort()) {
+  for (const [name, { host, model }] of Object.entries(robot.saved).sort()) {
     const row = document.createElement("div"); row.className = "saved";
-    const go = document.createElement("button"); go.type = "button"; go.className = host === robot.host ? "cur" : "";
-    go.innerHTML = "<b></b><small></small>"; go.querySelector("b").textContent = name; go.querySelector("small").textContent = host;
-    go.onclick = () => connectTo(host);
+    const go = document.createElement("button"); go.type = "button";
+    go.className = host === robot.host && (!model || model === robot.model) ? "cur" : "";
+    go.innerHTML = "<b></b><small></small>"; go.querySelector("b").textContent = name;
+    go.querySelector("small").textContent = host + (model && robot.models.length > 1 ? " · " + model : "");
+    go.onclick = () => connectTo(host, null, model || undefined);
     const del = document.createElement("button"); del.type = "button"; del.className = "small"; del.textContent = "✕";
     del.title = `forget ${name}`; del.onclick = () => send({ type: "forget_robot", name });
     row.append(go, del); box.appendChild(row);
@@ -323,14 +335,17 @@ function renderSaved() {
 $("robotbtn").onclick = ev => {
   ev.stopPropagation();
   const box = $("robotbox"); box.classList.toggle("show");
-  if (box.classList.contains("show")) { $("host").value = ""; $("rname").value = ""; $("hostgo").textContent = "Connect"; }
+  if (box.classList.contains("show")) {
+    $("host").value = ""; $("rname").value = ""; $("hostgo").textContent = "Connect"; $("rmodel").value = robot.model;
+  }
 };
 $("robotbox").onclick = ev => ev.stopPropagation();
 $("rname").oninput = () => { $("hostgo").textContent = $("rname").value.trim() ? "Save and connect" : "Connect"; };
 document.addEventListener("click", () => $("robotbox").classList.remove("show"));
 $("robotbox").onsubmit = ev => {
   ev.preventDefault();
-  const h = $("host").value.trim(); if (h) connectTo(h, $("rname").value.trim());
+  const h = $("host").value.trim();
+  if (h) connectTo(h, $("rname").value.trim(), robot.models.length > 1 ? $("rmodel").value : undefined);
 };
 let shownWarnings = "";
 function applySchema(s) {          // the live robot's, or a recording's while it is replayed

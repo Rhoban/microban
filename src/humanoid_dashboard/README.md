@@ -61,6 +61,7 @@ ones it accepts in `meta.commands`, and the page shows only those.
 
 ```bash
 PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --robot ROBOT_HOST --model path/to/robot.xml
+PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --model Classic=robot.xml --model Climber=climb.xml
 # Microban: make dashboard HOST=ROBOT_HOST                     # opens http://127.0.0.1:8780
 ```
 
