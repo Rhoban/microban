@@ -5,7 +5,7 @@ from typing import Protocol
 
 
 class ControllerProtocol(Protocol):
-    """Structural interface shared by RobotController, FakeController, and MuJoCoController."""
+    """Structural interface shared by RobotController, FakeController, and the simulation's SimController."""
 
     def sync_write_torque_enable(self, ids: list[int], values: list[bool]) -> None: ...
 

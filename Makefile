@@ -27,16 +27,21 @@ setup: sync
 
 # CONTROLLER=path/to/file.py: your Controller (src/moves/controller.py), started / stopped with [c] (gamepad: Y)
 CONTROLLER ?=
-# WALL=N1|N2|N3|wall.json: on the climbing wall of the hackathon's simulator, cloned next to this folder (SIMULATOR;
+# The robot's program on Rhoban's robot simulator (microban_sim): VARIANT=climber for the climbing robot on the
+# floor; WALL=N1|N2|N3|wall.json on the hackathon's climbing wall, its simulator cloned next to this folder (SIMULATOR,
 # used from there: a change made in it applies at once); START=floor: standing in front of the wall
+VARIANT ?= classic
 WALL ?=
 START ?= hang
 SIMULATOR ?= ../simulator
+# until microban_sim is published (it then becomes a dependency of the sim group): its clone next to this folder
+MICROBAN_SIM ?= ../microban_sim
 sim:
 	@$(if $(WALL),test -f $(SIMULATOR)/pyproject.toml || { echo "The climbing simulator is not in $(SIMULATOR): \
 	git clone https://github.com/rock-climbing-robots/simulator $(SIMULATOR)  (or SIMULATOR=its/folder)"; exit 1; })
-	PYTHONPATH=src uv run --group sim $(if $(WALL),--with-editable $(SIMULATOR)) src/sim/sim_main.py --hz 50 \
-		$(if $(CONTROLLER),--controller $(CONTROLLER)) $(if $(WALL),--wall $(WALL) --start $(START))
+	PYTHONPATH=src uv run --group sim --with-editable $(MICROBAN_SIM) $(if $(WALL),--with-editable $(SIMULATOR)) \
+		src/sim/sim_main.py --hz 50 --variant $(VARIANT) $(if $(CONTROLLER),--controller $(CONTROLLER)) \
+		$(if $(WALL),--wall $(WALL) --start $(START))
 
 viewer:
 	PYTHONPATH=src uv run src/sim/viewer_main.py --hz 25

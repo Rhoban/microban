@@ -52,7 +52,7 @@ class RobotController:
         return positions, velocities, currents
 
     def read_present_position(self, motor_id: int) -> float:
-        raw = self._controller.read_present_position(motor_id)
+        raw = self._controller.read_present_position(motor_id)[0]        # rustypot answers a list
         return raw * self._id_to_sign[motor_id]
 
     def sync_read_present_velocity(self, ids: list[int]) -> list[float]:
@@ -60,7 +60,7 @@ class RobotController:
         return [r * self._id_to_sign[motor_id] for motor_id, r in zip(ids, raw)]
     
     def read_present_velocity(self, motor_id: int) -> float:
-        raw = self._controller.read_present_velocity(motor_id) * 0.229 * np.pi / 30
+        raw = self._controller.read_present_velocity(motor_id)[0] * 0.229 * np.pi / 30   # rustypot: a list
         return raw * self._id_to_sign[motor_id]
 
     def sync_read_present_current(self, ids: list[int]) -> list[float]:
