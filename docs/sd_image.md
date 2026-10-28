@@ -15,8 +15,8 @@ ready), and the robot service (the control loop starts at boot, torque off until
 
 ## Reach it with an Ethernet cable
 
-The image has no wifi network. Plug a cable straight between the robot and your PC: the robot takes a link-local
-address (169.254.x.x) when no DHCP answers (after 10 s) and announces itself on the cable (mDNS: `microban-XXXX.local`).
+The image has no wifi network. Plug a cable straight between the robot and your PC: the robot always has a link-local
+address (169.254.x.x) on it, besides DHCP, and announces itself on the cable (mDNS: `microban-XXXX.local`).
 macOS and Windows do the same on their side by themselves. On a Linux PC with NetworkManager, give your Ethernet port a
 link-local address once: `tools/robot_wifi.sh --direct <port>` (`ip -br link` lists the ports, e.g. `enp3s0`).
 

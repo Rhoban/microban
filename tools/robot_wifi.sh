@@ -8,7 +8,7 @@
 #   tools/robot_wifi.sh --direct enp3s0         # Linux: first give this Ethernet port a link-local address
 #   tools/robot_wifi.sh --list                  # the robot's saved networks and its addresses
 #
-# The robot's Ethernet takes a link-local address (169.254.x.x) when no DHCP answers. macOS and Windows do the same;
+# The robot's Ethernet always has a link-local address (169.254.x.x), besides DHCP. macOS and Windows do the same;
 # a Linux PC with NetworkManager needs --direct <its Ethernet port> once (a "microban-direct" connection).
 # SSH asks the robot's password (user radxa) unless your key is installed (ssh-copy-id radxa@<robot>).
 set -euo pipefail

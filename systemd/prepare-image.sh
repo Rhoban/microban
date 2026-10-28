@@ -5,7 +5,7 @@
 #   sudo bash systemd/prepare-image.sh [--keep-wifi] [--keep-ssh-keys] [--no-poweroff]
 # - installs microban-firstboot (each copy grows its partition and gets its own machine-id, SSH host keys and
 #   hostname microban-XXXX at its first boot);
-# - Ethernet: DHCP when there is a server, otherwise a link-local address after 10 s, so that a PC plugged directly
+# - Ethernet: a link-local address besides DHCP, so that a PC plugged directly
 #   with a cable reaches the robot (tools/robot_wifi.sh), and the robot announces itself (mDNS: microban-XXXX.local);
 # - removes the saved wifi networks and the authorized SSH keys (unless --keep-...), the logs, histories and caches.
 # Run on the robot as root from the repo root.

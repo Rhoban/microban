@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# The robot's Ethernet port: DHCP when the cable goes to a network, otherwise (cable straight to a PC) a link-local
-# address (169.254.x.x) after 10 s; mDNS (avahi) announces the robot as <hostname>.local with its SSH service, so a
+# The robot's Ethernet port: a link-local address (169.254.x.x, for a cable straight to a PC) and DHCP (a cable to a
+# network); mDNS (avahi) announces the robot as <hostname>.local with its SSH service, so a
 # PC on the same cable finds it (tools/robot_wifi.sh). Run on the robot as root (systemd/prepare-image.sh does it).
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run it with sudo"; exit 1; }
@@ -13,9 +13,11 @@ if [ -z "$con" ]; then
     con="Wired connection 1"
     nmcli con add type ethernet ifname "$dev" con-name "$con" >/dev/null
 fi
-nmcli con modify "$con" ipv4.method auto ipv4.link-local fallback ipv4.dhcp-timeout 10 \
+# DHCP and a link-local address side by side (NetworkManager 1.42 has no "fallback"); DHCP may fail: the cable then
+# keeps its link-local address, and DHCP goes on trying (a network plugged later gives its address too)
+nmcli con modify "$con" ipv4.method auto ipv4.link-local enabled ipv4.may-fail yes ipv4.dhcp-timeout infinity \
     ipv6.method link-local connection.autoconnect yes connection.autoconnect-retries 0
-echo "Ethernet ($dev, \"$con\"): DHCP, else link-local after 10 s"
+echo "Ethernet ($dev, \"$con\"): link-local address (169.254.x.x) and DHCP"
 
 mkdir -p /etc/avahi/services
 cat > /etc/avahi/services/ssh.service <<'EOF'
