@@ -1,0 +1,15 @@
+[Unit]
+Description=Microban first boot: grow the root partition, new machine-id, SSH host keys and hostname
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target NetworkManager.service ssh.service avahi-daemon.service microban.service
+Wants=network-pre.target
+ConditionPathExists=/etc/microban-firstboot
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/microban-firstboot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
