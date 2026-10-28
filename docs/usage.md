@@ -30,9 +30,9 @@ takes the bare name instead (`HOST=microban-XXXX.local`): the page adds the user
 | `make imu` | Stream the robot's IMU/gyro readings to your terminal. |
 | `make voltage` | Read the voltage of all motors. |
 | `make voltage ID=<id>` | Read the voltage of motor `<id>`. |
-| `make sim` | Run the MuJoCo simulation locally (no robot needed). `CONTROLLER=path.py` as `make run`. |
+| `make sim` | Run the MuJoCo simulation locally (no robot needed). `WALL=N2`: on the hackathon's climbing wall; `CONTROLLER=path.py` as `make run` ([simulation.md](simulation.md)). |
 | `make viewer` | Open the PlaCo / MeshCat kinematic viewer locally (no physics, no robot needed). |
-| `make dashboard` | The live dashboard on this PC ([dashboard.md](dashboard.md)); `CLIMB=1` for the climbing forearms and feet. |
+| `make dashboard` | The live dashboard on this PC ([dashboard.md](dashboard.md)); `HOST=` the robot (else chosen in the page). |
 | `make robot-service-enable` / `-disable` | Install (or remove) the robot service: the control loop starts at every boot. |
 | `make robot-service-start` / `-stop` / `-logs` | Start, stop the robot service, or follow its output. |
 

@@ -27,8 +27,16 @@ setup: sync
 
 # CONTROLLER=path/to/file.py: your Controller (src/moves/controller.py), started / stopped with [c] (gamepad: Y)
 CONTROLLER ?=
+# WALL=N1|N2|N3|wall.json: on the climbing wall of the hackathon's simulator, cloned next to this folder (SIMULATOR;
+# used from there: a change made in it applies at once); START=floor: standing in front of the wall
+WALL ?=
+START ?= hang
+SIMULATOR ?= ../simulator
 sim:
-	PYTHONPATH=src uv run --group sim src/sim/sim_main.py --hz 50 $(if $(CONTROLLER),--controller $(CONTROLLER))
+	@$(if $(WALL),test -f $(SIMULATOR)/pyproject.toml || { echo "The climbing simulator is not in $(SIMULATOR): \
+	git clone https://github.com/rock-climbing-robots/simulator $(SIMULATOR)  (or SIMULATOR=its/folder)"; exit 1; })
+	PYTHONPATH=src uv run --group sim $(if $(WALL),--with-editable $(SIMULATOR)) src/sim/sim_main.py --hz 50 \
+		$(if $(CONTROLLER),--controller $(CONTROLLER)) $(if $(WALL),--wall $(WALL) --start $(START))
 
 viewer:
 	PYTHONPATH=src uv run src/sim/viewer_main.py --hz 25

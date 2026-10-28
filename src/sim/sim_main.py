@@ -33,20 +33,31 @@ def main() -> None:
     parser.add_argument("--trunk-com-offset", type=float, nargs=3, default=[0.0, 0.0, 0.0], metavar=("X", "Y", "Z"), help="CoM offset on trunk body in meters (body frame)")
     parser.add_argument("--climb", action="store_true", help="the climbing forearms and feet (microban_model)")
     parser.add_argument("--controller", default=None, help="a Controller file (moves/controller.py), started with [c]")
+    parser.add_argument("--wall", default=None, metavar="WALL", help="on the climbing wall of the hackathon's simulator "
+                        "(../simulator): N1, N2, N3 or a wall JSON file; the climbing robot")
+    parser.add_argument("--start", default="hang", choices=["hang", "floor"],
+                        help="--wall: hanging on the start holds, or standing in front of the wall")
     args = parser.parse_args()
 
     input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "v": "walk", "c": "controller"})
-    controller = MuJoCoController(
-        climb=args.climb,
-        key_callback=input_source.key_callback,
-        reset_source=input_source,
-        delay_act_steps=args.delay_act,
-        delay_pos_ticks=args.delay_pos,
-        delay_vel_ticks=args.delay_vel,
-        delay_gyro_ticks=args.delay_gyro,
-        delay_quat_ticks=args.delay_quat,
-        trunk_com_offset=tuple(args.trunk_com_offset),
-    )
+    if args.wall:
+        from sim.wall_controller import WallController
+        controller = WallController(args.wall, args.start, key_callback=input_source.key_callback,
+                                    reset_source=input_source, delay_pos_ticks=args.delay_pos,
+                                    delay_vel_ticks=args.delay_vel, delay_gyro_ticks=args.delay_gyro,
+                                    delay_quat_ticks=args.delay_quat)
+    else:
+        controller = MuJoCoController(
+            climb=args.climb,
+            key_callback=input_source.key_callback,
+            reset_source=input_source,
+            delay_act_steps=args.delay_act,
+            delay_pos_ticks=args.delay_pos,
+            delay_vel_ticks=args.delay_vel,
+            delay_gyro_ticks=args.delay_gyro,
+            delay_quat_ticks=args.delay_quat,
+            trunk_com_offset=tuple(args.trunk_com_offset),
+        )
     input_source.set_viewer_opt(controller.viewer_opt)
 
     scheduler = Scheduler(
@@ -60,7 +71,7 @@ def main() -> None:
             "walk": WalkMove(controller=controller),
         }),
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)
-        variant=CLIMBER if args.climb else CLASSIC, # the moves made for this version (Move.variants)
+        variant=CLIMBER if args.climb or args.wall else CLASSIC,   # the moves made for this version (Move.variants)
     )
     scheduler.run()
 

@@ -1,11 +1,11 @@
 # Your own controller
 
-A controller written for the climbing simulator ([climbing-sim](https://github.com/cgaspard3333/climbing-sim):
+A controller written for the hackathon's simulator ([rock-climbing-robots/simulator](https://github.com/rock-climbing-robots/simulator):
 `examples/controller.py`, `climbing_sim.run_controller`) runs unchanged on the robot:
 
 ```bash
 make run HOST=radxa@<robot> CONTROLLER=path/to/my_controller.py   # the robot; keyboard [c] / gamepad [Y]: start / stop
-make sim CONTROLLER=path/to/my_controller.py                  # microban's simulation ([c] in the viewer)
+make sim WALL=N2 CONTROLLER=path/to/my_controller.py          # the robot's program on the simulated wall ([c])
 ```
 
 The file defines `class Controller` with `step(obs) -> targets` (the 19 joint targets, rad, in the order of
