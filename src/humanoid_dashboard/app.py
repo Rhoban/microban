@@ -511,12 +511,17 @@ def main():
         if a.robot:
             err = await hub.connect(a.robot, a.port)
             if err:
-                print(f"robot {err}: choose it in the page")
+                print(f"robot {a.robot} not found ({err.split(': ', 1)[-1]}): check its name (microban-XXXX.local, "
+                      f"XXXX: the end of its wifi MAC address) or choose it in the page")
         hub.rec_dir = pathlib.Path(a.recordings)
         app = make_app(hub, model, a.title or pathlib.Path(a.model).stem, hub.rec_dir, a.port, a.http)
         runner = web.AppRunner(app)
         await runner.setup()
-        await web.TCPSite(runner, "127.0.0.1", a.http).start()
+        try:
+            await web.TCPSite(runner, "127.0.0.1", a.http).start()
+        except OSError:
+            raise SystemExit(f"Port {a.http} is taken: a dashboard is probably running already (open "
+                             f"http://127.0.0.1:{a.http}, or stop it), or choose another port with --http")
         url = f"http://127.0.0.1:{a.http}"
         print(f"{url}  (robot {a.robot or 'chosen in the page'}, port {a.port}; Ctrl+C to stop)")
         if not a.no_browser:
