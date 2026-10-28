@@ -293,40 +293,62 @@ function onRobot(m) {
   const changed = m.host !== robot.host || !m.host;
   robot = { host: m.host, addr: m.addr, saved: m.saved || {}, model: m.model, models: m.models || [] };
   const name = Object.keys(robot.saved).find(k => robot.saved[k].host === m.host);
-  const mode = robot.models.length > 1 ? ` · ${m.model}` : "";
-  $("robotbtn").textContent = !m.host ? "choose a robot ▾" : (name ? `${name} · ${m.host}${mode} ▾` : `${m.host}${mode} ▾`);
-  renderModels();
+  $("robotbtn").textContent = !m.host ? "choose a robot ▾" : (name ? `${name} · ${m.host} ▾` : `${m.host} ▾`);
   renderSaved();
   if (!changed) return;
   if (replay) closeReplay();
   $("link").className = "pill"; $("link").textContent = m.host ? "waiting for the robot" : "no robot";
   liveSchema = schema = null; names = {}; meta = {}; last = null; hist.length = 0;
   tableKey = ""; $("table").innerHTML = ""; $("empty").style.display = "";
-  robotCmdsKey = movesKey = ""; $("robotcmds").innerHTML = ""; renderMoves();
+  robotCmdsKey = movesKey = ""; $("robotcmds").innerHTML = ""; renderMoves(); renderVariant();
   $("scalars").innerHTML = "";
   if (!m.host) $("robotbox").classList.add("show");
 }
-function connectTo(host, name, model) {
-  if (name) send({ type: "save_robot", name, host, model });
-  send({ type: "connect", host, model });
+function connectTo(host, name) {
+  if (name) send({ type: "save_robot", name, host });
+  send({ type: "connect", host });
   $("robotbox").classList.remove("show");
-  log({ level: "info", text: `→ connect to ${name ? name + " (" + host + ")" : host}${model ? " as " + model : ""}` });
+  log({ level: "info", text: `→ connect to ${name ? name + " (" + host + ")" : host}` });
 }
-function renderModels() {          // the versions of the robot (e.g. Classic / Climber): chosen for a new robot
-  const sel = $("rmodel"), list = robot.models;
-  $("rmodelrow").style.display = list.length > 1 ? "" : "none";
-  if (sel.options.length !== list.length) sel.innerHTML = list.map(n => `<option>${n}</option>`).join("");
+// the robot's version (meta.variant, e.g. classic / climber: the moves made for it, the 3D model), shown in the
+// header; another one chosen there is sent to the robot, which keeps it (its moves for the other version stop)
+function renderVariant() {
+  const list = meta.variants || [], box = $("variantbox"), sel = $("variant");
+  box.hidden = !list.length || !meta.variant;
+  if (box.hidden) return;
+  if ([...sel.options].map(o => o.value).join() !== list.join())
+    sel.innerHTML = list.map(v => `<option value="${v}">${v[0].toUpperCase() + v.slice(1)}</option>`).join("");
+  if (document.activeElement !== sel && !askedVariant) sel.value = meta.variant;
+  sel.disabled = !!replay || !(meta.commands || []).includes("variant");
 }
+// changing it changes the robot itself (saved there, for every PC): said and confirmed first
+let variantTimer = null, askedVariant = null;
+function closeVariantAsk() {
+  clearTimeout(variantTimer); askedVariant = null; $("variantask").hidden = true; $("variant").value = meta.variant;
+}
+$("variant").onchange = () => {
+  const v = $("variant").value, cap = s => s[0].toUpperCase() + s.slice(1);
+  if (v === meta.variant) { closeVariantAsk(); return; }
+  const others = (meta.moves || []).filter(m => m.variants && !m.variants.includes(v)).map(m => m.name);
+  $("variantmsg").textContent = `Change the robot ${robot.host} into a ${cap(v)}? Saved on the robot itself (for every ` +
+    `PC); it then runs only the moves made for a ${v}` + (others.length ? ` (stops and hides: ${others.join(", ")})` : "") + ".";
+  $("variantgo").textContent = `Make ${robot.host} a ${cap(v)}`;
+  askedVariant = v; $("variantask").hidden = false;
+  clearTimeout(variantTimer); variantTimer = setTimeout(closeVariantAsk, 15000);
+};
+$("variantgo").onclick = () => {
+  const v = askedVariant; closeVariantAsk();
+  if (v) { $("variant").value = v; cmd("variant", { variant: v }); }
+};
+$("variantno").onclick = closeVariantAsk;
 function renderSaved() {
   const box = $("saved"); box.innerHTML = "";
   $("savedsec").style.display = Object.keys(robot.saved).length ? "" : "none";
-  for (const [name, { host, model }] of Object.entries(robot.saved).sort()) {
+  for (const [name, { host }] of Object.entries(robot.saved).sort()) {
     const row = document.createElement("div"); row.className = "saved";
-    const go = document.createElement("button"); go.type = "button";
-    go.className = host === robot.host && (!model || model === robot.model) ? "cur" : "";
-    go.innerHTML = "<b></b><small></small>"; go.querySelector("b").textContent = name;
-    go.querySelector("small").textContent = host + (model && robot.models.length > 1 ? " · " + model : "");
-    go.onclick = () => connectTo(host, null, model || undefined);
+    const go = document.createElement("button"); go.type = "button"; go.className = host === robot.host ? "cur" : "";
+    go.innerHTML = "<b></b><small></small>"; go.querySelector("b").textContent = name; go.querySelector("small").textContent = host;
+    go.onclick = () => connectTo(host);
     const del = document.createElement("button"); del.type = "button"; del.className = "small"; del.textContent = "✕";
     del.title = `forget ${name}`; del.onclick = () => send({ type: "forget_robot", name });
     row.append(go, del); box.appendChild(row);
@@ -336,7 +358,7 @@ $("robotbtn").onclick = ev => {
   ev.stopPropagation();
   const box = $("robotbox"); box.classList.toggle("show");
   if (box.classList.contains("show")) {
-    $("host").value = ""; $("rname").value = ""; $("hostgo").textContent = "Connect"; $("rmodel").value = robot.model;
+    $("host").value = ""; $("rname").value = ""; $("hostgo").textContent = "Connect";
   }
 };
 $("robotbox").onclick = ev => ev.stopPropagation();
@@ -345,7 +367,7 @@ document.addEventListener("click", () => $("robotbox").classList.remove("show"))
 $("robotbox").onsubmit = ev => {
   ev.preventDefault();
   const h = $("host").value.trim();
-  if (h) connectTo(h, $("rname").value.trim(), robot.models.length > 1 ? $("rmodel").value : undefined);
+  if (h) connectTo(h, $("rname").value.trim());
 };
 let shownWarnings = "";
 function applySchema(s) {          // the live robot's, or a recording's while it is replayed
@@ -353,7 +375,7 @@ function applySchema(s) {          // the live robot's, or a recording's while i
   if (!replay && w.join("\n") !== shownWarnings) { shownWarnings = w.join("\n"); w.forEach(t => log({ level: "error", text: t })); }
   schema = s; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
   $("title").textContent = schema.robot + (replay ? " · replay" : ""); document.title = schema.robot + " · dashboard";
-  movesKey = ""; renderMoves(); controlsKey = ""; renderControls(); renderEditor(false);
+  movesKey = ""; renderMoves(); controlsKey = ""; renderControls(); renderEditor(false); renderVariant();
 }
 function onFrame(m) {
   const pill = $("link");

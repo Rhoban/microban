@@ -111,8 +111,16 @@
   #robotbox.show { display: flex; }
   @media (max-width: 600px) { #robotbox { position: fixed; left: 16px; right: 16px; top: 56px; width: auto; } }
   #robotbox label { font-weight: 600; } #robotbox small { color: var(--muted); }
-  #rmodelrow { display: flex; flex-direction: column; gap: 4px; }
-  #rmodel { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); }
+  #variantbox { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+  #variantbox[hidden] { display: none; }
+  #variantask { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: 30; width: min(520px, calc(100vw - 32px));
+                box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+                border: 1.5px solid var(--warn); box-shadow: 0 8px 30px rgba(0, 0, 0, .18); }
+  #variantask[hidden] { display: none; }
+  #variantask .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  #variantgo { border-color: var(--warn); background: var(--warn-soft); color: var(--ink); font-weight: 600; }
+  #variant { font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); padding: 3px 6px; border: 1px solid var(--line);
+             border-radius: 7px; background: var(--panel); }
   #robotbox .row { display: flex; gap: 6px; }
   #robotbox h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
   #savedsec { display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; margin-bottom: 2px; border-bottom: 1px solid var(--line); }
@@ -157,12 +165,14 @@
       <h3>New robot</h3>
       <label for="host">Address (host name or IP)</label>
       <input id="host" placeholder="192.168.0.232" autocomplete="off" spellcheck="false">
-      <div id="rmodelrow"><label for="rmodel">Version of the robot</label>
-        <select id="rmodel" title="the model shown in 3D (e.g. Classic: walking feet and hands, Climber: climbing ones)"></select></div>
       <label for="rname">Name <small>(to save it for next time; empty: connect only)</small></label>
       <input id="rname" placeholder="Microban Radxa" autocomplete="off" maxlength="40">
       <button type="submit" id="hostgo">Connect</button>
       <small>The robot's program sends to this PC while the page asks (UDP, port 7350).</small></form></span>
+  <label id="variantbox" hidden title="this robot's version, as the robot says (Classic: walking hands and feet, Climber: climbing forearms and feet): it runs only the moves made for it; changing it here changes it on the robot">robot version
+    <select id="variant"></select></label>
+  <div id="variantask" class="card" hidden role="alertdialog"><span id="variantmsg"></span>
+    <div class="row"><button id="variantno">Cancel</button><button id="variantgo"></button></div></div>
   <div class="chips" id="scalars"></div>
   <div class="spacer"></div>
   <span id="robotcmds" class="chips"></span>

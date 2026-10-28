@@ -70,13 +70,15 @@ target. A hot motor (within 10 °C of its 70 °C limit) is shown in orange.
 
 ![The robot picker: saved robots, or a new address](images/dashboard/robot_picker.png)
 
-The button next to the link rate opens the robot picker: click a saved robot, or type a new address (host name or IP)
-and choose its version: **Classic** (walking hands and feet) or **Climber** (the climbing forearms and feet), the
-model shown in 3D. The robot is told its version and keeps it (`robot_variant.txt` on the robot): it then runs only the
-moves made for it, and the Moves list shows only those (each move says it: [moves.md](moves.md)). A robot opened
-without choosing (`make dashboard HOST=...`) is shown in the version it says. Give it a name to save it, with its
-version, for next time (kept on this PC in `~/.config/humanoid_dashboard/robots.json`; save it again under the same
-name to change its version).
+The button next to the link rate opens the robot picker: click a saved robot, or type a new address (host name or IP);
+give it a name to save it for next time (kept on this PC in `~/.config/humanoid_dashboard/robots.json`).
+
+**Robot version.** The robot knows which version it is: **Classic** (walking hands and feet) or **Climber** (the
+climbing forearms and feet). The header shows it (*robot version*), the 3D view uses its model, and the Moves list
+shows only the moves made for it (each move says it: [moves.md](moves.md)); the robot refuses the others, from the
+keyboard or the gamepad too. To change it, choose another one in that menu and confirm: this changes the robot itself
+(saved on it in `robot_variant.txt`, for every PC; its moves for the other version stop). A robot that was never set
+is a Classic.
 
 ## Record and replay
 

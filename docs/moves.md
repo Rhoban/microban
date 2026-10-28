@@ -34,7 +34,7 @@ appears in the dashboard's Moves list (`make dashboard`), with Start / Stop.
 
 **Which robot it is for.** `variants` is required: `ALL` for any version of the robot, `(CLASSIC,)` for the walking
 hands and feet only, `(CLIMBER,)` for the climbing forearms and feet only (`from moves.move import ALL, CLASSIC,
-CLIMBER`). The robot knows its version (set in the dashboard's robot picker, saved on the robot in
+CLIMBER`). The robot knows its version (the dashboard's **robot version** menu changes it, saved on the robot in
 `robot_variant.txt`; classic until set; the simulation: `make sim` classic, `--climb` climber): it runs a move only on
 the versions it is made for (the keyboard and the gamepad too), and the dashboard lists only those. The walk, trained
 with the walking feet, is `(CLASSIC,)`: a climber does not walk.

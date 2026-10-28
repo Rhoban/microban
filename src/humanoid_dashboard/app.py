@@ -153,7 +153,8 @@ class RobotLink(asyncio.DatagramProtocol):
 
 
 def saved_robots() -> dict:
-    """name -> {"host", "model"} (a file of an older dashboard: name -> host, model None)."""
+    """name -> {"host", "model"} (model: the version shown for it, None: as the robot says; a file of an older
+    dashboard: name -> host)."""
     try:
         robots = json.loads(ROBOTS_FILE.read_text())
     except (OSError, ValueError):
@@ -200,7 +201,6 @@ class Hub:
         self.recording = None
         self.events = []
         self.robot_host, self.robot_addr = None, None
-        self.want_variant, self.variant_asked = None, False      # the version chosen in the page, until the robot has it
         self.deploy_cmd, self.deploy_dir, self.deploying = None, None, False
         self.rec_dir = pathlib.Path("recordings")
 
@@ -213,7 +213,6 @@ class Hub:
             return f"{host}: {e}"
         if model in self.models.paths and model != self.model_name:
             self.model_name, self.model = model, await asyncio.to_thread(self.models.get, model)
-        self.want_variant, self.variant_asked = (model.lower() if model in self.models.paths else None), False
         self.robot_host, self.robot_addr = host, info[0][4]
         self.schema, self.names, self.unpack, self.schema_id = None, {}, None, None
         self.values, self.robot_t, self.seq, self.rx_time, self.new, self.rates = {}, 0.0, 0, 0.0, False, []
@@ -282,19 +281,11 @@ class Hub:
             self.broadcast(msg)
 
     def follow_variant(self, meta):
-        """A robot that knows its version (meta.variant, e.g. Microban's classic / climber): the version chosen in the
-        page is sent to it (it saves it), else the model of its version is shown (the page reloads its 3D view)."""
+        """A robot that knows its version (meta.variant, e.g. Microban's classic / climber; the page changes it with
+        the command variant): the model of that name is shown (the page reloads its 3D view)."""
         v = meta.get("variant")
         if not v:
-            self.want_variant = None
             return
-        if self.want_variant and self.want_variant != v and self.want_variant in meta.get("variants", []) \
-                and "variant" in meta.get("commands", []):
-            if not self.variant_asked:
-                self.command("variant", {"variant": self.want_variant})
-                self.variant_asked = True
-            return
-        self.want_variant = None
         name = next((n for n in self.models.paths if n.lower() == v), None)
         if name and name != self.model_name:
             self.model_name, self.model = name, self.models.get(name)
@@ -476,8 +467,7 @@ def make_app(hub, title, rec_dir, port=PORT, http_port=8780):
                 if req["type"] == "save_robot":
                     if not (name and host):
                         continue
-                    robots[name] = {"host": host, "model": req.get("model") if req.get("model") in hub.models.paths
-                                    else hub.model_name}
+                    robots[name] = {"host": host}
                 else:
                     robots.pop(name, None)
                 save_robots(robots)
