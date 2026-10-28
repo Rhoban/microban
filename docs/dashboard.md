@@ -72,9 +72,11 @@ target. A hot motor (within 10 °C of its 70 °C limit) is shown in orange.
 
 The button next to the link rate opens the robot picker: click a saved robot, or type a new address (host name or IP)
 and choose its version: **Classic** (walking hands and feet) or **Climber** (the climbing forearms and feet), the
-model shown in 3D. Give it a name to save it, with its version, for next time (kept on this PC in
-`~/.config/humanoid_dashboard/robots.json`; save it again under the same name to change its version). The Moves
-list shows only the moves made for that version (each move says it: [moves.md](moves.md)).
+model shown in 3D. The robot is told its version and keeps it (`robot_variant.txt` on the robot): it then runs only the
+moves made for it, and the Moves list shows only those (each move says it: [moves.md](moves.md)). A robot opened
+without choosing (`make dashboard HOST=...`) is shown in the version it says. Give it a name to save it, with its
+version, for next time (kept on this PC in `~/.config/humanoid_dashboard/robots.json`; save it again under the same
+name to change its version).
 
 ## Record and replay
 

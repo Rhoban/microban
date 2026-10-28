@@ -28,12 +28,13 @@ from controller import ControllerProtocol
 from imu_reader import imu_quat_to_body
 from observer import Observer, Observation
 from input.input_source import InputSource, UserInput, scale_velocity
-from moves.move import MotorCommand, Move, MoveState
+from moves.move import ALL, CLASSIC, MotorCommand, Move, MoveState
 from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
 
 OPTIONS_FILE = Path("move_options.json")   # the moves' options saved from the dashboard (repo root on the robot)
+VARIANT_FILE = Path("robot_variant.txt")   # this robot's version, classic or climber, set from the dashboard (repo root)
 POWER_UP_S = 2.0      # a move launched with the torque off (or from the zero pose): ramp to the neutral pose first
 INIT_S = 2.0          # init: ramp to every motor's zero
 
@@ -48,7 +49,10 @@ class Scheduler:
         moves: Optional[dict[str, Move]] = None,
         telemetry=None,
         switches: Optional[list[str]] = None,
+        variant: Optional[str] = None,
     ):
+        """variant: the version of the robot (moves.move.CLASSIC / CLIMBER) for the simulation; None: the robot's,
+        read from VARIANT_FILE (classic when never set), and set from the dashboard (saved in that file)."""
         self.dt = 1.0 / frequency_hz
         self.controller = controller
         self.stop_flag_path = Path(stop_flag_path)
@@ -88,9 +92,12 @@ class Scheduler:
         self.switches = list(switches or [])
         self._dash_requested: set[str] = set()
         self._keys: set[str] = set()                # held in the dashboard's keyboard zone (Move.pressed, on_key)
+        self._save_variant = variant is None
+        self.variant = variant or self._load_variant()
+        self._refused: set[str] = set()             # moves asked that are not for this version (said once)
         self._load_options()
         if self.telemetry is not None:
-            self.telemetry.configure(self.registered_moves, self.switches)
+            self.telemetry.configure(self.registered_moves, self.switches, self.variant)
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -237,6 +244,8 @@ class Scheduler:
                 self.telemetry.options_changed()
             elif op == "save_options":
                 self.telemetry.event(self._save_options())
+            elif op == "variant":
+                self.telemetry.event(self._set_variant(name))
             elif op == "start":
                 self._dash_requested.add(name)
             elif op == "stop":
@@ -254,6 +263,14 @@ class Scheduler:
                 self._start_pose(obs.robot_state, {n: 0.0 for n in MOTOR_TO_ID}, INIT_S, hold=True)
                 self._locked = True
         requested = set(obs.user_input.active_moves) | self._dash_requested
+        refused = {n for n in requested if n in self.registered_moves and not self.made_for(n)}
+        for n in refused - self._refused:            # e.g. the walk asked on a climber: said once, never run
+            text = f"{n} is not made for this robot ({self.variant}): {', '.join(self.registered_moves[n].variants)} only"
+            print(text, end="\r\n", flush=True)
+            if self.telemetry is not None:
+                self.telemetry.event(text, "error")
+        self._refused = refused
+        requested -= refused
         obs.user_input.active_moves = set(requested)
         launched = requested - self._prev_requested
         self._prev_requested = set(requested)
@@ -319,6 +336,31 @@ class Scheduler:
                 except (TypeError, ValueError) as e:      # a value edited by hand: that option keeps its default
                     print(f"Warning: {OPTIONS_FILE}: {name}.{opt} = {value!r} skipped ({e})", end="\r\n", flush=True)
         print(f"Move options from {OPTIONS_FILE}", end="\r\n", flush=True)
+
+    # ---- the robot's version (classic / climber) ----------------------------------------------------------------
+    def made_for(self, name: str) -> bool:
+        """The move runs on this version of the robot (Move.variants; a move that does not say: on every one)."""
+        return self.variant in (getattr(self.registered_moves[name], "variants", None) or ALL)
+
+    def _load_variant(self) -> str:
+        try:
+            v = VARIANT_FILE.read_text().strip()
+        except OSError:
+            v = CLASSIC
+        if v not in ALL:
+            print(f"Warning: {VARIANT_FILE} says {v!r}, not one of {', '.join(ALL)}: {CLASSIC}", end="\r\n", flush=True)
+            v = CLASSIC
+        print(f"Robot version: {v} (set from the dashboard)", end="\r\n", flush=True)
+        return v
+
+    def _set_variant(self, variant: str) -> str:
+        """The dashboard says which version this robot is: saved on the robot; the moves not made for it stop."""
+        self.variant = variant
+        self._dash_requested = {n for n in self._dash_requested if n not in self.registered_moves or self.made_for(n)}
+        if self._save_variant:
+            VARIANT_FILE.write_text(variant + "\n")
+        self.telemetry.set_variant(variant)
+        return f"robot version: {variant}" + (f" (saved in {VARIANT_FILE.resolve()})" if self._save_variant else "")
 
     def _save_options(self) -> str:
         data = {name: dict(m.options) for name, m in self.registered_moves.items() if m.options}

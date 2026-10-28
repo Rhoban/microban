@@ -200,6 +200,7 @@ class Hub:
         self.recording = None
         self.events = []
         self.robot_host, self.robot_addr = None, None
+        self.want_variant, self.variant_asked = None, False      # the version chosen in the page, until the robot has it
         self.deploy_cmd, self.deploy_dir, self.deploying = None, None, False
         self.rec_dir = pathlib.Path("recordings")
 
@@ -212,6 +213,7 @@ class Hub:
             return f"{host}: {e}"
         if model in self.models.paths and model != self.model_name:
             self.model_name, self.model = model, await asyncio.to_thread(self.models.get, model)
+        self.want_variant, self.variant_asked = (model.lower() if model in self.models.paths else None), False
         self.robot_host, self.robot_addr = host, info[0][4]
         self.schema, self.names, self.unpack, self.schema_id = None, {}, None, None
         self.values, self.robot_t, self.seq, self.rx_time, self.new, self.rates = {}, 0.0, 0, 0.0, False, []
@@ -273,10 +275,30 @@ class Hub:
                 n = sum(len(labels) for _, labels in msg["fields"])
                 self.unpack = struct.Struct(f"<{n}f").unpack_from
                 self.broadcast({"type": "schema", "schema": msg})
+            self.follow_variant(msg.get("meta") or {})
         elif op in ("ack", "event"):
             msg = {**msg, "type": op, "pc_time": time.time()}
             self.events = (self.events + [msg])[-200:]
             self.broadcast(msg)
+
+    def follow_variant(self, meta):
+        """A robot that knows its version (meta.variant, e.g. Microban's classic / climber): the version chosen in the
+        page is sent to it (it saves it), else the model of its version is shown (the page reloads its 3D view)."""
+        v = meta.get("variant")
+        if not v:
+            self.want_variant = None
+            return
+        if self.want_variant and self.want_variant != v and self.want_variant in meta.get("variants", []) \
+                and "variant" in meta.get("commands", []):
+            if not self.variant_asked:
+                self.command("variant", {"variant": self.want_variant})
+                self.variant_asked = True
+            return
+        self.want_variant = None
+        name = next((n for n in self.models.paths if n.lower() == v), None)
+        if name and name != self.model_name:
+            self.model_name, self.model = name, self.models.get(name)
+            self.broadcast(self.robot_msg())
 
     def frame(self, data):
         if self.unpack is None:

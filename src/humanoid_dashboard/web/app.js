@@ -412,7 +412,7 @@ function renderMoves() {
   const list = meta.moves || [], card = $("moves");
   card.classList.toggle("show", list.length > 0 && (replay || (meta.commands || []).includes("move_start")));
   const vals = last && last.values && last.values.moves ? last.values.moves : [];
-  const key = JSON.stringify(list.map(m => [m.name, m.options])) + robot.model + vals.join() + JSON.stringify(Object.values(confirmKey)) + !!replay;
+  const key = JSON.stringify(list.map(m => [m.name, m.options, m.available])) + robot.model + vals.join() + JSON.stringify(Object.values(confirmKey)) + !!replay;
   if (key === movesKey) return;
   movesKey = key;
   const box = $("movelist"); box.innerHTML = "";
@@ -496,12 +496,15 @@ $("keyzone").addEventListener("keydown", e => {
 $("keyzone").addEventListener("keyup", e => { if (held.delete(keyName(e))) sendKeys(); });
 $("keyzone").addEventListener("blur", () => { if (held.size) { held.clear(); sendKeys(); } });
 window.addEventListener("blur", () => { if (held.size) { held.clear(); sendKeys(); } });
-// a move lists the versions of the robot it is made for (e.g. classic, climber): shown only for the version chosen
-// in the robot picker (a running move is still shown, to stop it)
+// a move lists the versions of the robot it is made for (e.g. classic, climber): shown only for the robot's version
+// (meta.variant, set from the robot picker), or the version chosen there for a robot that does not know it (a
+// running move is still shown, to stop it)
 function madeFor(m) {
-  if (!m.variants || robot.models.length < 2 || !robot.model) return true;
   const st = last && last.values && last.values.moves ? last.values.moves[(meta.moves || []).indexOf(m)] : 0;
-  return m.variants.includes(robot.model.toLowerCase()) || (st ?? 0) !== 0;
+  if ((st ?? 0) !== 0) return true;                       // running: shown, to stop it
+  if (m.available !== undefined) return m.available;      // the robot knows its version
+  if (!m.variants || robot.models.length < 2 || !robot.model) return true;
+  return m.variants.includes(robot.model.toLowerCase());
 }
 // the editor of a move's variables (as RhIO's parameters): applied at once on the robot, Save keeps them there
 let editing = null;

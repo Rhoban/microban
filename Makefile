@@ -18,6 +18,7 @@ sync:
 		--exclude='src/humanoid_dashboard/web' \
 		--exclude='recordings' \
 		--exclude='move_options.json' \
+		--exclude='robot_variant.txt' \
 		--exclude='user_controller.py' \
 		./ $(HOST):microban
 

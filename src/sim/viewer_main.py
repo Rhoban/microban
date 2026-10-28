@@ -13,6 +13,7 @@ import argparse
 import microban_model
 
 from scheduler import Scheduler
+from moves.move import CLASSIC
 from input.keyboard_input import KeyboardInputSource
 from sim.placo_controller import PlacoViewerController
 from moves.rotate_head import RotateHeadMove
@@ -35,6 +36,7 @@ def main() -> None:
             "head": RotateHeadMove(),
             "squat": SquatMove(),
         },
+        variant=CLASSIC,
     )
     scheduler.run()
 

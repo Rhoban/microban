@@ -34,8 +34,10 @@ appears in the dashboard's Moves list (`make dashboard`), with Start / Stop.
 
 **Which robot it is for.** `variants` is required: `ALL` for any version of the robot, `(CLASSIC,)` for the walking
 hands and feet only, `(CLIMBER,)` for the climbing forearms and feet only (`from moves.move import ALL, CLASSIC,
-CLIMBER`). The dashboard lists a move only for the version chosen in its robot picker: the walk, trained with the
-walking feet, is `(CLASSIC,)`, so it is not offered on a climber.
+CLIMBER`). The robot knows its version (set in the dashboard's robot picker, saved on the robot in
+`robot_variant.txt`; classic until set; the simulation: `make sim` classic, `--climb` climber): it runs a move only on
+the versions it is made for (the keyboard and the gamepad too), and the dashboard lists only those. The walk, trained
+with the walking feet, is `(CLASSIC,)`: a climber does not walk.
 
 A file that does not load (a Python error), a class that lacks `step` or does not say its `variants` is skipped, and the robot starts anyway: the
 reason, with the line of your file, shows in the dashboard's Events (and in `make robot-service-logs`).

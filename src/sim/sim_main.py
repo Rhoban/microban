@@ -12,6 +12,7 @@ import argparse
 
 from scheduler import Scheduler
 from telemetry import Telemetry
+from moves.move import CLASSIC, CLIMBER
 from sim.mujoco_input import MuJoCoInputSource
 from sim.mujoco_controller import MuJoCoController
 from moves.rotate_head import RotateHeadMove
@@ -59,6 +60,7 @@ def main() -> None:
             "walk": WalkMove(controller=controller),
         }),
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)
+        variant=CLIMBER if args.climb else CLASSIC, # the moves made for this version (Move.variants)
     )
     scheduler.run()
 

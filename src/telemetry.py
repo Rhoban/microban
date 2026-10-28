@@ -9,7 +9,8 @@ runs the page's commands between two ticks: `reboot` a motor (clears overheating
 moves, every motor to its zero, held until a move is launched), `move_start` / `move_stop` (a registered move or
 switch, as its key would). The moves' live controls: `slider` sets a move's slider (Move.sliders), `keys` the keys
 held in the page's keyboard zone (Move.pressed, Move.on_key; the page repeats it while keys are held: without news
-for KEYS_TIMEOUT_S, e.g. the PC's link lost, they are released).
+for KEYS_TIMEOUT_S, e.g. the PC's link lost, they are released). `variant` says which version the robot is (classic /
+climber: the moves made for it, Move.variants), saved on the robot by the scheduler.
 Without the humanoid_dashboard package, or with MICROBAN_DASHBOARD=0, it does nothing.
 """
 import math
@@ -17,7 +18,7 @@ import os
 import time
 
 from constants import MOTOR_TO_ID
-from moves.move import ALL
+from moves.move import ALL, CLASSIC
 
 try:
     from humanoid_dashboard.link import Link
@@ -55,22 +56,24 @@ class Telemetry:
         self.requests: list[tuple[str, str | None]] = []                  # for the scheduler (take_requests)
         self.moves: dict = {}
         self.switches: list[str] = []
+        self.variant = CLASSIC
         self.sliders: list[tuple[str, str]] = []                          # (move, slider) in the field's order
         self.tick_count = 0
         self._keys: set[str] = set()
         self._keys_t = 0.0
 
-    def configure(self, moves: dict, switches: list[str] | None = None) -> None:
+    def configure(self, moves: dict, switches: list[str] | None = None, variant: str = CLASSIC) -> None:
         """The scheduler's moves (name -> Move) and switches (names a key toggles that are not moves): the page lists
-        them, with each move's `description`, and can start / stop them."""
+        them, with each move's `description` and the versions of the robot it is made for, and can start / stop them.
+        variant: the robot's version (classic / climber)."""
         if not self.enabled or self.link is not None:
             return
-        self.moves, self.switches = moves, list(switches or [])
+        self.moves, self.switches, self.variant = moves, list(switches or []), variant
         listed = self._listing()
         self.sliders = [(k, n) for k, m in moves.items() for n in getattr(m, "sliders", {})]
         cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop",
                                                                                      "move_option", "save_options",
-                                                                                     "slider", "keys"]
+                                                                                     "slider", "keys", "variant"]
         sliders = {"sliders": [f"{k}.{n}" for k, n in self.sliders]} if self.sliders else {}
         try:
             self.link = Link("Microban", fields={
@@ -83,7 +86,7 @@ class Telemetry:
                       "hw_error_bits": {"0": "input voltage", "2": "overheating", "3": "motor encoder",
                                         "4": "electrical shock", "5": "overload"},
                       "hw_error_ignore": VOLTAGE_BIT, "commands": cmds, "moves": listed,
-                      "warnings": _move_problems(),
+                      "warnings": _move_problems(), "variant": variant, "variants": list(ALL),
                       # how the page shows the one-value fields: a label and unit, or a flag's texts (on / off)
                       "scalars": {"tick_ms": {"label": "loop", "unit": "ms"},
                                   "powered": {"flag": ["torque off", "torque on"]},
@@ -98,6 +101,7 @@ class Telemetry:
                  "sliders": {n: list(v) for n, v in (getattr(m, "sliders", {}) or {}).items()},
                  "keys": getattr(m, "keys", "") or "",
                  "variants": list(getattr(m, "variants", None) or ALL),     # the page lists it for those only
+                 "available": self.variant in (getattr(m, "variants", None) or ALL),
                  "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
                 for k, m in self.moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
 
@@ -115,6 +119,12 @@ class Telemetry:
         value)]), ...]."""
         out, self.requests = self.requests, []
         return out
+
+    def set_variant(self, variant: str) -> None:
+        """The robot's version changed (the scheduler saved it): the page gets it, and which moves are available."""
+        self.variant = variant
+        if self.link is not None:
+            self.link.set_meta({**self.link.meta, "variant": variant, "moves": self._listing()})
 
     def keys_held(self) -> set[str]:
         """The keys held in the page's keyboard zone (none once the page stopped repeating them)."""
@@ -185,6 +195,14 @@ class Telemetry:
             self.requests.append((name, None))
             self.link.ack(cmd, True, "emergency stop: moves stopped, torque off" if name == "em" else
                           "init: moves stopped, every motor to its zero (held until a move is launched)")
+            return
+        if name == "variant":                         # set and saved by the scheduler
+            v = cmd["args"].get("variant")
+            if v not in ALL:
+                self.link.ack(cmd, False, f"{v!r} is not a version of the robot ({', '.join(ALL)})")
+                return
+            self.requests.append(("variant", v))
+            self.link.ack(cmd, True, f"this robot is a {v}")
             return
         if name == "save_options":                    # written by the scheduler (it owns the moves)
             self.requests.append(("save_options", None))
