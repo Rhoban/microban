@@ -6,12 +6,13 @@ gamepad, or the dashboard's Moves list) and sends their targets to the motors.
 ```python
 # src/moves/wave.py
 import math
-from moves.move import Move, MoveState, MotorCommand
+from moves.move import ALL, Move, MoveState, MotorCommand
 from observer import Observation
 
 
 class WaveMove(Move):
     description = "Wave the right arm"     # shown in the dashboard's Moves list
+    variants = ALL                          # the robots it is for: ALL, (CLASSIC,) or (CLIMBER,) (required)
     power_up = "neutral"                    # torque off when launched: ramp to NEUTRAL_POSE first ("current": stay)
 
     def on_start(self, obs: Observation, command: MotorCommand) -> None:
@@ -31,7 +32,12 @@ simulation) starts (`src/moves/discover.py`). Its name is the class name without
 (`WaveMove` -> `wave`; or set `name = "..."` in the class). Its constructor gets `controller=` if it takes one. It
 appears in the dashboard's Moves list (`make dashboard`), with Start / Stop.
 
-A file that does not load (a Python error) or a class that lacks `step` is skipped, and the robot starts anyway: the
+**Which robot it is for.** `variants` is required: `ALL` for any version of the robot, `(CLASSIC,)` for the walking
+hands and feet only, `(CLIMBER,)` for the climbing forearms and feet only (`from moves.move import ALL, CLASSIC,
+CLIMBER`). The dashboard lists a move only for the version chosen in its robot picker: the walk, trained with the
+walking feet, is `(CLASSIC,)`, so it is not offered on a climber.
+
+A file that does not load (a Python error), a class that lacks `step` or does not say its `variants` is skipped, and the robot starts anyway: the
 reason, with the line of your file, shows in the dashboard's Events (and in `make robot-service-logs`).
 
 A key or a gamepad button for it, optional, in `src/main.py`:

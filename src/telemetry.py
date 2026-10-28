@@ -17,6 +17,7 @@ import os
 import time
 
 from constants import MOTOR_TO_ID
+from moves.move import ALL
 
 try:
     from humanoid_dashboard.link import Link
@@ -96,6 +97,7 @@ class Telemetry:
                  "option_docs": dict(getattr(m, "option_docs", {}) or {}),
                  "sliders": {n: list(v) for n, v in (getattr(m, "sliders", {}) or {}).items()},
                  "keys": getattr(m, "keys", "") or "",
+                 "variants": list(getattr(m, "variants", None) or ALL),     # the page lists it for those only
                  "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
                 for k, m in self.moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
 

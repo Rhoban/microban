@@ -24,7 +24,7 @@ import microban_model
 import numpy as np
 
 from constants import IMU_MOUNT_QUAT, KP_DEFAULT, MOTOR_TO_ID
-from moves.move import MotorCommand, Move, MoveState
+from moves.move import CLIMBER, MotorCommand, Move, MoveState
 from observer import Observation
 
 JOINTS = list(microban_model.JOINTS)
@@ -66,6 +66,7 @@ def load_controller(path: str):
 
 class ControllerMove(Move):
     description = "Your Controller file (CONTROLLER=...), the same as in the climbing simulator"
+    variants = (CLIMBER,)         # the climbing simulator's robot
     power_up = "current"          # the torque goes on where the robot is (see Scheduler)
 
     def __init__(self, path: str, controller=None):

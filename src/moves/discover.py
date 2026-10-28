@@ -4,7 +4,8 @@
 Each class of a file of this folder that derives from Move becomes a move of the robot (and of the simulation), unless
 it is registered already. Its name in the dashboard and for the scheduler is the class's `name` if it sets one,
 otherwise the class name in snake_case without "Move" (WaveMove -> "wave"). Its constructor gets `controller=` when it
-takes one, nothing otherwise. A file that fails to load or a class that cannot be built is skipped with a message:
+takes one, nothing otherwise. It must say which versions of the robot it is for (Move.variants: ALL, (CLASSIC,) or
+(CLIMBER,)). A file that fails to load or a class that cannot be built is skipped with a message:
 the robot starts anyway.
 """
 import importlib
@@ -14,7 +15,7 @@ import re
 import sys
 import traceback
 
-from moves.move import Move
+from moves.move import ALL, Move
 
 HERE = pathlib.Path(__file__).parent
 SKIP = {"__init__", "move", "discover", "controller"}       # the base class, this file, the Controller (CONTROLLER=)
@@ -59,6 +60,11 @@ def discover_moves(controller, known: dict) -> dict:
                 continue
             if inspect.isabstract(cls):
                 _skip(f"Move {cls.__name__} ({path.name}) skipped: it lacks {', '.join(sorted(cls.__abstractmethods__))}")
+                continue
+            variants = getattr(cls, "variants", None)
+            if not isinstance(variants, (tuple, list)) or not variants or not set(variants) <= set(ALL):
+                _skip(f"Move {cls.__name__} ({path.name}) skipped: say which robots it is for, in the class: "
+                      f"variants = ALL, or (CLASSIC,), or (CLIMBER,) (from moves.move import ALL, CLASSIC, CLIMBER)")
                 continue
             name = move_name(cls)
             if name in known or name in found:

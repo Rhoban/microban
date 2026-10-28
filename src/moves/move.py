@@ -9,6 +9,12 @@ from observer import Observation
 from constants import NEUTRAL_POSE
 
 
+# The versions of the robot: walking hands and feet (classic), or the climbing forearms and feet (climber). Each move
+# says which ones it is made for: variants = ALL, or (CLASSIC,), or (CLIMBER,); the dashboard lists it only for those.
+CLASSIC, CLIMBER = "classic", "climber"
+ALL = (CLASSIC, CLIMBER)
+
+
 class MoveState(Enum):
     INACTIVE = auto()
     STARTING = auto()
@@ -31,6 +37,8 @@ class Move(ABC):
     """Base class for all motion behaviors (docs/moves.md)."""
 
     description: str = ""         # one line for the dashboard's Moves list (default: the class docstring's first line)
+    variants: tuple | None = None # the versions of the robot it is made for: ALL, (CLASSIC,) or (CLIMBER,); required:
+                                  # a move that does not say is skipped (docs/moves.md)
     power_up: str = "neutral"     # launched with the torque off: "neutral" ramps to NEUTRAL_POSE first (2 s),
                                   # "current" holds where the robot is (e.g. a move that may start on the wall)
 

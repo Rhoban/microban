@@ -4,7 +4,7 @@
 import math
 
 from observer import Observation
-from moves.move import MotorCommand, Move, MoveState
+from moves.move import ALL, MotorCommand, Move, MoveState
 
 
 # Set to True to log head angle and velocity readings during the rotate head move
@@ -24,6 +24,7 @@ class RotateHeadMove(Move):
     """
 
     description = "Turn the head left and right"
+    variants = ALL
 
     def __init__(
         self,

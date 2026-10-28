@@ -8,7 +8,7 @@ import placo
 import numpy as np
 
 from observer import Observation
-from moves.move import MotorCommand, Move, MoveState
+from moves.move import CLASSIC, MotorCommand, Move, MoveState
 from constants import NEUTRAL_POSE
 
 _LOWER_JOINTS = [
@@ -32,6 +32,7 @@ class SquatMove(Move):
     """Squat motion using placo IK."""
 
     description = "Squat up and down (inverse kinematics)"
+    variants = (CLASSIC,)          # its inverse kinematics uses the walking feet
 
     def __init__(
         self,

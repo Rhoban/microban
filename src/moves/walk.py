@@ -9,7 +9,7 @@ from constants import MOTOR_TO_ID, KP_DEFAULT, KP_RL, OBSERVATION_DOF_ORDER
 from controller import ControllerProtocol
 from input.input_source import scale_velocity
 from observer import Observation
-from moves.move import MotorCommand, Move, MoveState
+from moves.move import CLASSIC, MotorCommand, Move, MoveState
 
 
 # Set to True to log motor positions and voltages during the walk move
@@ -27,6 +27,7 @@ class WalkMove(Move):
     """Walk using a RL policy trained in simulation."""
 
     description = "Walk (learned policy): the velocity from the sticks / arrows"
+    variants = (CLASSIC,)          # its policy was trained with the walking feet
     # the dashboard: the arrows held in its keyboard zone walk at the slider's speed (a fraction of the maximum)
     sliders = {"speed": (0.0, 1.0, 0.5)}
     keys = "↑ ↓: forward / backward, ← →: turn (at the speed slider)"

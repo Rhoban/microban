@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from observer import Observation
-from moves.move import MotorCommand, Move
+from moves.move import ALL, MotorCommand, Move
 
 KEY_SPEED = 1.0                   # rad/s while an arrow key is held
 
@@ -15,6 +15,7 @@ class LookMove(Move):
     """
 
     description = "Turn the head from the dashboard (slider, or the ← → keys)"
+    variants = ALL
     sliders = {"head": (-0.8, 0.8, 0.0)}         # rad: min, max, start
     keys = "← →: turn the head"
 
