@@ -27,6 +27,15 @@ VOLTAGE_BIT = 1                    # always set above 7 V (the robot runs at ~8 
 MOVE_STATE = {"INACTIVE": 0, "STARTING": 1, "ACTIVE": 2, "STOPPING": 3}   # the page's codes (a switch: 0 / 2)
 
 
+def _move_problems() -> list[str]:
+    """Why moves of src/moves/ were skipped at start (moves/discover.py): the page shows them in its events."""
+    try:
+        from moves.discover import PROBLEMS
+        return list(PROBLEMS)
+    except ImportError:
+        return []
+
+
 class Telemetry:
     def __init__(self, controller):
         self.controller = controller
@@ -63,6 +72,7 @@ class Telemetry:
                       "hw_error_bits": {"0": "input voltage", "2": "overheating", "3": "motor encoder",
                                         "4": "electrical shock", "5": "overload"},
                       "hw_error_ignore": VOLTAGE_BIT, "commands": cmds, "moves": listed,
+                      "warnings": _move_problems(),
                       # how the page shows the one-value fields: a label and unit, or a flag's texts (on / off)
                       "scalars": {"tick_ms": {"label": "loop", "unit": "ms"},
                                   "powered": {"flag": ["torque off", "torque on"]},

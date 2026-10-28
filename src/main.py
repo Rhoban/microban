@@ -14,6 +14,7 @@ from input.keyboard_input import KeyboardInputSource
 from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
+from moves.discover import with_discovered_moves
 
 PID_FILE = Path("/tmp/microban_scheduler.pid")
 
@@ -89,12 +90,12 @@ def main() -> None:
             frequency_hz=50.0,
             controller=controller,
             input_source=build_input_source(),
-            moves={
+            moves=with_discovered_moves(controller, {
                 "head": RotateHeadMove(),
                 "squat": SquatMove(),
                 **_controller_move(controller),
                 "walk": WalkMove(controller=controller),
-            },
+            }),
             telemetry=Telemetry(controller),
         )
 

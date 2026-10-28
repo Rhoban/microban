@@ -26,15 +26,20 @@ class WaveMove(Move):
         self.state = MoveState.INACTIVE     # called each tick while STOPPING: set INACTIVE when done
 ```
 
-Register it in `src/main.py` (and `src/sim/sim_main.py` for the simulation):
+Nothing to register: every move class of a file in `src/moves/` is found by itself when the robot's program (or the
+simulation) starts (`src/moves/discover.py`). Its name is the class name without "Move", in snake_case
+(`WaveMove` -> `wave`; or set `name = "..."` in the class). Its constructor gets `controller=` if it takes one. It
+appears in the dashboard's Moves list (`make dashboard`), with Start / Stop.
+
+A file that does not load (a Python error) or a class that lacks `step` is skipped, and the robot starts anyway: the
+reason, with the line of your file, shows in the dashboard's Events (and in `make robot-service-logs`).
+
+A key or a gamepad button for it, optional, in `src/main.py`:
 
 ```python
-MOVE_KEYS = {..., "w": "wave"}                    # a key toggles it
-GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}        # optional
-moves={..., "wave": WaveMove()},
+MOVE_KEYS = {..., "w": "wave"}                    # a key toggles it (make run)
+GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}
 ```
-
-It then appears in the dashboard's Moves list (`make dashboard HOST=...`), with Start / Stop.
 
 ## Put it on the robot
 

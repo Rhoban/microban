@@ -332,7 +332,10 @@ $("robotbox").onsubmit = ev => {
   ev.preventDefault();
   const h = $("host").value.trim(); if (h) connectTo(h, $("rname").value.trim());
 };
+let shownWarnings = "";
 function applySchema(s) {          // the live robot's, or a recording's while it is replayed
+  const w = (s.meta || {}).warnings || [];               // e.g. a move file that does not load: shown once per change
+  if (!replay && w.join("\n") !== shownWarnings) { shownWarnings = w.join("\n"); w.forEach(t => log({ level: "error", text: t })); }
   schema = s; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
   $("title").textContent = schema.robot + (replay ? " · replay" : ""); document.title = schema.robot + " · dashboard";
   movesKey = ""; renderMoves(); renderEditor(false);

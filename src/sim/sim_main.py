@@ -18,6 +18,7 @@ from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
 from moves.controller import ControllerMove
+from moves.discover import with_discovered_moves
 
 
 def main() -> None:
@@ -51,12 +52,12 @@ def main() -> None:
         frequency_hz=args.hz,
         controller=controller,
         input_source=input_source,
-        moves={
+        moves=with_discovered_moves(controller, {
             "head": RotateHeadMove(),
             "squat": SquatMove(),
             **({"controller": ControllerMove(args.controller, controller)} if args.controller else {}),
             "walk": WalkMove(controller=controller),
-        },
+        }),
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)
     )
     scheduler.run()
