@@ -2,8 +2,8 @@
 """Your own controller as a move: the same file runs in the climbing simulator (climbing_sim.run_controller) and here,
 on the robot or in microban's simulation.
 
-    make run CONTROLLER=path/to/my_controller.py        (robot)      keyboard [c] / gamepad [B]: start / stop it
-    make sim CONTROLLER=path/to/my_controller.py        (simulation)
+    make run CONTROLLER=path/to/my_controller.py            (robot)      keyboard [c] / gamepad [Y]: start / stop it
+    make sim WALL=N2 CONTROLLER=path/to/my_controller.py    (the robot's program on the simulated wall)
 
 The file defines ``class Controller`` with:
 

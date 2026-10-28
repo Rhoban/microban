@@ -35,12 +35,13 @@ appears in the dashboard's Moves list (`make dashboard`), with Start / Stop.
 **Which robot it is for.** `variants` is required: `ALL` for any version of the robot, `(CLASSIC,)` for the walking
 hands and feet only, `(CLIMBER,)` for the climbing forearms and feet only (`from moves.move import ALL, CLASSIC,
 CLIMBER`). The robot knows its version (the dashboard's **robot version** menu changes it, saved on the robot in
-`robot_variant.txt`; classic until set; the simulation: `make sim` classic, `--climb` climber): it runs a move only on
+`robot_variant.txt`; classic until set; the simulation: `make sim` classic, `make sim WALL=N2` climber): it runs a move only on
 the versions it is made for (the keyboard and the gamepad too), and the dashboard lists only those. The walk, trained
 with the walking feet, is `(CLASSIC,)`: a climber does not walk.
 
-A file that does not load (a Python error), a class that lacks `step` or does not say its `variants` is skipped, and the robot starts anyway: the
-reason, with the line of your file, shows in the dashboard's Events (and in `make robot-service-logs`).
+A file that does not load (a Python error), a class that lacks `step` or does not say its `variants` is skipped, and
+the robot starts anyway: the reason, with the line of your file, shows in the dashboard's Events (and in
+`make robot-service-logs`).
 
 A key or a gamepad button for it, optional, in `src/main.py`:
 
@@ -109,8 +110,7 @@ next start over the defaults written in the code.
 ## Drive it live: sliders and keys
 
 A move can also be driven while it runs, from the dashboard's Moves card: sliders (shown while the move runs), and a
-keyboard zone (click it, then
-the keys you press go to the robot; click elsewhere and they are released).
+keyboard zone (click it, then the keys you press go to the robot; click elsewhere and they are released).
 
 ```python
 class LookMove(Move):                                   # src/moves/look.py, the full example
