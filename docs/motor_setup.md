@@ -3,6 +3,11 @@
 Set the 19 XL330 (ID from `MOTOR_TO_ID`, 1 Mbps, Return Delay 0, PWM Slope 255, Shutdown 52, then a reboot that clears
 the input-voltage error latched at power-on) with a U2D2 or on the robot's own port.
 
+Dependencies: the tools only need [rustypot](https://pypi.org/project/rustypot/) 1.13.1 (Python >= 3.10), not the rest
+of microban. Each script lists it in its header, so `uv run` installs it by itself on any PC (Linux, Windows, macOS);
+with an old uv that does not, `uv self update`, or force it with `uv run --script tools/motor_setup.py ...`. Without
+uv: `pip install rustypot==1.13.1`, then `python tools/motor_setup.py ...`.
+
 ```bash
 uv run tools/motor_setup.py auto --port /dev/ttyUSB0      # plug one motor after the other: set as the next joint
 uv run tools/motor_setup.py check --port /dev/ttyUSB0     # the whole chain: every ID and setting
