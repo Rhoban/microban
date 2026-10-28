@@ -23,7 +23,7 @@ import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from motor_setup import BAUDS, MOTORS, SETTINGS, open_bus
+from motor_setup import BAUDS, MOTORS, SETTINGS, default_port, open_bus
 
 HERE = pathlib.Path(__file__).parent
 ASSETS = HERE / "motor_ids_assets"
@@ -251,7 +251,7 @@ def handler(robot):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--port", default="/dev/ttyUSB0", help="serial port (U2D2 /dev/ttyUSB0, Windows COMx)")
+    ap.add_argument("--port", default=default_port(), help="serial port (default: the first USB serial adapter found; U2D2 Linux /dev/ttyUSB0, macOS /dev/cu.usbserial-..., Windows COMx)")
     ap.add_argument("--baud", type=int, default=1_000_000, choices=sorted(BAUDS), help="baud rate to set at the end")
     ap.add_argument("--http", type=int, default=8770, help="port of the page (this computer only)")
     ap.add_argument("--no-browser", action="store_true")

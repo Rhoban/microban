@@ -14,6 +14,7 @@ At the end both get the factory temperature limit back (70 degC) and are reboote
     uv run tools/split_same_id.py [--port /dev/ttyUSB0] [--id 1] [--new 2] [--baud 57600]
 """
 import argparse
+import sys
 import time
 
 from rustypot import Xl330PyController
@@ -21,14 +22,33 @@ from rustypot import Xl330PyController
 DEFAULT_LIMIT = 70           # XL330 factory Temperature Limit (degC)
 
 
+def default_port():
+    """The U2D2's serial port: the first USB serial adapter found (Linux /dev/ttyUSB*, macOS /dev/cu.usbserial-*),
+    else COM3 (Windows: see the Device Manager)."""
+    import glob
+    found = sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*") + glob.glob("/dev/cu.usbserial-*"))
+    return found[0] if found else ("COM3" if sys.platform.startswith("win") else None)
+
+
+def open_port(port, baud, timeout):
+    if not port:
+        sys.exit("No USB serial adapter found (is the U2D2 plugged in?): give it with --port "
+                 "(Linux /dev/ttyUSB0, macOS /dev/cu.usbserial-..., Windows COMx)")
+    try:
+        return Xl330PyController(serial_port=port, baudrate=baud, timeout=timeout)
+    except OSError as e:
+        sys.exit(f"Cannot open {port} ({e}): check the U2D2 and give its port with --port "
+                 "(Linux /dev/ttyUSB0, macOS /dev/cu.usbserial-..., Windows COMx)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--port", default="/dev/ttyUSB0")
+    ap.add_argument("--port", default=default_port(), help="serial port of the U2D2 (default: the first USB serial adapter found; Linux /dev/ttyUSB0, macOS /dev/cu.usbserial-..., Windows COMx)")
     ap.add_argument("--baud", type=int, default=57600)
     ap.add_argument("--id", type=int, default=1, help="the ID both motors answer on")
     ap.add_argument("--new", type=int, default=2, help="the ID to give the warmer motor")
     a = ap.parse_args()
-    c = Xl330PyController(serial_port=a.port, baudrate=a.baud, timeout=0.1)
+    c = open_port(a.port, a.baud, 0.1)
 
     def quiet(f, *args):     # both motors execute a write to the shared ID; their status packets collide
         try:

@@ -37,8 +37,27 @@ XL330_M288 = 1200                      # model number
 BAUDS = Xl330PyController.baudrates()  # {baud rate: register value}
 
 
+def default_port():
+    """The U2D2's serial port: the first USB serial adapter found (Linux /dev/ttyUSB*, macOS /dev/cu.usbserial-*),
+    else COM3 (Windows: see the Device Manager)."""
+    import glob
+    found = sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*") + glob.glob("/dev/cu.usbserial-*"))
+    return found[0] if found else ("COM3" if sys.platform.startswith("win") else None)
+
+
+def open_port(port, baud, timeout):
+    if not port:
+        sys.exit("No USB serial adapter found (is the U2D2 plugged in?): give it with --port "
+                 "(Linux /dev/ttyUSB0, macOS /dev/cu.usbserial-..., Windows COMx)")
+    try:
+        return Xl330PyController(serial_port=port, baudrate=baud, timeout=timeout)
+    except OSError as e:
+        sys.exit(f"Cannot open {port} ({e}): check the U2D2 and give its port with --port "
+                 "(Linux /dev/ttyUSB0, macOS /dev/cu.usbserial-..., Windows COMx)")
+
+
 def open_bus(port, baud):
-    return Xl330PyController(serial_port=port, baudrate=baud, timeout=0.05)
+    return open_port(port, baud, 0.05)
 
 
 def find(bus, first_baud, bauds=None):
@@ -298,8 +317,8 @@ def cmd_scan(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("command", choices=["auto", "setup", "check", "scan"])
-    ap.add_argument("--port", default="/dev/ttyUSB0" if sys.platform.startswith("linux") else "COM3",
-                    help="serial port of the U2D2 (Linux /dev/ttyUSB0, Windows COMx, macOS /dev/tty.usbserial-...)")
+    ap.add_argument("--port", default=default_port(),
+                    help="serial port of the U2D2 (default: the first USB serial adapter found; Linux /dev/ttyUSB0, macOS /dev/cu.usbserial-..., Windows COMx)")
     ap.add_argument("--baud", type=int, default=1_000_000, choices=sorted(BAUDS),
                     help="baud rate to set (setup) or to check at (check); 1 Mbps by default")
     ap.add_argument("--factory-reset", action="store_true", help="auto/setup: factory reset each motor first")
