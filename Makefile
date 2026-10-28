@@ -76,5 +76,8 @@ gamepad-headless-disable:
 # MODEL: the robot model shown (default: microban_model's robot.xml; CLIMB=1: robot_climb.xml)
 CLIMB ?=
 MODEL ?= $(shell uv run --group dashboard python -c "import microban_model; print(microban_model.mjcf($(if $(CLIMB),True,False)))")
+# the page's Deploy button runs make deploy for the robot shown, as this user (the SD image's: radxa)
+ROBOT_USER ?= radxa
 dashboard:
-	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --robot $(HOST) --model $(MODEL) --title Microban
+	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app --robot $(HOST) --model $(MODEL) --title Microban \
+		--deploy 'make deploy HOST=$(ROBOT_USER)@{host}'

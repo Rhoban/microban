@@ -42,6 +42,9 @@ It then appears in the dashboard's Moves list (`make dashboard HOST=...`), with 
 make deploy HOST=microban-1a2b.local     # sends your code and restarts the robot's program
 ```
 
+Or, without typing anything: the **⟳ Deploy code** button of the dashboard (`make dashboard`) runs the same command
+for the robot it shows (a first click asks to confirm), its output in the page's Events.
+
 That is all: the robot's program (the service started at boot) reads its moves when it starts, so `make deploy`
 restarts it with your code, and a dashboard page already open shows the new Moves list by itself a few seconds later
 (nothing to reload or type). The same command after **any change to a move's code**: the running program keeps the

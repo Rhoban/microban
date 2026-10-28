@@ -65,7 +65,8 @@ The model is a MuJoCo XML or a URDF. The page: the robot in 3D (a motor in error
 the motor table (angle, error to target, current, temperature, state, Reboot / Torque buttons), plots of the last 10 s
 (total current, the selected motor's angle and target, trunk roll and pitch), the robot's events, and **Record**
 (a `recordings/ROBOT_DATE.npz` with one array per field and the robot's time).
-**Replay** plays a recording back in the same page (3D, table, moves' states, plots): play / pause (space), speed
+`--deploy CMD` adds a **⟳ Deploy code** button that runs CMD (`{host}`: the robot shown) from the current folder,
+its output in the events (Microban: `make deploy HOST=radxa@{host}`). **Replay** plays a recording back in the same page (3D, table, moves' states, plots): play / pause (space), speed
 ×0.1 to ×2, one frame back or forward (← →; with shift: one second), the slider to jump anywhere, **Live** to come
 back. The live robot keeps running meanwhile (its commands are hidden in the replay, except em in the header).
 

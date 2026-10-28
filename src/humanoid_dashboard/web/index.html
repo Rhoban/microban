@@ -29,6 +29,7 @@
   button.rec.on { background: var(--bad); border-color: var(--bad); color: #fff; }
   button.danger { border-color: var(--bad); color: var(--bad); }
   button.confirm { background: var(--bad); border-color: var(--bad); color: #fff; }
+  button:disabled { opacity: .55; cursor: default; }
   button.small { padding: 2px 8px; font-size: 12px; }
   button.stop { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
   button.stop:hover { filter: brightness(1.1); }
@@ -143,6 +144,7 @@
   <div class="chips" id="scalars"></div>
   <div class="spacer"></div>
   <span id="robotcmds" class="chips"></span>
+  <button id="deploy" hidden title="send this folder's code to the robot and restart its program (as make deploy): the torque goes off a few seconds, hold the robot">⟳ Deploy code</button>
   <button class="rec" id="rec">● Record</button>
   <button id="replay" title="replay a recording (the live robot keeps running; em still acts on it)">▶ Replay</button>
 </header>

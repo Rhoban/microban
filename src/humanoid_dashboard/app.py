@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import json
 import math
+import os
 import pathlib
 import socket
 import struct
@@ -172,6 +173,7 @@ class Hub:
         self.recording = None
         self.events = []
         self.robot_host, self.robot_addr = None, None
+        self.deploy_cmd, self.deploy_dir, self.deploying = None, None, False
 
     async def connect(self, host, port):
         """Talk to another robot (host name or IP): the page starts over with its schema."""
@@ -189,7 +191,38 @@ class Hub:
 
     def robot_msg(self):
         return {"type": "robot", "host": self.robot_host, "addr": self.robot_addr[0] if self.robot_addr else None,
-                "saved": saved_robots()}
+                "saved": saved_robots(), "deploy": bool(self.deploy_cmd), "deploying": self.deploying}
+
+    def event(self, text, level="info"):
+        msg = {"type": "event", "level": level, "text": text, "pc_time": time.time()}
+        self.events = (self.events + [msg])[-200:]
+        self.broadcast(msg)
+
+    async def deploy(self):
+        """The page's Deploy button: runs --deploy's command (e.g. make deploy HOST={host}) for the robot shown, its
+        output in the page's events. The robot restarts its program, so the page shows its new moves by itself."""
+        if self.deploying or not self.deploy_cmd or not self.robot_host:
+            return
+        self.deploying = True
+        self.broadcast(self.robot_msg())
+        cmd = self.deploy_cmd.format(host=self.robot_host)
+        self.event(f"deploy: {cmd}")
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                cmd, cwd=self.deploy_dir, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+                stdin=asyncio.subprocess.DEVNULL, env={**os.environ, "SSH_ASKPASS_REQUIRE": "never"},
+                start_new_session=True)                   # no terminal: SSH cannot ask a password
+            async for line in proc.stdout:
+                line = line.decode(errors="replace").rstrip()
+                if line and not line.startswith(("sending incremental", "sent ", "total size")):
+                    self.event(f"deploy: {line}")
+            ok = await proc.wait() == 0
+            self.event("deploy: done, the robot's program restarts with your code (a few seconds)" if ok else
+                       "deploy: FAILED (above). SSH needs your key on the robot: ssh-copy-id <user>@<robot>",
+                       "info" if ok else "error")
+        finally:
+            self.deploying = False
+            self.broadcast(self.robot_msg())
 
 
     # robot -> PC
@@ -293,8 +326,16 @@ class Recording:
 
 
 # ---------------------------------------------------------------------------------------------------- web server
+@web.middleware
+async def no_cache(request, handler):
+    """The page and its scripts are revalidated at each load: an updated dashboard is never shown from a stale cache."""
+    response = await handler(request)
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 def make_app(hub, model, title, rec_dir, port=PORT):
-    app = web.Application()
+    app = web.Application(middlewares=[no_cache])
     scene = model.scene()
 
     async def index(request):
@@ -351,6 +392,8 @@ def make_app(hub, model, title, rec_dir, port=PORT):
                     robots.pop(name, None)
                 save_robots(robots)
                 hub.broadcast(hub.robot_msg())
+            elif req.get("type") == "deploy":
+                asyncio.ensure_future(hub.deploy())
             elif req.get("type") == "cmd":
                 hub.command(req["name"], req.get("args") or {})
             elif req.get("type") == "record":
@@ -415,11 +458,15 @@ def main():
                     help="geom groups to draw (default: the geoms that do not collide)")
     ap.add_argument("--http", type=int, default=8780)
     ap.add_argument("--recordings", default="recordings", help="folder of the recordings (npz)")
+    ap.add_argument("--deploy", default=None, metavar="CMD",
+                    help="the page's Deploy button runs this command for the robot shown ({host}), from the current "
+                         "folder (Microban: make deploy HOST=radxa@{host}); no button without it")
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args()
 
     model = Model(a.model, a.visual_groups, motor_mesh=a.motor_mesh)
     hub = Hub(model)
+    hub.deploy_cmd, hub.deploy_dir = a.deploy, os.getcwd()
 
     async def run():
         loop = asyncio.get_running_loop()

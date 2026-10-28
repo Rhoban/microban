@@ -283,6 +283,10 @@ function connect() {
 // the robot watched: chosen here (the server talks to it); named robots are saved on this PC (the server's file)
 let robot = { host: null, saved: {} };
 function onRobot(m) {
+  const d = $("deploy");                                  // Deploy button: only when the dashboard got --deploy
+  d.hidden = !m.deploy || !m.host; d.disabled = !!m.deploying;
+  if (m.deploying) { d.textContent = "⟳ Deploying…"; d.classList.remove("confirm"); }
+  else if (!d.classList.contains("confirm")) d.textContent = "⟳ Deploy code";
   const changed = m.host !== robot.host || !m.host;
   robot = { host: m.host, addr: m.addr, saved: m.saved || {} };
   const name = Object.keys(robot.saved).find(k => robot.saved[k] === m.host);
@@ -434,6 +438,18 @@ function renderEditor(force) {
 $("edclose").onclick = () => { editing = null; $("editor").classList.remove("show"); };
 $("edsave").onclick = () => cmd("save_options", {});
 $("rec").onclick = () => send({ type: "record", on: !recording });
+// Deploy (as make deploy): a first click asks to confirm, the torque goes off while the robot's program restarts
+let deployTimer = null;
+$("deploy").onclick = () => {
+  const d = $("deploy");
+  if (!d.classList.contains("confirm")) {
+    d.classList.add("confirm"); d.textContent = "Robot held? Deploy";
+    deployTimer = setTimeout(() => { d.classList.remove("confirm"); d.textContent = "⟳ Deploy code"; }, 3000);
+    return;
+  }
+  clearTimeout(deployTimer); d.classList.remove("confirm");
+  send({ type: "deploy" });
+};
 
 // ------------------------------------------------------------------------------------------------ replay
 // The page holds a recording's plotted series; the server sends one frame at a time (values + 3D pose) where the
