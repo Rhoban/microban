@@ -87,6 +87,7 @@ class Scheduler:
         # toggle them as well as the moves: what it asks is added to what the keyboard / gamepad asks
         self.switches = list(switches or [])
         self._dash_requested: set[str] = set()
+        self._keys: set[str] = set()                # held in the dashboard's keyboard zone (Move.pressed, on_key)
         self._load_options()
         if self.telemetry is not None:
             self.telemetry.configure(self.registered_moves, self.switches)
@@ -136,6 +137,7 @@ class Scheduler:
                         self._last_imu_stale_warn_s = start_time
 
                 requested = self._requested_moves(obs)
+                self._dispatch_keys()
 
                 # Update move states and dispatch one call per move per tick
                 command = MotorCommand()
@@ -144,6 +146,7 @@ class Scheduler:
 
                     if in_active and move.state == MoveState.INACTIVE:
                         move.state = MoveState.STARTING
+                        move.slider.update({n: float(sl[2]) for n, sl in type(move).sliders.items()})
                     elif not in_active and move.state in (MoveState.STARTING, MoveState.ACTIVE):
                         move.state = MoveState.STOPPING
 
@@ -270,6 +273,22 @@ class Scheduler:
         if self._pose is not None and not self._pose["hold"]:
             return set()                               # the moves start once at the neutral pose
         return requested
+
+    def _dispatch_keys(self) -> None:
+        """The keys pressed / released in the dashboard's keyboard zone since the last tick: Move.pressed for every
+        move, Move.on_key for the running ones."""
+        if self.telemetry is None:
+            return
+        held = self.telemetry.keys_held()
+        if held == self._keys:
+            return
+        changes = [(k, False) for k in sorted(self._keys - held)] + [(k, True) for k in sorted(held - self._keys)]
+        self._keys = held
+        for move in self.registered_moves.values():
+            move.pressed = set(held)
+            if move.state in (MoveState.STARTING, MoveState.ACTIVE):
+                for key, down in changes:
+                    move.on_key(key, down)
 
     # ---- the moves' options (dashboard) -----------------------------------------------------------------------
     def _load_options(self) -> None:

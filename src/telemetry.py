@@ -7,11 +7,14 @@ reads the motors' health about once a second (torque, hardware error, voltage, t
 runs the page's commands between two ticks: `reboot` a motor (clears overheating / overload; its torque stays off),
 `torque` on/off for one motor; and passes the scheduler's to it: `em` (stop the moves, torque off), `init` (stop the
 moves, every motor to its zero, held until a move is launched), `move_start` / `move_stop` (a registered move or
-switch, as its key would).
+switch, as its key would). The moves' live controls: `slider` sets a move's slider (Move.sliders), `keys` the keys
+held in the page's keyboard zone (Move.pressed, Move.on_key; the page repeats it while keys are held: without news
+for KEYS_TIMEOUT_S, e.g. the PC's link lost, they are released).
 Without the humanoid_dashboard package, or with MICROBAN_DASHBOARD=0, it does nothing.
 """
 import math
 import os
+import time
 
 from constants import MOTOR_TO_ID
 
@@ -24,6 +27,7 @@ HEALTH_EVERY = 50                  # ticks (1 s at 50 Hz)
 CURRENT_LIMIT_A = 1.75             # XL330 at 5-8 V (BAM max_current)
 TEMPERATURE_LIMIT_C = 70           # XL330 factory Temperature Limit
 VOLTAGE_BIT = 1                    # always set above 7 V (the robot runs at ~8 V): not an error for Microban
+KEYS_TIMEOUT_S = 0.6               # the page repeats the held keys every 0.2 s
 MOVE_STATE = {"INACTIVE": 0, "STARTING": 1, "ACTIVE": 2, "STOPPING": 3}   # the page's codes (a switch: 0 / 2)
 
 
@@ -50,7 +54,10 @@ class Telemetry:
         self.requests: list[tuple[str, str | None]] = []                  # for the scheduler (take_requests)
         self.moves: dict = {}
         self.switches: list[str] = []
+        self.sliders: list[tuple[str, str]] = []                          # (move, slider) in the field's order
         self.tick_count = 0
+        self._keys: set[str] = set()
+        self._keys_t = 0.0
 
     def configure(self, moves: dict, switches: list[str] | None = None) -> None:
         """The scheduler's moves (name -> Move) and switches (names a key toggles that are not moves): the page lists
@@ -59,15 +66,18 @@ class Telemetry:
             return
         self.moves, self.switches = moves, list(switches or [])
         listed = self._listing()
+        self.sliders = [(k, n) for k, m in moves.items() for n in getattr(m, "sliders", {})]
         cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop",
-                                                                                     "move_option", "save_options"]
+                                                                                     "move_option", "save_options",
+                                                                                     "slider", "keys"]
+        sliders = {"sliders": [f"{k}.{n}" for k, n in self.sliders]} if self.sliders else {}
         try:
             self.link = Link("Microban", fields={
                 "q": self.names, "q_target": self.names, "dq": self.names, "current": self.names,
                 "torque": self.names, "hw_error": self.names, "voltage": self.names, "temperature": self.names,
                 "imu_quat": ["w", "x", "y", "z"], "gyro": ["x", "y", "z"], "acc": ["x", "y", "z"],
                 "tick_ms": ["tick"], "powered": ["on"], "init": ["on"],
-                "moves": [m["name"] for m in listed]},
+                "moves": [m["name"] for m in listed], **sliders},
                 meta={"motor_ids": MOTOR_TO_ID, "limits": {"current": CURRENT_LIMIT_A, "temperature": TEMPERATURE_LIMIT_C},
                       "hw_error_bits": {"0": "input voltage", "2": "overheating", "3": "motor encoder",
                                         "4": "electrical shock", "5": "overload"},
@@ -84,6 +94,8 @@ class Telemetry:
     def _listing(self) -> list[dict]:
         return [{"name": k, "kind": "move", "options": dict(getattr(m, "options", {}) or {}),
                  "option_docs": dict(getattr(m, "option_docs", {}) or {}),
+                 "sliders": {n: list(v) for n, v in (getattr(m, "sliders", {}) or {}).items()},
+                 "keys": getattr(m, "keys", "") or "",
                  "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
                 for k, m in self.moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
 
@@ -101,6 +113,12 @@ class Telemetry:
         value)]), ...]."""
         out, self.requests = self.requests, []
         return out
+
+    def keys_held(self) -> set[str]:
+        """The keys held in the page's keyboard zone (none once the page stopped repeating them)."""
+        if self._keys and time.monotonic() - self._keys_t > KEYS_TIMEOUT_S:
+            self._keys = set()
+        return set(self._keys)
 
     def torque_changed(self, on: bool) -> None:
         self.torque = [int(on)] * len(self.ids)
@@ -129,7 +147,7 @@ class Telemetry:
             torque=self.torque, hw_error=self.error, voltage=self.voltage, temperature=self.temperature,
             imu_quat=state.body_quat or None, gyro=state.gyro or None, acc=state.acc or None,
             tick_ms=tick_ms, powered=status.get("powered"), init=status.get("init"),
-            moves=moves)
+            moves=moves, sliders=[self.moves[k].slider[n] for k, n in self.sliders])
         for cmd in self.link.commands():
             self._run(cmd)
 
@@ -147,6 +165,20 @@ class Telemetry:
 
     def _run(self, cmd: dict) -> None:
         name = cmd["name"]
+        if name == "keys":                            # no answer: sent at each key and repeated while keys are held
+            held = cmd["args"].get("held")
+            if isinstance(held, list):
+                self._keys = {str(k)[:20] for k in held[:10]}
+                self._keys_t = time.monotonic()
+            return
+        if name == "slider":                          # no answer either (many while dragged): the frames show it
+            m = self.moves.get(cmd["args"].get("move"))
+            sl = cmd["args"].get("slider")
+            spec = (getattr(m, "sliders", {}) or {}).get(sl) if m is not None else None
+            value = cmd["args"].get("value")
+            if spec is not None and isinstance(value, (int, float)) and math.isfinite(value):
+                m.slider[sl] = min(max(float(value), spec[0]), spec[1])
+            return
         if name in ("em", "init"):                    # run by the scheduler at its next tick
             self.requests.append((name, None))
             self.link.ack(cmd, True, "emergency stop: moves stopped, torque off" if name == "em" else

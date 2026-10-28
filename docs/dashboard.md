@@ -10,7 +10,7 @@ plots and messages. It also starts and stops the moves, deploys your code, and r
 | 1 | **Link and robot** | link rate (green: data arrives), the robot shown (click to change it), the loop time, torque on / off |
 | 2 | **Whole-robot buttons** | **Init (zero)**, **⏻ Torque off (em)**, **⟳ Deploy code**, **● Record**, **▶ Replay** |
 | 3 | **3D view** | the robot as it is (drag: rotate, right-drag: pan, wheel: zoom); click a part to select its motor |
-| 4 | **Moves** | every move of the robot, with Start / Stop and its state (off, starting, on, stopping) |
+| 4 | **Moves** | every move of the robot, with Start / Stop and its state (off, starting, on, stopping); the moves' sliders and keyboard zone |
 | 5 | **Motors** | ID, joint, angle, error to its target, current, temperature, state, Reboot / Torque buttons |
 | 6 | **Plots** | the last 10 s: total current, the selected motor's angle and target, the trunk's roll and pitch |
 | 7 | **Events** | the robot's messages and the answers to your commands (a move file that does not load shows here) |
@@ -46,6 +46,13 @@ make dashboard HOST=microban-1a2b.local CLIMB=1   # with the climbing forearms a
 which sends your code to the robot and restarts its program; see [moves.md](moves.md). Deploy needs your SSH key on
 the robot (`ssh-copy-id radxa@<robot>`); it shows its progress in the Events. A move's ⚙ button edits the variables
 it exposes, live; **Save on robot** keeps them for the next start.
+
+A move can be driven live: its sliders show under the moves, and a **Keyboard** zone when a move reads keys. Click
+the zone (it turns orange), then the keys you hold go to the robot; click elsewhere (or Esc) and they are released.
+The moves' code: [moves.md](moves.md#drive-it-live-sliders-and-keys); try the `look` move (the head follows its
+slider, or the ← → keys).
+
+![The look move running: its slider and the keyboard zone, clicked (orange): the keys go to the robot](images/dashboard/controls.png)
 
 ## A motor in error
 

@@ -51,6 +51,20 @@
   .mv.busy { border-color: var(--warn); background: var(--warn-soft); }
   .mv b { font-weight: 600; } .mv small { color: var(--muted); }
   .mv.switch { border-style: dashed; }
+  /* the moves' live controls: their sliders, and the keyboard zone (the keys go to the robot while it has the focus) */
+  #controls { display: none; flex-direction: column; gap: 6px; padding: 0 10px 8px; }
+  #controls.show { display: flex; }
+  .slrow { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr) 56px; gap: 8px; align-items: center; font-size: 12px; }
+  .slrow.off { opacity: .5; }
+  .slrow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .slrow small { color: var(--muted); }
+  .slrow input { width: 100%; accent-color: var(--accent); margin: 0; }
+  .slrow b { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+  #keyzone { display: none; border: 1.5px dashed var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12px;
+             color: var(--muted); cursor: pointer; outline: none; }
+  #keyzone.show { display: block; }
+  #keyzone:focus { border-style: solid; border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  #keyzone kbd { font: 600 11px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px;
+                 background: var(--panel); color: var(--ink); }
   #editor { position: fixed; right: 16px; top: 64px; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 90px);
             z-index: 10; display: none; box-shadow: 0 8px 30px rgba(0, 0, 0, .18); }
   #editor.show { display: flex; }
@@ -161,7 +175,8 @@
       <button id="rp_live" title="back to the live robot">Live</button>
     </div></div>
   <div id="right">
-    <div class="card" id="moves"><h2>Moves <span class="legend">start / stop (as their keys); dashed: switches</span></h2><div id="movelist"></div></div>
+    <div class="card" id="moves"><h2>Moves <span class="legend">start / stop (as their keys); dashed: switches</span></h2><div id="movelist"></div>
+      <div id="controls"><div id="sliders"></div><div id="keyzone" tabindex="0"></div></div></div>
     <div class="card" id="motors"><h2>Motors <span id="summary" class="legend"></span></h2><div class="scroll"><table id="table"></table><div id="empty">Waiting for the robot…</div></div></div>
   </div>
   <div id="bottom">

@@ -338,7 +338,7 @@ function applySchema(s) {          // the live robot's, or a recording's while i
   if (!replay && w.join("\n") !== shownWarnings) { shownWarnings = w.join("\n"); w.forEach(t => log({ level: "error", text: t })); }
   schema = s; names = Object.fromEntries(schema.fields); meta = schema.meta || {}; tableKey = ""; renderTable(true);
   $("title").textContent = schema.robot + (replay ? " · replay" : ""); document.title = schema.robot + " · dashboard";
-  movesKey = ""; renderMoves(); renderEditor(false);
+  movesKey = ""; renderMoves(); controlsKey = ""; renderControls(); renderEditor(false);
 }
 function onFrame(m) {
   const pill = $("link");
@@ -361,7 +361,7 @@ function showFrame(m) {
   // scalar fields (one value each) in the header
   // one-value fields: as the robot describes them (meta.scalars: label + unit, or a flag's texts), else name = value
   const desc = meta.scalars || {};
-  const sc = Object.entries(names).filter(([k, l]) => l.length === 1 && k !== "moves").map(([k]) => {
+  const sc = Object.entries(names).filter(([k, l]) => l.length === 1 && k !== "moves" && k !== "sliders").map(([k]) => {
     const v = m.values[k][0], d = desc[k] || {};
     if (d.flag) { const t = d.flag[v ? 1 : 0]; return t ? `<span class="pill ${v ? "ok" : "warn"}">${t}</span>` : ""; }
     return `${d.label || k} <b>${v === null ? "–" : (+v).toFixed(1)}</b>${d.unit ? " " + d.unit : ""}`;
@@ -371,6 +371,7 @@ function showFrame(m) {
   renderTable();
   renderRobotCmds();
   renderMoves();
+  renderControls();
 }
 // whole-robot commands (the ones the robot lists), as em / init on Rhoban's robots
 let robotCmdsKey = "";
@@ -416,6 +417,61 @@ function renderMoves() {
     box.appendChild(el);
   });
 }
+// the moves' live controls (Move.sliders, Move.keys): a slider sends its value while dragged (the frames show the
+// robot's, e.g. back to the start value at a launch); the keyboard zone, once clicked, sends the keys held
+let controlsKey = "";
+function renderControls() {
+  const list = meta.moves || [], vals = last && last.values && last.values.moves ? last.values.moves : [];
+  const withSliders = list.filter(m => Object.keys(m.sliders || {}).length), withKeys = list.filter(m => m.keys);
+  const key = JSON.stringify(withSliders.map(m => [m.name, m.sliders])) + withKeys.map(m => m.name + m.keys).join() + !!replay;
+  if (key !== controlsKey) {
+    controlsKey = key;
+    const box = $("sliders"); box.innerHTML = "";
+    for (const m of withSliders) for (const [n, [lo, hi]] of Object.entries(m.sliders)) {
+      const row = document.createElement("div"); row.className = "slrow"; row.dataset.label = `${m.name}.${n}`;
+      row.innerHTML = `<span>${n} <small>${m.name}</small></span>`;
+      const inp = document.createElement("input"); inp.type = "range"; inp.min = lo; inp.max = hi; inp.step = (hi - lo) / 200;
+      inp.disabled = !!replay;
+      let sent = 0;
+      inp.oninput = () => {                       // at most 20 values a second while dragged, and the last one
+        const now = performance.now(); clearTimeout(inp.timer);
+        const go = () => { sent = performance.now(); cmdQuiet("slider", { move: m.name, slider: n, value: +inp.value }); };
+        if (now - sent > 50) go(); else inp.timer = setTimeout(go, 50);
+        row.querySelector("b").textContent = fmt(+inp.value);
+      };
+      row.appendChild(inp); row.appendChild(document.createElement("b")); box.appendChild(row);
+    }
+    const kz = $("keyzone");
+    kz.classList.toggle("show", withKeys.length > 0 && !replay);
+    kz.innerHTML = "<b>Keyboard</b>: click here, then the keys go to the robot (click elsewhere: released) · " +
+      withKeys.map(m => `<kbd>${m.name}</kbd> ${m.keys}`).join(" · ");
+    if (replay) kz.blur();
+  }
+  $("controls").classList.toggle("show", withSliders.length > 0 || (withKeys.length > 0 && !replay));
+  const lab = names.sliders || [], sv = last && last.values && last.values.sliders ? last.values.sliders : [];
+  for (const row of $("sliders").children) {
+    const i = lab.indexOf(row.dataset.label), inp = row.querySelector("input");
+    const m = list.findIndex(x => x.name === row.dataset.label.split(".")[0]);
+    row.classList.toggle("off", (vals[m] ?? 0) === 0);
+    if (i < 0 || sv[i] === null || sv[i] === undefined || document.activeElement === inp) continue;   // not under the cursor
+    inp.value = sv[i]; row.querySelector("b").textContent = fmt(sv[i]);
+  }
+}
+const fmt = v => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
+function cmdQuiet(name, args) { send({ type: "cmd", name, args }); }           // not in the events (many a second)
+const held = new Set();
+const keyName = e => e.key === " " ? "space" : e.key.length === 1 ? e.key.toLowerCase() : e.key;
+function sendKeys() { cmdQuiet("keys", { held: [...held] }); }
+setInterval(() => { if (held.size) sendKeys(); }, 200);     // repeated: the robot releases them without news
+$("keyzone").addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.key === "Tab" || e.key === "Escape") { if (e.key === "Escape") $("keyzone").blur(); return; }
+  e.preventDefault();                                        // arrows and space do not scroll the page
+  if (e.repeat) return;
+  held.add(keyName(e)); sendKeys();
+});
+$("keyzone").addEventListener("keyup", e => { if (held.delete(keyName(e))) sendKeys(); });
+$("keyzone").addEventListener("blur", () => { if (held.size) { held.clear(); sendKeys(); } });
+window.addEventListener("blur", () => { if (held.size) { held.clear(); sendKeys(); } });
 // the editor of a move's variables (as RhIO's parameters): applied at once on the robot, Save keeps them there
 let editing = null;
 function openEditor(name) { editing = name; renderEditor(true); $("editor").classList.add("show"); }

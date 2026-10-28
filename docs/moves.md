@@ -98,4 +98,33 @@ The move reads `self.options[...]` where it needs them; a change applies at once
 **Save on robot** writes every move's variables to `move_options.json` (repo root on the robot), read again at the
 next start over the defaults written in the code.
 
+## Drive it live: sliders and keys
+
+A move can also be driven while it runs, from the dashboard's Moves card: sliders, and a keyboard zone (click it, then
+the keys you press go to the robot; click elsewhere and they are released).
+
+```python
+class LookMove(Move):                                   # src/moves/look.py, the full example
+    sliders = {"head": (-0.8, 0.8, 0.0)}                # name -> (min, max, start value)
+    keys = "← →: turn the head"                         # shown in the keyboard zone (the zone appears with it)
+
+    def step(self, obs, command):
+        if "ArrowLeft" in self.pressed:                 # the keys held now
+            self.slider["head"] += 0.02
+        command.target_angles["head"] = self.slider["head"]
+
+    def on_key(self, key, down):                        # optional: once per press (down=True) and release
+        if key == "space" and down:
+            print("space!")
+```
+
+* `self.slider[name]`: the slider's value. It goes back to its start value at each launch of the move (the robot
+  never starts with a speed left high); the move may change it too, and the page follows.
+* `self.pressed`: the keys held. Their names are the browser's: `"a"` to `"z"` (lower case), `"0"` to `"9"`,
+  `"space"`, `"ArrowUp"`, `"ArrowDown"`, `"ArrowLeft"`, `"ArrowRight"`, `"Enter"`, `"Shift"`...
+* `on_key(key, down)` is called only while the move runs. If the page goes quiet (closed, network lost), the held keys
+  are released after 0.6 s.
+
+Unlike the variables above, sliders and keys are not saved: they are for driving, not for settings.
+
 Your own controller written for the climbing simulator runs as a move with no code here: docs/controller.md.

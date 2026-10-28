@@ -37,12 +37,23 @@ class Move(ABC):
     options: dict = {}            # settings the dashboard can change while the robot runs: name -> int / float / bool
     option_docs: dict = {}        # name -> one line, shown in the dashboard's editor
 
+    sliders: dict = {}            # live controls in the dashboard's Moves card: name -> (min, max, start value);
+                                  # read self.slider[name] in step(); back to its start value at each launch
+    keys: str = ""                # the keys it reads, shown by the dashboard's keyboard zone, e.g. "arrows: turn the head"
+
     def __init__(self) -> None:
         self.state: MoveState = MoveState.INACTIVE
         self.options = dict(type(self).options)
+        self.slider: dict[str, float] = {name: float(s[2]) for name, s in type(self).sliders.items()}
+        self.pressed: set[str] = set()     # the keys held in the dashboard's keyboard zone ("a", "space", "ArrowUp"...)
 
     def on_option(self, name: str, value) -> None:
         """Called when the dashboard changed self.options[name] (already set), between two ticks."""
+
+    def on_key(self, key: str, down: bool) -> None:
+        """Called while the move runs (starting or on), between two ticks, when a key of the dashboard's keyboard zone
+        is pressed (down=True) or released: "a" to "z", "0" to "9", "space", "ArrowUp", "Enter"... (self.pressed:
+        the keys held now)."""
 
     def reset(self) -> None:
         """Called when em or init stops the move at once (on_stop is not called then): forget any transition in

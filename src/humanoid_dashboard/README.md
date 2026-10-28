@@ -50,7 +50,10 @@ Other fields are recorded. Joint labels are matched to the model's joints by nam
 `reboot {joint}` (shown on a motor in error) and `torque {joint, on}`, each with a confirmation click, and two
 whole-robot buttons in the header: `em` (emergency: torque off on every motor, no confirmation) and `init` (every motor
 to its zero, confirmed). With the robot's moves listed in `meta.moves`: `move_start {move}` and `move_stop {move}` (a
-start is confirmed), `move_option {move, option, value}` (the ⚙ editor) and `save_options`. The **⟳ Deploy code**
+start is confirmed), `move_option {move, option, value}` (the ⚙ editor) and `save_options`; a move's live controls
+(`meta.moves[i].sliders` {name: [min, max, start]}, `keys` a text), unanswered: `slider {move, slider, value}` while
+dragged (the field `sliders`, labels `move.slider`, gives the robot's values) and `keys {held: [...]}` at each key and
+every 0.2 s while keys are held in the keyboard zone. The **⟳ Deploy code**
 button runs a command on the PC (`--deploy`), not on the robot. The robot answers each with `ack` (shown in Events) and decides what is safe; it lists the
 ones it accepts in `meta.commands`, and the page shows only those.
 
