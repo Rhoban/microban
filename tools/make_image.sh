@@ -61,4 +61,4 @@ sudo parted -s "$OUT" unit MiB print
 echo "4/4 compression"
 xz -T0 -6 -f -v "$OUT"
 ls -lh "$OUT.xz"
-echo "Flash it on a card (8 GB or more) with Raspberry Pi Imager or balenaEtcher (docs/sd_image.md)."
+echo "Flash it on a card (16 GB or more) with Raspberry Pi Imager or balenaEtcher (docs/sd_image.md)."

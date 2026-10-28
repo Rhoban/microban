@@ -6,7 +6,7 @@ ready), and the robot service (the control loop starts at boot, torque off until
 
 ## Flash a robot
 
-1. Flash `microban.img.xz` on a card of 8 GB or more with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
+1. Flash `microban.img.xz` on a card of 16 GB or more (the image is 8.6 GB) with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
    ("Use custom") or [balenaEtcher](https://etcher.balena.io/); on Linux also
    `xz -dc microban.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync`.
 2. Put it in the robot and power it on. At its first boot (about 1 min) the robot grows its partition to the whole
