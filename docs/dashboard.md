@@ -25,11 +25,11 @@ nothing more while no dashboard watches.
 **On the PC, when you want to watch:**
 
 ```bash
-make dashboard HOST=microban-1a2b.local       # the robot's bare host name or IP (no user@); opens http://127.0.0.1:8780
-make dashboard HOST=microban-1a2b.local CLIMB=1   # the climbing forearms and feet in the 3D view
+make dashboard HOST=microban-1a2b.local           # opens http://127.0.0.1:8780
+make dashboard HOST=microban-1a2b.local CLIMB=1   # with the climbing forearms and feet
 ```
 
-Close it any time: the robot does not depend on it.
+`HOST` is the robot's bare host name or IP (no `user@`). Close the page any time: the robot does not depend on it.
 
 | Commands of the robot service | |
 | :--- | :--- |
