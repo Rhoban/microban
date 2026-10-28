@@ -56,7 +56,7 @@ fi
 # 2. the image
 if [ -z "$IMG" ]; then
     IMG=$(ls -t microban*.img.xz 2>/dev/null | head -1 || true)
-    [ -n "$IMG" ] && echo "Image: $IMG (found here)" || read -r -p "Image to flash (.img.xz): " IMG
+    [ -n "$IMG" ] || read -r -p "Image to flash (.img.xz): " IMG
 fi
 [ -f "$IMG" ] || { echo "no image $IMG"; exit 1; }
 # the image's size and how to read it
