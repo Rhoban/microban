@@ -8,7 +8,8 @@
 #   tools/flash_card.sh microban.img.xz /dev/sdX     # no question (Linux /dev/sdX or /dev/mmcblkN, macOS /dev/diskN)
 #
 # Without an image given, it takes the microban*.img.xz of the current folder (or asks). Refuses the disk the PC runs on and a card smaller than the image; asks to type the card's name before writing.
-# After writing, it reads the card back and compares it with the image (--no-verify to skip, ~2 min).
+# A progress bar shows the percent, GB done, MB/s and time left while it writes, then while it reads the card back
+# to compare it with the image (--no-verify to skip; the bar needs python3).
 # Windows: use Raspberry Pi Imager ("Use custom") or balenaEtcher.
 set -euo pipefail
 
@@ -83,22 +84,44 @@ if [ "$OS" = Darwin ] && [ -b "$DEV" ]; then
 elif [ -b "$DEV" ]; then
     for p in $(lsblk -n -l -o NAME "$DEV" | tail -n +2); do sudo umount "/dev/$p" 2>/dev/null || true; done
 fi
-echo "Writing ($((SIZE / 1000000)) MB)..."
-if command -v pv >/dev/null; then
-    "${READ[@]}" | pv -s "$SIZE" | sudo dd of="$OUTDEV" bs=4194304 2>/dev/null
-elif [ "$OS" = Darwin ]; then
-    "${READ[@]}" | sudo dd of="$OUTDEV" bs=4m
-else
-    "${READ[@]}" | sudo dd of="$OUTDEV" bs=4M status=progress conv=fsync
-fi
+# progress bar on a stream: percent, GB done / total, MB/s, time left (python3; without it, no bar)
+progress() {             # progress LABEL BYTES: copies stdin to stdout
+    if ! command -v python3 >/dev/null; then cat; return; fi
+    python3 -c '
+import sys, time
+label, total = sys.argv[1], int(sys.argv[2])
+inp, out = sys.stdin.buffer, sys.stdout.buffer
+done, t0, last = 0, time.time(), 0.0
+def show(end=False):
+    dt = max(time.time() - t0, 1e-6); rate = done / dt; frac = min(done / total, 1.0) if total else 1.0
+    left = (total - done) / rate if rate > 0 else 0
+    bar = "#" * int(30 * frac) + "-" * (30 - int(30 * frac))
+    sys.stderr.write("\r%s [%s] %3d%%  %.2f / %.2f GB  %5.1f MB/s  %s   " % (label, bar, 100 * frac, done / 1e9,
+                     total / 1e9, rate / 1e6, "done in %d:%02d" % divmod(int(dt), 60) if end else
+                     "%d:%02d left" % divmod(int(left), 60)))
+    sys.stderr.flush()
+while True:
+    b = inp.read(4 << 20)
+    if not b: break
+    out.write(b); done += len(b)
+    if time.time() - last > 0.5: show(); last = time.time()
+out.flush(); show(True); sys.stderr.write("\n")
+' "$1" "$2"
+}
+
+# the card writes without the page cache (Linux O_DIRECT, macOS raw device): the bar shows the card's real speed
+if [ "$OS" = Darwin ]; then DD=(sudo dd of="$OUTDEV" bs=4m); else DD=(sudo dd of="$OUTDEV" bs=4M iflag=fullblock oflag=direct); fi
+[ -f "$OUTDEV" ] && DD=(sudo dd of="$OUTDEV" bs=4M conv=notrunc)            # a file (tests): no O_DIRECT
+"${READ[@]}" | progress "Writing " "$SIZE" | "${DD[@]}" 2>/dev/null
 sync
 
 if [ "$VERIFY" = 1 ]; then
-    echo "Checking (reading the card back)..."
-    want=$("${READ[@]}" | shasum -a 256 | cut -d' ' -f1)
-    got=$(sudo head -c "$SIZE" "$OUTDEV" | shasum -a 256 | cut -d' ' -f1)
+    # the image's checksum in the background while the card is read back
+    sumfile=$(mktemp); ("${READ[@]}" | shasum -a 256 | cut -d' ' -f1 > "$sumfile") &
+    got=$(sudo head -c "$SIZE" "$OUTDEV" | progress "Checking" "$SIZE" | shasum -a 256 | cut -d' ' -f1)
+    wait; want=$(cat "$sumfile"); rm -f "$sumfile"
     if [ "$want" != "$got" ]; then echo "CHECK FAILED: the card differs from the image (bad card or reader?)"; exit 1; fi
-    echo "Check OK"
+    echo "Check OK: the card is identical to the image"
 fi
 
 if [ -b "$DEV" ]; then
