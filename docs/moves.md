@@ -40,6 +40,9 @@ Then on the robot:
 make deploy HOST=radxa@microban-1a2b.local    # sends your code and restarts the robot's program
 ```
 
+Before sending, `make deploy` saves the robot's code as it was (`~/microban_backups/` on the robot, the last 5
+kept): `make restore HOST=...` goes back to it if the new code does not do what you want.
+
 Or, without typing anything: the **⟳ Deploy code** button of the dashboard runs the same command for the robot it
 shows (a first click asks to confirm), its output in the page's Events. The program reads its moves when it starts:
 after any change to a move's code, deploy again (only the options, below, change live without a restart). The

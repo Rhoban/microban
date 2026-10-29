@@ -45,7 +45,8 @@ it, the page opens on its robot picker. `make discover-robots` lists the robots 
 **Start** asks to confirm (a second click within 3 s): the torque goes on where the robot is (or, for a move that asks
 it, after a 2 s ramp to the neutral pose), then the move runs.
 **Stop** stops it. A move you write in `src/moves/` appears here by itself after **⟳ Deploy code** (or `make deploy`),
-which sends your code to the robot and restarts its program; see [moves.md](moves.md). Deploy needs your SSH key on
+which saves the robot's code as it was (`~/microban_backups/`, the last 5: `make restore`), sends yours and restarts
+its program; see [moves.md](moves.md). Deploy needs your SSH key on
 the robot (`ssh-copy-id radxa@<robot>`); it shows its progress in the Events. A move's ⚙ button edits the variables
 it exposes, live; **Save on robot** keeps them for the next start.
 

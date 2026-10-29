@@ -1,4 +1,4 @@
-.PHONY: discover-robots sync setup deploy run stop robot-service-enable robot-service-disable robot-service-start robot-service-stop robot-service-logs shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
+.PHONY: discover-robots sync backup restore setup deploy run stop robot-service-enable robot-service-disable robot-service-start robot-service-stop robot-service-logs shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
 
 HOST ?= microban
 ID ?=
@@ -67,7 +67,26 @@ robot-service-stop:
 # reads the moves at start. An open dashboard page then shows the new Moves list by itself (no reload). The torque goes
 # off for the few seconds of the restart: hold the robot (or let it sit), never on the wall.
 # New Python dependencies (pyproject.toml): make setup first.
-deploy: sync
+# Before every deploy, the robot's code as it was goes to ~/microban_backups/ (its last 5 kept; not .venv, recordings,
+# logs). make restore HOST=...: back to the latest one (BACKUP=microban_YYYYmmdd_HHMMSS.tgz: that one), and restart.
+BACKUPS = 5
+BACKUP ?=
+backup:
+	ssh $(HOST) "set -e; [ -d microban ] || exit 0; mkdir -p microban_backups; \
+		f=microban_backups/microban_\$$(date +%Y%m%d_%H%M%S).tgz; \
+		tar czf \$$f --exclude=microban/.venv --exclude=microban/recordings --exclude=microban/logs \
+			--exclude='__pycache__' microban; \
+		ls -1t microban_backups/microban_*.tgz | tail -n +$$(($(BACKUPS) + 1)) | xargs -r rm -f; \
+		echo \"backup of the robot's code: ~/\$$f (the last $(BACKUPS) kept: make restore)\""
+
+restore:
+	ssh $(HOST) "set -e; f=\$$(ls -1t microban_backups/microban_*.tgz | head -1); $(if $(BACKUP),f=microban_backups/$(BACKUP);) \
+		[ -f \"\$$f\" ] || { echo 'no backup on the robot'; exit 1; }; \
+		t=\$$(mktemp -d); tar xzf \$$f -C \$$t; \
+		rsync -a --delete --exclude=.venv --exclude=recordings --exclude=logs \$$t/microban/ microban/; rm -rf \$$t; \
+		sudo systemctl restart microban.service; echo \"robot's code back to ~/\$$f, its program restarted\""
+
+deploy: backup sync
 	ssh $(HOST) "sudo systemctl restart microban.service && echo 'robot program restarted with your code'"
 
 robot-service-logs:

@@ -23,7 +23,8 @@ takes it too, or the bare name).
 | :--- | :--- |
 | `make discover-robots` | The robots on this network: name (`microban-XXXX`), address, whether their program runs, their version, torque on / off; with the commands to reach the first one. |
 | `make run` | Sync the code and start the control loop on the robot (50 Hz). Stays attached to your terminal for live control (it stops the robot service for the session). `MOVES=path.py`: also the moves of a file kept outside `src/moves/` ([moves.md](moves.md)). |
-| `make deploy` | Sync the code and restart the robot service: your moves run, the dashboard shows them by itself ([moves.md](moves.md)). |
+| `make deploy` | Sync the code and restart the robot service: your moves run, the dashboard shows them by itself ([moves.md](moves.md)). First, the robot's code as it was is saved in `~/microban_backups/` on the robot (the last 5 kept). |
+| `make restore` | Back to the code of the last deploy's backup (`BACKUP=microban_YYYYmmdd_HHMMSS.tgz`: that one), and restart the robot's program. |
 | `make stop` | Stop the control loop and disable torque on all motors. The robot service stays stopped (until `make robot-service-start` or a reboot). |
 | `make shutdown` | Power off the Pi cleanly. |
 | `make setup` | Sync the code and (re)install dependencies on the robot (`uv sync`, from `pyproject.toml`). Run after changing dependencies. |
