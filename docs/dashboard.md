@@ -13,7 +13,7 @@ plots and messages. It also starts and stops the moves, deploys your code, and r
 | 4 | **Moves** | every move of the robot, with Start / Stop and its state (off, starting, on, stopping); the moves' sliders and keyboard zone |
 | 5 | **Motors** | ID, joint, angle, error to its target, current, temperature, state, Reboot / Torque buttons |
 | 6 | **Plots** | the last 10 s: total current, the selected motor's angle and target, the trunk's roll and pitch |
-| 7 | **Events** | the robot's messages and the answers to your commands (a move file that does not load shows here) |
+| 7 | **Events** | the robot's messages, the answers to your commands, your moves' `print()` (`move: text`), and a move file that does not load |
 
 ## Start it
 

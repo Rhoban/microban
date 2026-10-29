@@ -76,6 +76,8 @@ first. To try a move from a terminal instead (keyboard keys, its prints), `make 
   frame), `time_s`. `obs.user_input`: `active_moves`, `velocity` (sticks / arrows).
 * `command.target_angles`: joint name -> target (rad). It starts each tick at `NEUTRAL_POSE`; a move overwrites the
   joints it drives. Several moves may run together (the head and the walk); the later one in `moves` wins a joint.
+* `print()` in a move goes to the dashboard's Events (`wave: text`, at most 10 lines a second per move; the rest is
+  counted there) and to the robot's log as before (`make robot-service-logs`, or the terminal with `make run`).
 * `preload()`: called once before the loop (load a network there). A move that needs the controller (the servos'
   gain, `sync_write_kp`) takes it in its constructor, as `WalkMove(controller=controller)`.
 

@@ -29,6 +29,7 @@ from imu_reader import imu_quat_to_body
 from observer import Observer, Observation
 from input.input_source import InputSource, UserInput, scale_velocity
 from moves.move import ALL, CLASSIC, MotorCommand, Move, MoveState
+from move_output import MoveOutput
 from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
@@ -95,6 +96,7 @@ class Scheduler:
         self._save_variant = variant is None
         self.variant = variant or self._load_variant()
         self._refused: set[str] = set()             # moves asked that are not for this version (said once)
+        self._output = MoveOutput(self.telemetry)    # the moves' print(): terminal and dashboard events
         self._load_options()
         if self.telemetry is not None:
             self.telemetry.configure(self.registered_moves, self.switches, self.variant)
@@ -157,12 +159,13 @@ class Scheduler:
                     elif not in_active and move.state in (MoveState.STARTING, MoveState.ACTIVE):
                         move.state = MoveState.STOPPING
 
-                    if move.state == MoveState.STARTING:
-                        move.on_start(obs, command)
-                    elif move.state == MoveState.ACTIVE:
-                        move.step(obs, command)
-                    elif move.state == MoveState.STOPPING:
-                        move.on_stop(obs, command)
+                    with self._output.capture(name):
+                        if move.state == MoveState.STARTING:
+                            move.on_start(obs, command)
+                        elif move.state == MoveState.ACTIVE:
+                            move.step(obs, command)
+                        elif move.state == MoveState.STOPPING:
+                            move.on_stop(obs, command)
 
                 # Overcurrent safety: estimate the current from the command that was actually
                 # active when the (delayed) position/velocity feedback was sampled — the oldest
@@ -240,7 +243,8 @@ class Scheduler:
                 opt, value = extra[0]
                 move = self.registered_moves[name]
                 move.options[opt] = value
-                move.on_option(opt, value)
+                with self._output.capture(name):
+                    move.on_option(opt, value)
                 self.telemetry.options_changed()
             elif op == "save_options":
                 self.telemetry.event(self._save_options())
@@ -301,11 +305,12 @@ class Scheduler:
             return
         changes = [(k, False) for k in sorted(self._keys - held)] + [(k, True) for k in sorted(held - self._keys)]
         self._keys = held
-        for move in self.registered_moves.values():
+        for name, move in self.registered_moves.items():
             move.pressed = set(held)
             if move.state in (MoveState.STARTING, MoveState.ACTIVE):
-                for key, down in changes:
-                    move.on_key(key, down)
+                with self._output.capture(name):
+                    for key, down in changes:
+                        move.on_key(key, down)
 
     # ---- the moves' options (dashboard) -----------------------------------------------------------------------
     def _load_options(self) -> None:
