@@ -34,12 +34,12 @@ VARIANT ?= classic
 WALL ?=
 START ?= hang
 SIMULATOR ?= ../simulator
-# until microban_sim is published (it then becomes a dependency of the sim group): its clone next to this folder
-MICROBAN_SIM ?= ../microban_sim
+# MICROBAN_SIM=path/to/microban_sim: a clone of Rhoban's robot simulator instead of its release (to change it)
+MICROBAN_SIM ?=
 sim:
 	@$(if $(WALL),test -f $(SIMULATOR)/pyproject.toml || { echo "The climbing simulator is not in $(SIMULATOR): \
 	git clone https://github.com/rock-climbing-robots/simulator $(SIMULATOR)  (or SIMULATOR=its/folder)"; exit 1; })
-	PYTHONPATH=src uv run --group sim --with-editable $(MICROBAN_SIM) $(if $(WALL),--with-editable $(SIMULATOR)) \
+	PYTHONPATH=src uv run --group sim $(if $(MICROBAN_SIM),--with-editable $(MICROBAN_SIM)) $(if $(WALL),--with-editable $(SIMULATOR)) \
 		src/sim/sim_main.py --hz 50 --variant $(VARIANT) $(if $(CONTROLLER),--controller $(CONTROLLER)) \
 		$(if $(WALL),--wall $(WALL) --start $(START))
 
