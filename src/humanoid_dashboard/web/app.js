@@ -463,7 +463,7 @@ let controlsKey = "";
 function renderControls() {
   const list = meta.moves || [], vals = last && last.values && last.values.moves ? last.values.moves : [];
   const running = list.filter((m, i) => vals[i] === 1 || vals[i] === 2);
-  const withSliders = running.filter(m => Object.keys(m.sliders || {}).length), withKeys = running.filter(m => m.keys && !replay);
+  const withSliders = running.filter(m => Object.keys(m.sliders || {}).length), withKeys = list.filter((m, i) => vals[i] >= 1 && m.keys && !replay);   // stopping too
   const key = JSON.stringify(withSliders.map(m => [m.name, m.sliders])) + withKeys.map(m => m.name + m.keys).join() + !!replay;
   if (key !== controlsKey) {
     controlsKey = key;

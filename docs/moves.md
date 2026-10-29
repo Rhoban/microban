@@ -213,7 +213,7 @@ class LookMove:                                         # abridged: src/moves/lo
   never starts with a speed left high); the move may change it too, and the page follows.
 * `self.pressed`: the keys held. Their names are the browser's: `"a"` to `"z"` (lower case), `"0"` to `"9"`,
   `"space"`, `"ArrowUp"`, `"ArrowDown"`, `"ArrowLeft"`, `"ArrowRight"`, `"Enter"`, `"Shift"`...
-* `on_key(key, down)` is called only while the move runs. If the page goes quiet (closed, network lost), the held keys
+* `on_key(key, down)` is called only while the move runs or stops (its `stopping`: the keyboard zone stays shown). If the page goes quiet (closed, network lost), the held keys
   are released after 0.6 s.
 
 Variables (⚙) or sliders? A variable is a setting: it keeps its value from one launch to the next, can be saved on

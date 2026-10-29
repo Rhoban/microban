@@ -340,7 +340,7 @@ class Scheduler:
         self._keys = held
         for name, move in self.registered_moves.items():
             move.set_inputs(held, move.move.velocity)  # on_key sees the keys held now
-            if move.state == MoveState.ACTIVE:
+            if move.state != MoveState.INACTIVE:            # running or stopping (a smooth stop may wait for a key)
                 try:
                     with self._output.capture(name):
                         for key, down in changes:
