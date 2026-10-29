@@ -11,7 +11,9 @@ Two ways, merged by address:
 """
 import argparse
 import json
+import re
 import socket
+import subprocess
 import struct
 import time
 
@@ -54,8 +56,24 @@ def mdns_robots(wait: float) -> dict:
     return found
 
 
-def running_robots(wait: float) -> dict:
-    """address -> {robot, host, variant, torque}, of the robots whose program answers the dashboard's hello."""
+def _broadcasts() -> list[str]:
+    """Every local network's broadcast address (255.255.255.255 leaves by one interface only: the default route's,
+    maybe not the robots' wifi)."""
+    out = ["255.255.255.255"]
+    for cmd in (["ip", "-4", "-o", "addr"], ["ifconfig"]):
+        try:
+            text = subprocess.run(cmd, capture_output=True, text=True, timeout=2).stdout
+        except (OSError, subprocess.SubprocessError):
+            continue
+        out += re.findall(r"(?:brd|broadcast) (\d+\.\d+\.\d+\.\d+)", text)
+        break
+    return list(dict.fromkeys(out))
+
+
+def running_robots(wait: float, addresses=()) -> dict:
+    """address -> {robot, host, variant, torque}, of the robots whose program answers the dashboard's hello (sent to
+    every local network, and to these addresses: the robots mDNS found)."""
+    dests = _broadcasts() + list(addresses)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     s.settimeout(0.2)
@@ -66,7 +84,7 @@ def running_robots(wait: float) -> dict:
     sent = 0.0
     while time.monotonic() < end:
         if time.monotonic() - sent > 0.7:             # a few times: UDP may lose one
-            for dest in ("255.255.255.255", "<broadcast>"):
+            for dest in dests:
                 try:
                     s.sendto(hello, (dest, PORT))
                 except OSError:
@@ -104,7 +122,7 @@ def main():
     ap.add_argument("--wait", type=float, default=2.0, help="seconds to listen (default 2)")
     a = ap.parse_args()
     names = mdns_robots(a.wait)
-    running = running_robots(a.wait)
+    running = running_robots(a.wait, names)
     rows = {}
     for addr, name in names.items():
         rows[addr] = {"name": name}
