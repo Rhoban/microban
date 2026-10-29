@@ -1,5 +1,9 @@
 # Software Installation & Deployment
 
+> [!NOTE]
+> This guide is for the Raspberry Pi version (v1). A Radxa robot (v2) is flashed with its own SD card image:
+> [sd_image.md](sd_image.md).
+
 This guide takes you from the pre-built Microban SD-card image to a robot you can drive
 from your computer. The image already contains the operating system and the Microban
 code; you will flash it, connect to the robot over the network, and run it. For

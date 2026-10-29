@@ -75,7 +75,8 @@ To build your own Microban, you will need to follow these steps:
 
 5. **Drive it:** See the [Usage Guide](docs/usage.md) to run the robot, control it with the keyboard or a gamepad, and learn how to add your own moves.
 
-6. **Go further:** the [live dashboard](docs/dashboard.md) (motors, IMU, 3D, recordings, deploy), [writing your own
+6. **Go further:** the [live dashboard](docs/dashboard.md) (motors, IMU, 3D, the moves with their sliders and keys,
+   the robot's version, recordings, deploy), [writing your own
    moves](docs/moves.md), [the simulation](docs/simulation.md) (on the floor, or on the hackathon's climbing wall),
    [your own controller](docs/controller.md) (the same file as in Rhoban's robot simulator), the
    [motor setup tools](docs/motor_setup.md) and the [robot model](docs/model.md).

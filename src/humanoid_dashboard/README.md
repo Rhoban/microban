@@ -53,7 +53,10 @@ to its zero, confirmed). With the robot's moves listed in `meta.moves`: `move_st
 start is confirmed), `move_option {move, option, value}` (the ⚙ editor) and `save_options`; a move's live controls
 (`meta.moves[i].sliders` {name: [min, max, start]}, `keys` a text), unanswered: `slider {move, slider, value}` while
 dragged (the field `sliders`, labels `move.slider`, gives the robot's values) and `keys {held: [...]}` at each key and
-every 0.2 s while keys are held in the keyboard zone. The **⟳ Deploy code**
+every 0.2 s while keys are held in the keyboard zone. A robot with several versions says its own (`meta.variant`,
+among `meta.variants`; each move's `variants` and `available`): the page shows the model of that name (`--model
+NAME=...`), lists the moves available, and `variant {variant}` (its header menu, after a confirmation) changes it on the
+robot. The **⟳ Deploy code**
 button runs a command on the PC (`--deploy`), not on the robot. The robot answers each with `ack` (shown in Events) and decides what is safe; it lists the
 ones it accepts in `meta.commands`, and the page shows only those.
 

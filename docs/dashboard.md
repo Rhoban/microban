@@ -3,11 +3,11 @@
 A page on your PC that shows the robot live, about 50 times a second: its 3D pose, every motor, the trunk orientation,
 plots and messages. It also starts and stops the moves, deploys your code, and records and replays a run.
 
-![The dashboard, on the real robot lying on its back with the torque off; the right knee is selected](images/dashboard/overview.png)
+![The dashboard, on the simulated robot hanging on the wall (make sim WALL=N2) with its Controller running; the right knee is selected](images/dashboard/overview.png)
 
 | | What | |
 | :---: | :--- | :--- |
-| 1 | **Link and robot** | link rate (green: data arrives), the robot shown (click to change it), the loop time, torque on / off |
+| 1 | **Link and robot** | link rate (green: data arrives), the robot shown (click to change it), its version (Classic / Climber), the loop time, torque on / off |
 | 2 | **Whole-robot buttons** | **Init (zero)**, **⏻ Torque off (em)**, **⟳ Deploy code**, **● Record**, **▶ Replay** |
 | 3 | **3D view** | the robot as it is (drag: rotate, right-drag: pan, wheel: zoom); click a part to select its motor |
 | 4 | **Moves** | every move of the robot, with Start / Stop and its state (off, starting, on, stopping); the moves' sliders and keyboard zone |
@@ -29,8 +29,8 @@ make dashboard                                    # opens http://127.0.0.1:8780 
 make dashboard HOST=microban-1a2b.local           # straight to that robot
 ```
 
-`HOST` is the robot's bare host name or IP (no `user@`); without it, the page opens on its robot picker. `CLIMB=1`
-shows the climbing version first (see below). Close the page any time: the robot does not depend on it.
+`HOST` is the robot's host name or IP (`radxa@...` as for `make deploy` works too: the page takes the host); without
+it, the page opens on its robot picker. Close the page any time: the robot does not depend on it.
 
 | Commands of the robot service | |
 | :--- | :--- |

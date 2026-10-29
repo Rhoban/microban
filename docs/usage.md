@@ -16,8 +16,8 @@ service started at boot, driven from the live dashboard ([dashboard.md](dashboar
 
 Run these from the repository root on your computer. They target the host `microban`
 by default (an SSH alias, see the [Deployment Guide](deployment.md)). A robot flashed from the SD card image
-([sd_image.md](sd_image.md)) is `HOST=radxa@microban-XXXX.local`, or an SSH alias with `User radxa`. `make dashboard`
-takes the bare name instead (`HOST=microban-XXXX.local`): the page adds the user itself (`ROBOT_USER`, `radxa`).
+([sd_image.md](sd_image.md)) is `HOST=radxa@microban-XXXX.local`, or an SSH alias with `User radxa` (`make dashboard`
+takes it too, or the bare name).
 
 | Command | What it does |
 | :--- | :--- |
@@ -69,14 +69,16 @@ Using a gamepad allows to drive the robot through two different modes: with a te
 ## Moves
 
 Moves are toggled independently (keys, gamepad, or the dashboard's Moves list: [dashboard.md](dashboard.md)) and run
-on top of the neutral pose:
+on top of the neutral pose. Each is made for a version of the robot, classic or climber (the robot knows its own and
+runs only those: [moves.md](moves.md)):
 
-- **Walk** (`v` / gamepad **A**) — a reinforcement-learning policy. Once active, the
+- **Walk** (`v` / gamepad **A**, classic) — a reinforcement-learning policy. Once active, the
   velocity command drives it: `vx` (forward/back), `vy` (lateral), `vtheta` (turn),
-  set from the arrow keys or the gamepad sticks.
-- **Head** (`h`) — oscillates the head.
-- **Squat** (`s`) — squat motion computed with inverse kinematics.
-- **Controller** (`c` / gamepad **Y**) — your own controller file (`make run CONTROLLER=...`,
+  set from the arrow keys or the gamepad sticks; in the dashboard, its arrows and its speed slider.
+- **Head** (`h`, both) — oscillates the head.
+- **Look** (both) — turns the head from the dashboard: its slider, or the ← → keys.
+- **Squat** (`s`, classic) — squat motion computed with inverse kinematics.
+- **Controller** (`c` / gamepad **Y**, climber) — your own controller file (`make run CONTROLLER=...`,
   [controller.md](controller.md)).
 
 ### Velocity command
@@ -95,30 +97,10 @@ keyboard, gamepad and sim. Defaults (in [constants.py](../src/constants.py)):
 
 ## Developing: adding your own moves
 
-The full guide, with an example: [moves.md](moves.md).
-
-Each behavior is a subclass of `Move` ([src/moves/move.py](../src/moves/move.py)) with
-a simple lifecycle driven by the scheduler:
-
-- `preload()` — optional, called once before the loop starts (load heavy resources).
-- `on_start(obs, command)` — called each tick while *starting*; set
-  `self.state = MoveState.ACTIVE` when ready (e.g. after ramping in).
-- `step(obs, command)` — called each tick while *active*; write your target joint
-  angles into `command.target_angles`.
-- `on_stop(obs, command)` — called each tick while *stopping*; set
-  `self.state = MoveState.INACTIVE` when done (e.g. after ramping back to neutral).
-
-To add a move:
-
-1. Create a new file in [src/moves/](../src/moves/) with a class subclassing `Move`.
-   Use [rotate_head.py](../src/moves/rotate_head.py) (a simple oscillation) or
-   [squat.py](../src/moves/squat.py) (inverse kinematics with placo) as a template.
-2. Nothing to register: every `Move` class of `src/moves/` is found when the program starts ([moves.md](moves.md)).
-   A key in `MOVE_KEYS` (keyboard) or a button in `GAMEPAD_BUTTON_MOVES` (gamepad), in
-   [src/main.py](../src/main.py), is optional.
-3. In `step()`, read the robot state from `obs.robot_state` (motor positions and
-   velocities, IMU gyro, projected gravity) and write your targets into
-   `command.target_angles`.
+A move is a class in [src/moves/](../src/moves/), found by itself when the program starts: the full guide, with an
+example, is [moves.md](moves.md) (its life, the versions it is for, the dashboard's variables, sliders and keys). For
+the climbing robot, your own controller may be the better fit: [controller.md](controller.md#controller-or-move).
+Try it in simulation first: [simulation.md](simulation.md).
 
 ### Training your own walk (or other RL) policies
 
