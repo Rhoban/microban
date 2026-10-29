@@ -1,7 +1,7 @@
 # Simulation
 
 Your code runs in simulation as on the robot: the same program (`src/main.py`'s scheduler), your moves of
-`src/moves/`, the keyboard, the gamepad and the dashboard. Only the motors and the sensors are simulated, by Rhoban's
+`src/moves/` and the dashboard; the keys are typed in the viewer's window (no gamepad in simulation). Only the motors and the sensors are simulated, by Rhoban's
 robot simulator, [microban_sim](https://github.com/Rhoban/microban_sim) (the servos simulated by BAM, the sensors with
 the robot's delays).
 

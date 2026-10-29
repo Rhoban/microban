@@ -64,6 +64,8 @@ class GamepadInputSource(InputSource):
     Args:
         button_moves: mapping from Xbox button name to move name, e.g. {"A": "walk"}.
         stop_button: button name that requests scheduler shutdown (writes the stop flag).
+        stop_moves_only: the stop button only stops the moves this gamepad started (the robot service: its program
+            keeps running for the dashboard; systemd would not restart a program that exits normally).
         imu_button: button name that toggles the IMU display, or None to disable.
         device_path: explicit /dev/input/jsX path, or None to auto-detect.
         stop_flag_path: path to the stop flag file polled by the scheduler.
@@ -76,7 +78,9 @@ class GamepadInputSource(InputSource):
         imu_button: str | None = "BACK",
         device_path: str | None = None,
         stop_flag_path: str = "/tmp/microban_scheduler.stop",
+        stop_moves_only: bool = False,
     ) -> None:
+        self._stop_moves_only = stop_moves_only
         self._button_moves = button_moves if button_moves is not None else {"A": "walk"}
         self._stop_flag_path = Path(stop_flag_path)
         self._device_path = device_path
@@ -200,6 +204,10 @@ class GamepadInputSource(InputSource):
                 else:
                     self._state.active_moves.add(move_name)
                     print(f"Move '{move_name}' enabled", end="\r\n", flush=True)
+        elif number == self._stop_number and self._stop_moves_only:
+            with self._lock:
+                self._state.active_moves.clear()
+            print("The gamepad's moves stopped", end="\r\n", flush=True)
         elif number == self._stop_number:
             self._stop_flag_path.write_text("stop\n", encoding="ascii")
             print("Stop requested", end="\r\n", flush=True)

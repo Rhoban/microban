@@ -98,3 +98,15 @@ def load_file(path) -> dict:
         return found
     _moves_of(module, path, found)
     return found
+
+
+def all_moves(extra_file=None) -> dict:
+    """The moves of src/moves/ and those of extra_file (make run / make sim MOVES=...): a move of that file named as
+    one of src/moves/ replaces it, said in the events."""
+    found = discover_moves()
+    if extra_file:
+        extra = load_file(extra_file)
+        for name in sorted(set(extra) & set(found)):
+            _skip(f"Move {name} of {pathlib.Path(extra_file).name} replaces the move {name} of src/moves/")
+        found.update(extra)
+    return found

@@ -159,3 +159,7 @@ OBSERVATION_DOF_ORDER = [
     "left_ankle_pitch",
     "left_ankle_roll"
 ]
+
+# The moves a key (make run's terminal, make sim's viewer) or a gamepad button toggles: add yours here
+MOVE_KEYS: dict[str, str] = {"h": "head", "s": "squat", "v": "walk"}
+GAMEPAD_BUTTON_MOVES: dict[str, str] = {"A": "walk"}   # B is the gamepad's stop button (input/gamepad_input.py)

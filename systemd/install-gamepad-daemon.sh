@@ -25,7 +25,7 @@ USER_NAME=${SUDO_USER:-$(whoami)}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 
 # Let the daemon (running as $USER_NAME, in the sudo group) toggle Wi-Fi and power off
-# without a password (Wi-Fi off while the gamepad is connected; BACK held 2s = shutdown).
+# without a password (Wi-Fi off while the gamepad is connected; both triggers held 2s = shutdown).
 cat > "$SUDOERS" <<EOF
 %sudo ALL=(root) NOPASSWD: /usr/sbin/rfkill block wifi, /usr/sbin/rfkill unblock wifi, /usr/sbin/shutdown
 EOF
@@ -54,5 +54,5 @@ EOF
 systemctl daemon-reload
 systemctl enable --now microban-gamepad.service
 echo "Headless gamepad service installed and started (user=$USER_NAME, repo=$REPO)."
-echo "Connect the controller, then: hold START 2s to launch, B to stop, BACK 2s to power off."
+echo "Connect the controller, then: hold START 2s to launch, B to stop, both triggers 2s to power off."
 echo "It stays enabled across reboots until 'make gamepad-headless-disable'."

@@ -33,7 +33,7 @@ class HotplugGamepadInputSource(InputSource):
         if path is None:
             return
         try:
-            pad = GamepadInputSource(button_moves=self._button_moves)
+            pad = GamepadInputSource(button_moves=self._button_moves, stop_moves_only=True)
             pad.start()
         except OSError:
             return

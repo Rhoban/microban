@@ -35,7 +35,7 @@ from move_output import MoveOutput
 
 OPTIONS_FILE = Path("move_options.json")   # the moves' options saved from the dashboard (repo root on the robot)
 VARIANT_FILE = Path("robot_variant.txt")   # this robot's version, classic or climber, set from the dashboard (repo root)
-POWER_UP_S = 2.0      # a move launched with the torque off (or from the zero pose): ramp to the neutral pose first
+POWER_UP_S = 2.0      # a move with start_pose "neutral" launched with the torque off (or from init): ramp to the neutral pose
 INIT_S = 2.0          # init: ramp to every motor's zero
 
 

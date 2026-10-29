@@ -1,15 +1,15 @@
 # Gamepad control through Bluetooth
 
 The robot can be driven with a Bluetooth gamepad (Xbox or compatible). The gamepad
-is paired with the Raspberry Pi and read directly there via the Linux joystick API
+is paired with the robot's computer and read directly there via the Linux joystick API
 (`/dev/input/js*`), in the same process as the control loop. 
 
 Pairing a gamepad allows to drive the robot through two different modes: with a terminal (SSH) or fully headless (no SSH, no terminal). The second mode is particularly useful for demonstration purposes, 
 due to the fact that it allows to drive the robot without any computer connected to it. 
 
-## Pairing the controller on the Pi
+## Pairing the controller on the robot
 
-On the Pi, put the Xbox controller in pairing mode (hold the pair button until the
+On the robot (over SSH), put the Xbox controller in pairing mode (hold the pair button until the
 Xbox light flashes fast), then:
 
 ```
@@ -33,7 +33,7 @@ When the controller is connected, the `make run` command uses it as input automa
 - **Left stick**: `vx` (up/down), `vy` (left/right)
 - **Right stick** (left/right): `vtheta`
 - **A**: toggle the `walk` move
-- **B**: stop the scheduler (writes the stop flag)
+- **B**: stop the program (`make run`: ends the session)
 - **View/Back** button: toggle the IMU/gyro display
 
 Axis and button numbers vary between controllers (especially over Bluetooth) — if
@@ -48,7 +48,14 @@ turning in place (`vx = vy = 0`) and ±1.5 while translating. Tune these via
 
 Signs, deadzone and button mapping are constants at the top of
 [gamepad_input.py](../src/input/gamepad_input.py); the move/button mapping is set
-via `GAMEPAD_BUTTON_MOVES` in [main.py](../src/main.py).
+via `GAMEPAD_BUTTON_MOVES` in [constants.py](../src/constants.py).
+
+## With the robot service
+
+On a robot whose program runs as a service (every robot of the SD image, `make robot-service-enable`), a gamepad that
+connects is used at once, with the mapping above, except **B**: it stops the moves the gamepad started (the program
+keeps running for the dashboard; moves started from the dashboard are stopped there). The headless mode below is not
+needed then (its **START** does nothing while the service runs: the control loop already runs).
 
 ## Headless mode (no SSH)
 
@@ -58,15 +65,15 @@ The headless mode is an optional service that lets you run the robot **without a
 make gamepad-headless-enable
 ```
 
-Once enabled, it launches a daemon on the Pi that waits for a controller to connect over Bluetooth. Once a controller is connected, the Wi-Fi is turned off to free the 2.4 GHz antenna and the following commands are available on the controller:
+Once enabled, it launches a daemon on the robot that waits for a controller to connect over Bluetooth. Once a controller is connected, the Wi-Fi is turned off to free the 2.4 GHz antenna and the following commands are available on the controller:
 
-- **Hold START** → start the control loop.
+- **Hold START** → start the control loop (nothing if the robot service already runs it).
 - **A** → toggle the `walk` move.
 - **B** → stop the control loop.
-- **Hold both triggers** → power off the Pi cleanly. Wait 10-15 s after that before
-  flipping the robot's power switch off, to give the Pi time to actually halt.
+- **Hold both triggers** → power off the robot's computer cleanly. Wait 10-15 s after that before
+  flipping the robot's power switch off, to give it time to actually halt.
 
-The headless mode persists across reboots, which means that you don't need to connect to the Pi over SSH to enable it again. It is particularly useful for demonstration purposes, as it allows to drive the robot without any computer connected to it.
+The headless mode persists across reboots, which means that you don't need to connect to the robot over SSH to enable it again. It is particularly useful for demonstration purposes, as it allows to drive the robot without any computer connected to it.
 
 If the **controller disconnects** during a session, the robot's velocity is zeroed so
 it stops moving: the moves it had started go on (torque on, holding its pose), and the gamepad finds them again when it
@@ -78,7 +85,7 @@ because the control loop crashed, or because the robot just booted — Wi-Fi is
 simply turning the controller off is enough.
 
 > [!IMPORTANT]
-> As the Wi-Fi is turned off when the controller is connected, so you won't be able to connect to the Pi over SSH while the controller is connected. If you need to connect to the Pi over SSH, power off the controller
+> As the Wi-Fi is turned off when the controller is connected, so you won't be able to connect to the robot over SSH while the controller is connected. If you need to connect to the robot over SSH, power off the controller
 
 To disable the headless mode, run the following command (after powering off the controller):
 ```
@@ -93,9 +100,9 @@ doesn't behave as expected, find the real numbers and update the constants.
 
 This requires an SSH session, so headless mode must be disabled first (see above) —
 otherwise Wi-Fi is off while the controller is connected and you won't be able to
-reach the Pi. You'll also need the controller connected.
+reach the robot. You'll also need the controller connected.
 
-1. Install the joystick package on the Pi:
+1. Install the joystick package on the robot:
 ```
 sudo apt install -y joystick
 ```

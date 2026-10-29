@@ -11,12 +11,13 @@ Usage:
 
 import argparse
 
+from constants import MOVE_KEYS
 from scheduler import Scheduler
 from telemetry import Telemetry
 from moves.move import CLASSIC, CLIMBER
 from sim.mujoco_input import MuJoCoInputSource
 from sim.sim_controller import SimController
-from moves.discover import discover_moves, load_file
+from moves.discover import all_moves
 
 
 def main() -> None:
@@ -44,7 +45,7 @@ def main() -> None:
         sim = MicrobanSim(args.variant)
         start, variant = sim.reset, args.variant
 
-    input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "v": "walk"})
+    input_source = MuJoCoInputSource(move_keys=MOVE_KEYS)
     controller = SimController(sim, start, key_callback=input_source.key_callback, reset_source=input_source)
     input_source.set_viewer_opt(controller.viewer_opt)
 
@@ -52,9 +53,9 @@ def main() -> None:
         frequency_hz=args.hz,
         controller=controller,
         input_source=input_source,
-        moves={**discover_moves(), **(load_file(args.moves) if args.moves else {})},
+        moves=all_moves(args.moves),
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)
-        variant=variant,                            # the moves made for this version (Move.variants)
+        variant=variant,                            # the moves made for this version (their variants)
     )
     scheduler.run()
 

@@ -6,7 +6,8 @@ floor (``MicrobanSim``, classic or climbing version), or the hackathon's climbin
 github.com/rock-climbing-robots/simulator, built on it). This controller gives the robot's program what the real
 robot gives it (the protocol of src/controller.py): it writes the joint targets and the servos' gain and torque to the
 simulation, and reads back what the robot's sensors read, with their delays (the joints, the motor currents, the IMU
-in its chip's frame). The moves, the keyboard, the gamepad and the dashboard work as on the robot.
+in its chip's frame). The moves and the dashboard work as on the robot; the keys are typed in the viewer's window
+(no gamepad here).
 
 The robot is held where it starts until the torque first goes on (on the real robot, someone holds it until a move
 is launched).
@@ -98,6 +99,12 @@ class SimController:
         self._obs, self._imu = self.sim.observation(), self.sim.imu_raw()
 
     # ---- reads (what the robot's sensors read, with their delays) ---------------------------------------
+    def sync_read_state(self, ids: list[int]) -> tuple[list[float], list[float], list[float]]:
+        """Positions (rad), velocities (rad/s) and currents (A) at once, as the real robot reads them (the observer
+        then gives the moves the motor currents, and the dashboard shows them)."""
+        return (self.sync_read_present_position(ids), self.sync_read_present_velocity(ids),
+                self.sync_read_present_current(ids))
+
     def sync_read_present_position(self, ids: list[int]) -> list[float]:
         return [float(self._obs["q"][self._index[mid]]) for mid in ids]
 

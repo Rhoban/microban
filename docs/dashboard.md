@@ -100,8 +100,12 @@ more, the torque goes off again. The two whole-robot buttons:
 * **⏻ Torque off (em)**: emergency stop, the moves stop and every motor goes limp at once;
 * **Init (zero)**: the moves stop, every motor goes to its zero in 2 s (the shoulders: arm forward) and stays there.
 
-After either, a move that was already asked does not restart by itself: launch it again (release its key or button
-and press it) to leave em / init.
+After either, nothing restarts by itself: the next launch leaves em / init (**Start** in the Moves list, or a key /
+button pressed to turn a move on). Keys and buttons toggle: a move still toggled on by one is off, press it twice (off,
+then on) to launch it, or click its Start; once a launch leaves em / init, the moves still toggled on start too.
+
+A move that ends by itself (its `step` returned None) or stopped by an error also stays off while its key or button
+still holds it: press it again, or click Start.
 
 ## How it works
 

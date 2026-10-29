@@ -456,7 +456,7 @@ function renderMoves() {
     box.appendChild(el);
   });
 }
-// the moves' live controls (Move.sliders, Move.keys), shown while their move runs (starting or on): a slider starts
+// the moves' live controls (a move's sliders and keys), shown while their move runs (starting or on): a slider starts
 // at its start value (the robot resets it at each launch) and sends its value while dragged (the frames show the
 // robot's); the keyboard zone, once clicked, sends the keys held
 let controlsKey = "";

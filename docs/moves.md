@@ -47,7 +47,9 @@ dashboard shows the new Moves list by itself a few seconds later. The torque goe
 robot or let it sit, never on the wall. A new Python dependency in `pyproject.toml` needs `make setup` first.
 
 A file kept outside `src/moves/` runs too, for one session: `make run MOVES=path/to/my_moves.py` (on the robot, from
-a terminal) or `make sim MOVES=path/to/my_moves.py`.
+a terminal) or `make sim MOVES=path/to/my_moves.py`. `make run` sends that one file only: a move that needs other
+files (a helper module, a network) belongs in `src/moves/`. A move of that file named as one of `src/moves/` replaces
+it for the session (said in the Events).
 
 ## What a move gets: `obs`
 
@@ -71,7 +73,8 @@ A sensor that gave nothing this tick reads NaN (`np.isnan(obs["gravity"]).any()`
   the robot had when the torque went on). Two moves can run together this way (the head and the walk); when both
   drive a joint, the later one in the Moves list wins.
 * Or 19 angles (a list or a numpy array) in the order `JOINTS`: the whole pose.
-* Or `None`: the move is over. It stops by itself (as if Stop was clicked) and stays off until asked again.
+* Or `None`: the move is over. It stops by itself (as if Stop was clicked) and stays off until asked anew (Start, or
+  its key / button pressed again).
 
 ```python
 from microban_model import JOINTS            # the joint names, in the order of q, dq and a 19-angle return
@@ -172,7 +175,8 @@ class WaveMove:
     option_docs = {"amplitude": "arm swing (rad)", "both_arms": "wave with both arms"}
 
     def step(self, obs):
-        ... self.options["amplitude"] ...
+        amplitude = self.options["amplitude"]            # (a sketch: use it to compute the targets)
+        ...
 
     def on_option(self, name, value):                    # optional: called when one changed (already set)
         print(f"{name} = {value}")
@@ -191,7 +195,7 @@ keyboard zone (click it, then the keys you press go to the robot; click elsewher
 KEY_SPEED = 1.0                                         # rad/s while an arrow is held
 
 
-class LookMove:                                         # src/moves/look.py, the full example
+class LookMove:                                         # abridged: src/moves/look.py is the full one
     sliders = {"head": (-0.8, 0.8, 0.0)}                # name -> (min, max, start value)
     keys = "← →: turn the head"                         # shown in the keyboard zone (the zone appears with it)
 
@@ -220,10 +224,11 @@ move runs, has a min and a max, starts again from its start value at each launch
 keyboard's arrows (`make run`), within the limits of [usage.md](usage.md#velocity-command); zero otherwise. The walk
 reads it (and its own dashboard arrows, `src/moves/walk.py`).
 
-A key of `make run`'s keyboard or a gamepad button for a move, optional, in `src/main.py`:
+A key or a gamepad button for a move, optional, in `src/constants.py` (a key toggles it in `make run`'s terminal and in
+`make sim`'s viewer window):
 
 ```python
-MOVE_KEYS = {..., "w": "wave"}                    # a key toggles it (make run)
+MOVE_KEYS = {..., "w": "wave"}
 GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}
 ```
 
@@ -234,9 +239,10 @@ GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}
 * A file that does not load (a Python error), a move that cannot be built (an error in `__init__`) or whose
   `variants` is wrong is skipped, and the robot starts anyway: the reason, with the line of your file, shows in the
   dashboard's Events (and in `make robot-service-logs`).
-* An error in `start`, `step` or `stopping` stops that move at once (the others go on; its joints keep their last
-  targets, and the torque goes off if no move runs any more): the error, with the line of your file, shows in the
-  Events. Try the move in simulation first.
+* An error in `start`, `step`, `stopping` or `on_key` stops that move at once (the others go on; its joints keep their
+  last targets, and the torque goes off if no move runs any more): the error, with the line of your file, shows in
+  the Events. It stays off until asked anew. An error in `on_option` is shown too (and stops the move if it runs).
+  Try the move in simulation first.
 
 ## The same file in the simulator
 
@@ -253,11 +259,15 @@ moves = load_moves("../microban/src/moves/my_move.py")     # {name: move}
 run_move(moves["my"], sim, seconds=30)
 ```
 
-There, nobody edits the options and sliders: they keep their defaults, `self.pressed` is empty and `self.velocity`
-zero. `run_move` runs `step` until it returns None or the time is over, then `stopping`; `kp` while it runs.
+There, nobody edits the options and sliders: they keep their defaults (the sliders back to their start values at each
+`run_move`), `self.pressed` is empty and `self.velocity` zero. `run_move` runs `step` until it returns None or the time
+is over, then `stopping`; `kp` while it runs. It starts where the simulated robot is: `start_pose` is for the robot's
+program only.
 
-A move should therefore import only what both have: `numpy`, `microban_model` (`JOINTS`), its own files. A file it
-needs (a network, a table) goes next to it in the repository (`make deploy` sends it), loaded from the move's folder:
+A move should therefore import only what both have: `numpy`, `microban_model` (`JOINTS`), and its own files, by name
+(`import my_helper` for `src/moves/my_helper.py`: the move's folder is on the path on the robot and in `load_moves`; a
+helper file with no move class in it is not a move). A file it needs (a network, a table) goes next to it in the
+repository (`make deploy` sends it), loaded from the move's folder:
 
 ```python
 from pathlib import Path

@@ -127,10 +127,10 @@ class MuJoCoInputSource(InputSource):
             self._adjust_velocity("vx", +VELOCITY_STEP)
         elif keycode == _GLFW_KEY_DOWN:
             self._adjust_velocity("vx", -VELOCITY_STEP)
-        elif keycode == _GLFW_KEY_RIGHT:
-            self._adjust_velocity("vtheta", +VELOCITY_STEP)
-        elif keycode == _GLFW_KEY_LEFT:
+        elif keycode == _GLFW_KEY_RIGHT:                 # as the robot's keyboard: left turns left (+vtheta)
             self._adjust_velocity("vtheta", -VELOCITY_STEP)
+        elif keycode == _GLFW_KEY_LEFT:
+            self._adjust_velocity("vtheta", +VELOCITY_STEP)
 
     def _adjust_velocity(self, axis: str, delta: float) -> None:
         with self._lock:

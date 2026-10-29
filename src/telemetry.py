@@ -112,8 +112,8 @@ class Telemetry:
             self.link.set_meta({**self.link.meta, "moves": self._listing()})
 
     def take_requests(self) -> list[tuple]:
-        """The scheduler asks once per tick: [("em" | "init" | "start" | "stop" | "option", move or None[, (option,
-        value)]), ...]."""
+        """The scheduler asks once per tick: [("em" | "init" | "start" | "stop" | "option" | "save_options" | "variant",
+        move, version or None[, (option, value)]), ...]."""
         out, self.requests = self.requests, []
         return out
 

@@ -16,6 +16,7 @@ from scheduler import Scheduler
 from moves.move import CLASSIC
 from input.keyboard_input import KeyboardInputSource
 from sim.placo_controller import PlacoViewerController
+from constants import MOVE_KEYS
 from moves.discover import discover_moves
 
 
@@ -25,13 +26,14 @@ def main() -> None:
     args = parser.parse_args()
 
     controller = PlacoViewerController(model_path=str(microban_model.MJCF_DIR), dt=1.0 / args.hz)
-    input_source = KeyboardInputSource(move_keys={"h": "head", "s": "squat"})
+    moves = {n: m for n, m in discover_moves().items() if n in ("head", "squat")}   # kinematics only: no walk
+    input_source = KeyboardInputSource(move_keys={k: n for k, n in MOVE_KEYS.items() if n in moves})
 
     scheduler = Scheduler(
         frequency_hz=args.hz,
         controller=controller,
         input_source=input_source,
-        moves={n: m for n, m in discover_moves().items() if n in ("head", "squat")},
+        moves=moves,
         variant=CLASSIC,
     )
     scheduler.run()

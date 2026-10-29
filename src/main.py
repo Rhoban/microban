@@ -6,13 +6,13 @@ import signal
 import sys
 from pathlib import Path
 
-from constants import MOTOR_TO_ID, KP_DEFAULT
+from constants import GAMEPAD_BUTTON_MOVES, KP_DEFAULT, MOTOR_TO_ID, MOVE_KEYS
 from robot_controller import RobotController
 from scheduler import Scheduler
 from telemetry import Telemetry
 from input.input_source import InputSource
 from input.keyboard_input import KeyboardInputSource
-from moves.discover import discover_moves, load_file
+from moves.discover import all_moves
 
 PID_FILE = Path("/tmp/microban_scheduler.pid")
 
@@ -29,9 +29,6 @@ def _another_session_running() -> bool:
         return False
     return True
 
-# Which moves can be toggled from the gamepad / keyboard.
-MOVE_KEYS = {"h": "head", "s": "squat", "v": "walk"}
-GAMEPAD_BUTTON_MOVES = {"A": "walk"}   # B is the gamepad's stop button (input/gamepad_input.py)
 
 
 def _stop_like_ctrl_c(signum, frame) -> None:
@@ -41,8 +38,7 @@ def _stop_like_ctrl_c(signum, frame) -> None:
 def moves() -> dict:
     """The moves of src/moves/, and those of MICROBAN_MOVES=path/to/file.py (make run MOVES=...): a file kept
     elsewhere."""
-    path = os.environ.get("MICROBAN_MOVES")
-    return {**discover_moves(), **(load_file(path) if path else {})}
+    return all_moves(os.environ.get("MICROBAN_MOVES"))
 
 
 def build_input_source() -> InputSource:
@@ -83,7 +79,7 @@ def main() -> None:
 
     controller = RobotController()
     motor_ids = list(MOTOR_TO_ID.values())
-    # torque off until a move is launched (the scheduler then ramps to the neutral pose first)
+    # torque off until a move is launched (then on where the robot is, or a ramp to the neutral pose: its start_pose)
     controller.sync_write_torque_enable(motor_ids, [False] * len(motor_ids))
     controller.sync_write_status_return_level(motor_ids, [1] * len(motor_ids))
     controller.sync_write_kp(motor_ids, [KP_DEFAULT] * len(motor_ids))
