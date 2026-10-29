@@ -19,7 +19,7 @@ from sim.sim_controller import SimController
 from moves.rotate_head import RotateHeadMove
 from moves.squat import SquatMove
 from moves.walk import WalkMove
-from moves.controller import ControllerMove
+from moves.simple import load_file
 from moves.discover import with_discovered_moves
 
 
@@ -28,7 +28,7 @@ def main() -> None:
     parser.add_argument("--hz", type=float, default=50.0, metavar="FREQ", help="Scheduler frequency in Hz (default: 50)")
     parser.add_argument("--variant", default=CLASSIC, choices=[CLASSIC, CLIMBER],
                         help="the robot's version on the floor: walking or climbing forearms and feet")
-    parser.add_argument("--controller", default=None, help="a Controller file (moves/controller.py), started with [c]")
+    parser.add_argument("--controller", default=None, help="a file of simple moves kept elsewhere (moves/simple.py); a class Controller starts with [c]")
     parser.add_argument("--wall", default=None, metavar="WALL", help="on the hackathon's climbing wall (the simulator "
                         "cloned next to this folder): N1, N2, N3 or a wall JSON file; the climbing robot")
     parser.add_argument("--start", default="hang", choices=["hang", "floor"],
@@ -59,7 +59,7 @@ def main() -> None:
         moves=with_discovered_moves(controller, {
             "head": RotateHeadMove(),
             "squat": SquatMove(),
-            **({"controller": ControllerMove(args.controller, controller)} if args.controller else {}),
+            **(load_file(args.controller, controller) if args.controller else {}),
             "walk": WalkMove(controller=controller),
         }),
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)

@@ -1,7 +1,58 @@
 # Moves: write your own
 
-A move is a class that writes joint targets every tick (50 Hz). The scheduler runs the moves that are asked (keyboard,
-gamepad, or the dashboard's Moves list) and sends their targets to the motors.
+A move is a class that gives the 19 servos their targets every tick (50 Hz). The robot's program runs the moves that
+are asked (the dashboard's Moves list, keyboard, gamepad) and sends their targets to the motors. There are two ways
+to write one: a **simple move** (start here: the same file runs in the simulator and on the robot) and an
+**advanced move** (the robot's program's own class, for full control).
+
+## A simple move
+
+```python
+# src/moves/hold.py
+import math
+from microban_model import JOINTS
+
+HEAD = JOINTS.index("head")
+
+
+class HoldMove:                                 # no base class
+    description = "Hold the pose, turn the head" # shown in the dashboard's Moves list (optional)
+    options = {"amplitude": 0.3}                # variables edited live in the dashboard (optional, see below)
+    sliders = {"speed": (0.0, 2.0, 0.5)}        # name -> (min, max, start), shown while it runs (optional)
+
+    def reset(self, obs):                       # when it starts (optional)
+        self.start, self.phase = obs["q"].copy(), 0.0
+
+    def step(self, obs):                        # every 20 ms: the observation in, the 19 targets out
+        self.phase += 0.02 * self.slider["speed"]
+        target = self.start.copy()
+        target[HEAD] += self.options["amplitude"] * math.sin(self.phase)
+        return target                           # rad, in the order JOINTS; or None: keep the last ones
+```
+
+* `obs` is the simulator's observation, built on the robot from what it measures: `q`, `dq` (joints, order `JOINTS`,
+  every zero at the motor's zero), `gyro` (rad/s), `accel` (m/s^2), `gravity` (unit vector) in the trunk frame,
+  `quat` (trunk orientation w x y z), `current` (A), `time` (s).
+* The same file runs in the fast simulator, as fast as it computes, for planning or learning:
+  `run_move(HoldMove(), sim, seconds)` in [microban_sim](https://github.com/Rhoban/microban_sim) or the hackathon's
+  [climbing simulator](https://github.com/rock-climbing-robots/simulator) (`load_moves(path)` loads a file's moves).
+  There, nobody edits the options and sliders: they keep their defaults.
+* It starts where the robot is: the torque goes on with no move to the neutral pose first, so it may start hanging on
+  the wall. While it runs the servos' gain is `kp_fw` (a class attribute, 125 by default), back to normal after.
+* Optional too: `variants` (the robot versions it is for, both by default, see below), `option_docs`, `keys`,
+  `on_key(key, down)`, `on_option(name, value)`, `name`: as an advanced move's, below.
+* A file it needs (a network) goes in the repository with it (`make deploy` sends it), loaded from a path relative
+  to the move's file (`pathlib.Path(__file__).parent / "net.onnx"`).
+
+A file kept outside `src/moves/` runs too: `make run CONTROLLER=path/to/file.py` (or `make sim ...
+CONTROLLER=...`) adds its simple moves for that session; a class named `Controller` is the move `controller`,
+started and stopped with [c] (gamepad: Y).
+
+## An advanced move
+
+A class derived from `Move` gets the robot's program's own view: its states (starting, stopping), the robot's raw
+measurements by joint name, the user's input, the servos (`controller`). The walk, the squat and the head are written
+this way.
 
 ```python
 # src/moves/wave.py
@@ -27,19 +78,21 @@ class WaveMove(Move):
         self.state = MoveState.INACTIVE     # called each tick while STOPPING: set INACTIVE when done
 ```
 
-Nothing to register: every move class of a file in `src/moves/` is found by itself when the robot's program (or the
+## Found by itself
+
+Nothing to register: every move class (simple or advanced) of a file in `src/moves/` is found by itself when the robot's program (or the
 simulation) starts (`src/moves/discover.py`). Its name is the class name without "Move", in snake_case
 (`WaveMove` -> `wave`; or set `name = "..."` in the class). Its constructor gets `controller=` if it takes one. It
 appears in the dashboard's Moves list (`make dashboard`), with Start / Stop.
 
-**Which robot it is for.** `variants` is required: `ALL` for any version of the robot, `(CLASSIC,)` for the walking
+**Which robot it is for.** `variants` is required for an advanced move (a simple move is for both unless it sets it): `ALL` for any version of the robot, `(CLASSIC,)` for the walking
 hands and feet only, `(CLIMBER,)` for the climbing forearms and feet only (`from moves.move import ALL, CLASSIC,
 CLIMBER`). The robot knows its version (the dashboard's **robot version** menu changes it, saved on the robot in
 `robot_variant.txt`; classic until set; the simulation: `make sim` classic, `make sim WALL=N2` climber): it runs a move only on
 the versions it is made for (the keyboard and the gamepad too), and the dashboard lists only those. The walk, trained
 with the walking feet, is `(CLASSIC,)`: a climber does not walk.
 
-A file that does not load (a Python error), a class that lacks `step` or does not say its `variants` is skipped, and
+A file that does not load (a Python error), a move class that cannot be built or does not say its `variants` is skipped, and
 the robot starts anyway: the reason, with the line of your file, shows in the dashboard's Events (and in
 `make robot-service-logs`).
 
@@ -69,19 +122,19 @@ move is launched): hold the robot or let it sit, never on the wall. Check the
 program's messages with `make robot-service-logs`. A new Python dependency in `pyproject.toml` needs `make setup`
 first. To try a move from a terminal instead (keyboard keys, its prints), `make run` stops the service for the session.
 
-## What a move gets and gives
+## What an advanced move gets and gives
 
 * `obs.robot_state`: `motor_positions`, `motor_velocities` (joint name -> rad, rad/s; every zero at the motor's zero,
   see docs/model.md), `measured_currents`, `gyro`, `acc` (IMU frame), `body_quat`, `projected_gravity` (trunk
   frame), `time_s`. `obs.user_input`: `active_moves`, `velocity` (sticks / arrows).
 * `command.target_angles`: joint name -> target (rad). It starts each tick at `NEUTRAL_POSE`; a move overwrites the
   joints it drives. Several moves may run together (the head and the walk); the later one in `moves` wins a joint.
-* `print()` in a move goes to the dashboard's Events (`wave: text`, at most 10 lines a second per move; the rest is
+* `print()` in a move (simple or advanced) goes to the dashboard's Events (`wave: text`, at most 10 lines a second per move; the rest is
   counted there) and to the robot's log as before (`make robot-service-logs`, or the terminal with `make run`).
 * `preload()`: called once before the loop (load a network there). A move that needs the controller (the servos'
   gain, `sync_write_kp`) takes it in its constructor, as `WalkMove(controller=controller)`.
 
-## The life of a move
+## The life of an advanced move
 
 * INACTIVE -> STARTING when it is asked (its key, button or the dashboard), -> ACTIVE when `on_start` says so;
   ACTIVE -> STOPPING when it is no longer asked, -> INACTIVE when `on_stop` says so.
@@ -94,7 +147,8 @@ first. To try a move from a terminal instead (keyboard keys, its prints), `make 
 
 ## Variables to edit from the dashboard
 
-A move chooses the variables it exposes (as RhIO's parameters): they get an editor in the dashboard (the move's ⚙).
+The same for a simple move and an advanced one (the examples are advanced moves; a simple move sets the same class
+attributes and reads `self.options`, `self.slider`, `self.pressed` in its `step(obs)`). A move chooses the variables it exposes (as RhIO's parameters): they get an editor in the dashboard (the move's ⚙).
 
 ```python
 class WaveMove(Move):
@@ -140,5 +194,18 @@ Variables (⚙) or sliders? A variable is a setting: it keeps its value from one
 the robot, and is edited in the ⚙ panel, even while the move is off. A slider is for driving: it shows only while the
 move runs, has a min and a max, starts again from its start value at each launch, and is never saved.
 
-A controller written in the simulator's format runs as a move with no code here; which one to write, a Controller or
-a move: [controller.md](controller.md#controller-or-move).
+## Simple or advanced?
+
+| | Simple move | Advanced move (`Move`) |
+|---|---|---|
+| Written as | `step(obs)` returns the 19 targets (or None) | `on_start` / `step(obs, command)` / `on_stop` fill `command.target_angles` |
+| What it reads | the simulator's observation (numpy, order `JOINTS`) | `obs.robot_state` by joint name, `obs.user_input` |
+| Runs in the fast simulator (`run_move`) | yes, the same file | no (the robot's program only: the robot, `make sim`) |
+| Starts | where the robot is | `power_up`: the neutral pose first by default |
+| Servos' gain | `kp_fw`, set for it | its own (`controller.sync_write_kp`) |
+| Ends | when it is stopped | it may end by itself |
+| `variants` | optional (both) | required |
+| Options, sliders, keys, prints, dashboard | the same | the same |
+
+Write a simple move unless it needs what only an advanced one has: developed and tried in the simulator, then
+`make sim WALL=N2`, then the robot, with no change.

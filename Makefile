@@ -25,7 +25,8 @@ sync:
 setup: sync
 	ssh $(HOST) "bash -l -c 'cd microban && uv sync'"
 
-# CONTROLLER=path/to/file.py: your Controller (src/moves/controller.py), started / stopped with [c] (gamepad: Y)
+# CONTROLLER=path/to/file.py: simple moves kept outside src/moves/ (src/moves/simple.py); a class named Controller is
+# started / stopped with [c] (gamepad: Y)
 CONTROLLER ?=
 # The robot's program on Rhoban's robot simulator (microban_sim): VARIANT=climber for the climbing robot on the
 # floor; WALL=N1|N2|N3|wall.json on the hackathon's climbing wall, its simulator cloned next to this folder (SIMULATOR,

@@ -22,7 +22,7 @@ takes it too, or the bare name).
 | Command | What it does |
 | :--- | :--- |
 | `make discover-robots` | The robots on this network: name (`microban-XXXX`), address, whether their program runs, their version, torque on / off; with the commands to reach the first one. |
-| `make run` | Sync the code and start the control loop on the robot (50 Hz). Stays attached to your terminal for live control (it stops the robot service for the session). `CONTROLLER=path.py`: your own controller ([controller.md](controller.md)). |
+| `make run` | Sync the code and start the control loop on the robot (50 Hz). Stays attached to your terminal for live control (it stops the robot service for the session). `CONTROLLER=path.py`: the simple moves of a file kept elsewhere ([moves.md](moves.md#a-simple-move)). |
 | `make deploy` | Sync the code and restart the robot service: your moves run, the dashboard shows them by itself ([moves.md](moves.md)). |
 | `make stop` | Stop the control loop and disable torque on all motors. The robot service stays stopped (until `make robot-service-start` or a reboot). |
 | `make shutdown` | Power off the Pi cleanly. |
@@ -79,8 +79,8 @@ runs only those: [moves.md](moves.md)):
 - **Head** (`h`, both) — oscillates the head.
 - **Look** (both) — turns the head from the dashboard: its slider, or the ← → keys.
 - **Squat** (`s`, classic) — squat motion computed with inverse kinematics.
-- **Controller** (`c` / gamepad **Y**, climber) — your own controller file (`make run CONTROLLER=...`,
-  [controller.md](controller.md)).
+- **Controller** (`c` / gamepad **Y**) — a class `Controller` of a file given with `make run CONTROLLER=...`
+  ([moves.md](moves.md#a-simple-move)).
 
 ### Velocity command
 
@@ -99,8 +99,8 @@ keyboard, gamepad and sim. Defaults (in [constants.py](../src/constants.py)):
 ## Developing: adding your own moves
 
 A move is a class in [src/moves/](../src/moves/), found by itself when the program starts: the full guide, with an
-example, is [moves.md](moves.md) (its life, the versions it is for, the dashboard's variables, sliders and keys). For
-the climbing robot, your own controller may be the better fit: [controller.md](controller.md#controller-or-move).
+example, is [moves.md](moves.md): a simple move (`step(obs)` -> targets, the same file in the simulator and on the
+robot) or an advanced one, the versions it is for, the dashboard's variables, sliders and keys.
 Try it in simulation first: [simulation.md](simulation.md).
 
 ### Training your own walk (or other RL) policies

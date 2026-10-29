@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Every move written in src/moves/ is found by itself: no need to register it in src/main.py.
 
-Each class of a file of this folder that derives from Move becomes a move of the robot (and of the simulation), unless
-it is registered already. Its name in the dashboard and for the scheduler is the class's `name` if it sets one,
+Each class of a file of this folder that is a move becomes a move of the robot (and of the simulation), unless it is
+registered already: a simple move (a class with step(self, obs) -> targets, no base class, moves/simple.py), or an
+advanced one (derived from Move). Its name in the dashboard and for the scheduler is the class's `name` if it sets one,
 otherwise the class name in snake_case without "Move" (WaveMove -> "wave"). Its constructor gets `controller=` when it
-takes one, nothing otherwise. It must say which versions of the robot it is for (Move.variants: ALL, (CLASSIC,) or
-(CLIMBER,)). A file that fails to load or a class that cannot be built is skipped with a message:
+takes one, nothing otherwise. An advanced move must say which versions of the robot it is for (Move.variants: ALL,
+(CLASSIC,) or (CLIMBER,)); a simple one is for both unless it sets variants. A file that fails to load or a class that cannot be built is skipped with a message:
 the robot starts anyway.
 """
 import importlib
@@ -16,9 +17,10 @@ import sys
 import traceback
 
 from moves.move import ALL, Move
+from moves.simple import is_simple, wrap
 
 HERE = pathlib.Path(__file__).parent
-SKIP = {"__init__", "move", "discover", "controller"}       # the base class, this file, the Controller (CONTROLLER=)
+SKIP = {"__init__", "move", "discover", "simple"}          # the base class, this file, the simple moves' adapter
 PROBLEMS: list[str] = []          # why a move was skipped: printed, and shown in the dashboard's events (telemetry)
 
 
@@ -45,7 +47,7 @@ def _skip(text: str, path=None) -> None:
 
 def discover_moves(controller, known: dict) -> dict:
     """The moves of src/moves/ not in `known` (name -> Move), as {name: instance}."""
-    known_classes = {type(m) for m in known.values()}
+    known_classes = {type(getattr(m, "inner", m)) for m in known.values()}
     found = {}
     for path in sorted(HERE.glob("*.py")):
         if path.stem in SKIP or path.stem.startswith("_"):
@@ -56,7 +58,23 @@ def discover_moves(controller, known: dict) -> dict:
             _skip(f"Move file {path.name} skipped (it does not load):\n{traceback.format_exc()}", path)
             continue
         for _, cls in inspect.getmembers(module, inspect.isclass):
-            if not issubclass(cls, Move) or cls is Move or cls.__module__ != module.__name__ or cls in known_classes:
+            if cls.__module__ != module.__name__ or cls in known_classes:
+                continue
+            if is_simple(cls):
+                name = move_name(cls)
+                if name in known or name in found:
+                    continue
+                variants = getattr(cls, "variants", ALL)
+                if not isinstance(variants, (tuple, list)) or not variants or not set(variants) <= set(ALL):
+                    _skip(f"Move {cls.__name__} ({path.name}) skipped: variants must be ALL, (CLASSIC,) or (CLIMBER,)")
+                    continue
+                try:
+                    found[name] = wrap(cls(), controller)
+                    print(f"Move {name} ({path.name}) found", end="\r\n", flush=True)
+                except Exception:
+                    _skip(f"Move {cls.__name__} ({path.name}) skipped (it cannot be built):\n{traceback.format_exc()}", path)
+                continue
+            if not issubclass(cls, Move) or cls is Move:
                 continue
             if inspect.isabstract(cls):
                 _skip(f"Move {cls.__name__} ({path.name}) skipped: it lacks {', '.join(sorted(cls.__abstractmethods__))}")

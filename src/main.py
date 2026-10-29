@@ -42,12 +42,13 @@ def _stop_like_ctrl_c(signum, frame) -> None:
 
 
 def _controller_move(controller) -> dict:
-    """MICROBAN_CONTROLLER=path/to/file.py: a user's Controller (moves/controller.py) as the move "controller"."""
+    """MICROBAN_CONTROLLER=path/to/file.py: the simple moves of a file kept elsewhere (moves/simple.py); a class named
+    Controller is the move "controller" ([c])."""
     path = os.environ.get("MICROBAN_CONTROLLER")
     if not path:
         return {}
-    from moves.controller import ControllerMove
-    return {"controller": ControllerMove(path, controller)}
+    from moves.simple import load_file
+    return load_file(path, controller)
 
 
 def build_input_source() -> InputSource:

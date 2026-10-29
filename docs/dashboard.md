@@ -3,7 +3,7 @@
 A page on your PC that shows the robot live, about 50 times a second: its 3D pose, every motor, the trunk orientation,
 plots and messages. It also starts and stops the moves, deploys your code, and records and replays a run.
 
-![The dashboard, on the simulated robot hanging on the wall (make sim WALL=N2) with its Controller running; the right knee is selected](images/dashboard/overview.png)
+![The dashboard, on the simulated robot hanging on the wall (make sim WALL=N2) with a move running; the right knee is selected](images/dashboard/overview.png)
 
 | | What | |
 | :---: | :--- | :--- |
