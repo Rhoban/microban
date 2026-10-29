@@ -91,6 +91,8 @@ class Scheduler:
         self._keys: set[str] = set()                # held in the dashboard's keyboard zone (the moves' pressed, on_key)
         self._save_variant = variant is None
         self.variant = variant or self._load_variant()
+        for move in self.registered_moves.values():
+            move.robot.variant = self.variant
         self._refused: set[str] = set()             # moves asked that are not for this version (said once)
         self._ended: set[str] = set()               # moves over by themselves or by an error, still asked (a key
                                                     # toggled on): off until asked anew
@@ -402,6 +404,8 @@ class Scheduler:
     def _set_variant(self, variant: str) -> str:
         """The dashboard says which version this robot is: saved on the robot; the moves not made for it stop."""
         self.variant = variant
+        for move in self.registered_moves.values():
+            move.robot.variant = variant
         self._dash_requested = {n for n in self._dash_requested if n not in self.registered_moves or self.made_for(n)}
         if self._save_variant:
             VARIANT_FILE.write_text(variant + "\n")

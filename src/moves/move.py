@@ -116,6 +116,7 @@ class Robot:
     """``self.robot`` of a move: the robot's raw measurements and its servos one by one, for the moves that need more
     than obs and targets (the simulators give the same methods: microban_sim's run_move).
 
+    * ``variant``: the robot's version, "classic" or "climber" (None in the simulators).
     * ``state``: this tick's raw measurements (observer.RobotState: the IMU in its chip's frame, the motors' voltages,
       currents by joint name...); None in the simulators.
     * ``set_kp(kp, joints=None)``: the servos' gain, of these joints (names) or all of them, written by the program
@@ -127,6 +128,7 @@ class Robot:
 
     def __init__(self, controller=None) -> None:
         self.controller = controller                              # set by the scheduler
+        self.variant = None                                       # the robot's version (classic / climber)
         self.state = None
         self.kp: dict[str, int] = {}                             # the gains this move set (joint -> kp)
         self.limp: set[str] = set()                               # joints this move turned off
