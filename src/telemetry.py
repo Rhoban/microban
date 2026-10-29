@@ -15,6 +15,7 @@ Without the humanoid_dashboard package, or with MICROBAN_DASHBOARD=0, it does no
 """
 import math
 import os
+import socket
 import time
 
 from constants import MOTOR_TO_ID
@@ -87,6 +88,7 @@ class Telemetry:
                                         "4": "electrical shock", "5": "overload"},
                       "hw_error_ignore": VOLTAGE_BIT, "commands": cmds, "moves": listed,
                       "warnings": _move_problems(), "variant": variant, "variants": list(ALL),
+                      "host": socket.gethostname(),       # its name on the network (make discover-robots)
                       # how the page shows the one-value fields: a label and unit, or a flag's texts (on / off)
                       "scalars": {"tick_ms": {"label": "loop", "unit": "ms"},
                                   "powered": {"flag": ["torque off", "torque on"]},

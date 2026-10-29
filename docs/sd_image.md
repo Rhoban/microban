@@ -13,7 +13,8 @@ ready), and the robot service (the control loop starts at boot, torque off until
    ("Use custom") or [balenaEtcher](https://etcher.balena.io/).
 2. Put it in the robot and power it on. At its first boot (about 1 min) the robot grows its partition to the whole
    card and takes its own identity: machine-id, SSH keys, and the name `microban-XXXX`, XXXX being the end of its wifi
-   MAC address. Two robots never share a name or a DHCP address.
+   MAC address. Two robots never share a name or a DHCP address. `make discover-robots` lists the robots on your
+   network, with their name and address.
 3. Tell it its version once: in the dashboard (`make dashboard`), the header's **robot version** menu, **Climber** for
    a robot with the climbing forearms and feet (a new robot is a Classic). The robot keeps it, and runs only the moves
    made for it ([moves.md](moves.md)).

@@ -21,6 +21,7 @@ takes it too, or the bare name).
 
 | Command | What it does |
 | :--- | :--- |
+| `make discover-robots` | The robots on this network: name (`microban-XXXX`), address, whether their program runs, their version, torque on / off; with the commands to reach the first one. |
 | `make run` | Sync the code and start the control loop on the robot (50 Hz). Stays attached to your terminal for live control (it stops the robot service for the session). `CONTROLLER=path.py`: your own controller ([controller.md](controller.md)). |
 | `make deploy` | Sync the code and restart the robot service: your moves run, the dashboard shows them by itself ([moves.md](moves.md)). |
 | `make stop` | Stop the control loop and disable torque on all motors. The robot service stays stopped (until `make robot-service-start` or a reboot). |

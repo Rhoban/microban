@@ -17,6 +17,7 @@ dependencies = [
 dashboard = [            # the live dashboard on the PC (make dashboard): src/humanoid_dashboard
     "mujoco>=3.2",
     "aiohttp>=3.9",
+    "zeroconf>=0.130",      # make discover-robots: the robots announced on the network (mDNS)
 ]
 sim = [                  # make sim: Rhoban's robot simulator (the robot, its servos simulated by BAM, its sensors)
     "microban-sim",

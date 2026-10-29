@@ -30,7 +30,7 @@ make dashboard HOST=microban-1a2b.local           # straight to that robot
 ```
 
 `HOST` is the robot's host name or IP (`radxa@...` as for `make deploy` works too: the page takes the host); without
-it, the page opens on its robot picker. Close the page any time: the robot does not depend on it.
+it, the page opens on its robot picker. `make discover-robots` lists the robots on the network. Close the page any time: the robot does not depend on it.
 
 | Commands of the robot service | |
 | :--- | :--- |

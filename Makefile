@@ -1,4 +1,4 @@
-.PHONY: sync setup deploy run stop robot-service-enable robot-service-disable robot-service-start robot-service-stop robot-service-logs shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
+.PHONY: discover-robots sync setup deploy run stop robot-service-enable robot-service-disable robot-service-start robot-service-stop robot-service-logs shutdown voltage imu sim viewer dashboard gamepad-headless-enable gamepad-headless-disable
 
 HOST ?= microban
 ID ?=
@@ -89,6 +89,10 @@ gamepad-headless-enable: sync
 
 gamepad-headless-disable:
 	ssh -tt $(HOST) "bash -l -c 'cd microban && sudo bash systemd/install-gamepad-daemon.sh --uninstall'"
+
+# The robots on this network: name, address, whether their program runs, their version (tools/discover_robots.py)
+discover-robots:
+	@uv run -q --group dashboard python tools/discover_robots.py
 
 # Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while its program runs (service or
 # `make run`). HOST: the robot to open with; another one can be chosen, and saved under a name, in the page.
