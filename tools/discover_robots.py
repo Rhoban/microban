@@ -128,7 +128,9 @@ def main():
         rows[addr] = {"name": name}
     for addr, r in running.items():
         rows.setdefault(addr, {}).update(r)
-        rows[addr].setdefault("name", r.get("host") or "?")
+        host = r.get("host") or "?"
+        # a PC whose make sim answers like a robot (the robot's program on the simulator)
+        rows[addr].setdefault("name", host if host.startswith("microban-") else f"{host} (simulation)")
     if not rows:
         print("No robot found. Is it switched on, on the same wifi network as this computer (the hackathon's router)?")
         return
@@ -136,8 +138,10 @@ def main():
     for addr, r in sorted(rows.items(), key=lambda kv: kv[1]["name"]):
         program = "running" if "robot" in r else "not running"
         print(f"{r['name']:<16} {addr:<16} {program:<12} {r.get('variant', '-'):<9} {r.get('torque', '-')}")
-    first = next(iter(sorted(rows.values(), key=lambda r: r["name"])))["name"]
-    if first != "?":
+    robots = sorted((r for r in rows.values() if r["name"].startswith("microban-")),
+                    key=lambda r: ("robot" not in r, r["name"]))          # the running ones first
+    if robots:
+        first = robots[0]["name"]
         print(f"\nmake dashboard HOST={first}.local      make deploy HOST=radxa@{first}.local")
 
 
