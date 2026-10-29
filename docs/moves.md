@@ -240,12 +240,12 @@ Most moves need only `obs` and their targets. For more, every move has `self.rob
 | | |
 |---|---|
 | `self.robot.set_torque(on, joints=None)` | torque off on these joints (names, or all): they go limp at once; back on: after this tick's targets, held where they are (no jump) |
-| `self.robot.set_kp(kp, joints=None)` | the servos' gain, of these joints or all (`kp` in the class sets it for the whole move) |
+| `self.robot.set_kp(kp, joints=None)` | the servos' gain (0 to 1000), of these joints or all, over the moves' `kp` (in the class: the whole move's), written after the tick |
 | `self.robot.state` | this tick's raw measurements (`observer.RobotState`: the IMU in its chip's frame, the motors' voltages, currents by joint name) |
 
 When the move stops (Stop, over by itself, an error, em / init), the joints it turned off get their torque back (if
-the robot is powered) and the gain goes back to the robot's. Another move's `kp` starting or stopping rewrites the
-gain of every joint.
+the robot is powered) and its gains go: the joints get the running moves' gains again (their `kp`, their `set_kp`),
+or the robot's. `self.robot` is the program's: name your own objects differently (`self.model`, not `self.robot`).
 
 ```python
 from microban_model import JOINTS
@@ -268,8 +268,9 @@ class FeelMove:
         return {}                                             # no target to change
 ```
 
-In the simulator (`run_move`), `self.robot` has the same `set_torque` and `set_kp` (every joint at once only: the
-simulated servos share one gain); `state` is None there.
+In the simulators (`run_move`, and `make sim`), `self.robot` has the same `set_torque` and `set_kp`; the simulated
+servos share one gain, the one most joints have (per-joint gains: on the robot only, a message says so); `state` is
+None in `run_move`.
 
 ## Messages and errors
 

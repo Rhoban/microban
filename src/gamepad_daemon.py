@@ -163,7 +163,8 @@ def power_off() -> None:
 def run_session() -> None:
     """Start the control loop and block until it exits (B button or crash)."""
     print("Launching control loop", flush=True)
-    env = {**os.environ, "PYTHONPATH": "src"}
+    # MICROBAN_INPUT=gamepad: this gamepad's B stops the program (the daemon waits for it), as with make run
+    env = {**os.environ, "PYTHONPATH": "src", "MICROBAN_INPUT": "gamepad"}
     proc = subprocess.Popen([sys.executable, "src/main.py"], cwd=str(REPO), env=env)
     proc.wait()
     print(f"Control loop exited (code {proc.returncode})", flush=True)

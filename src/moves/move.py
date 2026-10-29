@@ -118,8 +118,9 @@ class Robot:
 
     * ``state``: this tick's raw measurements (observer.RobotState: the IMU in its chip's frame, the motors' voltages,
       currents by joint name...); None in the simulators.
-    * ``set_kp(kp, joints=None)``: the servos' gain, of these joints (names) or all of them; back to the robot's when
-      the move stops (in the simulators: every joint at once only).
+    * ``set_kp(kp, joints=None)``: the servos' gain, of these joints (names) or all of them, written by the program
+      after this tick (over the moves' ``kp``); back to the robot's when the move stops (in the simulators: every joint
+      at once only).
     * ``set_torque(on, joints=None)``: torque off (the joint goes limp at once) or back on. Back on: after this tick's
       targets, held where the joint is (no jump). Back on by itself when the move stops.
     """
@@ -127,7 +128,7 @@ class Robot:
     def __init__(self, controller=None) -> None:
         self.controller = controller                              # set by the scheduler
         self.state = None
-        self.kp_changed = False
+        self.kp: dict[str, int] = {}                             # the gains this move set (joint -> kp)
         self.limp: set[str] = set()                               # joints this move turned off
         self.to_enable: set[str] = set()                          # back on after this tick's targets
 
@@ -140,9 +141,10 @@ class Robot:
         return names
 
     def set_kp(self, kp, joints=None) -> None:
-        names = self._joints(joints)
-        self.controller.sync_write_kp([MOTOR_TO_ID[n] for n in names], [int(kp)] * len(names))
-        self.kp_changed = True
+        kp = int(kp)
+        if not 0 <= kp <= 1000:
+            raise ValueError(f"kp {kp}: the servos take 0 to 1000 (the robot runs 400, learned policies 125)")
+        self.kp.update(dict.fromkeys(self._joints(joints), kp))
 
     def set_torque(self, on: bool, joints=None) -> None:
         names = set(self._joints(joints))
@@ -170,6 +172,11 @@ class Runner:
         if self.start_pose not in ("current", "neutral"):
             raise ValueError(f"start_pose must be 'current' or 'neutral', not {self.start_pose!r}")
         self.kp = getattr(move, "kp", None)
+        if self.kp is not None and not (isinstance(self.kp, (int, float)) and 0 <= self.kp <= 1000):
+            raise ValueError(f"kp must be a number from 0 to 1000, not {self.kp!r}")
+        if "robot" in vars(move):
+            raise ValueError("self.robot is the program's (the servos one by one): name yours differently "
+                             "(e.g. self.model)")
         # the class's attributes, or the instance's when its __init__ set them
         self.option_docs = dict(getattr(move, "option_docs", {}) or {})
         self.sliders = dict(getattr(move, "sliders", {}) or {})

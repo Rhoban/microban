@@ -66,7 +66,7 @@ class Scheduler:
         # All moves are registered here. They only run when asked (user_input.active_moves, the dashboard).
         self.registered_moves: dict[str, Runner] = dict(moves or {})
         self._targets: dict[str, float] = dict(NEUTRAL_POSE)   # the last ones sent: a joint no move drives keeps its own
-        self._kp = KP_DEFAULT
+        self._kp: dict[str, int] = dict.fromkeys(MOTOR_TO_ID, KP_DEFAULT)   # the gains written (main.py: KP_DEFAULT)
         for move in self.registered_moves.values():
             move.robot.controller = controller                   # the moves' self.robot (moves.move.Robot)
 
@@ -426,20 +426,25 @@ class Scheduler:
         r = move.robot
         r.to_enable |= r.limp
         r.limp = set()
-        if r.kp_changed:
-            r.kp_changed = False
-            self._kp = None                                # written again by _update_kp
+        r.kp = {}                                          # its set_kp: gone (_update_kp)
 
     def _update_kp(self) -> None:
-        """The servos' gain: the kp of the running move that sets one (the last in the moves' order), else the
-        robot's (KP_DEFAULT)."""
-        kp = next((m.kp for m in reversed(self.registered_moves.values())
-                   if m.state != MoveState.INACTIVE and m.kp is not None), KP_DEFAULT)
+        """The servos' gains: the kp of the running move that sets one (the last in the moves' order), else the robot's
+        (KP_DEFAULT); over it, the joints the running moves set with self.robot.set_kp (in the moves' order). Only the
+        gains that change are written."""
+        running = [m for m in self.registered_moves.values() if m.state != MoveState.INACTIVE]
+        base = next((m.kp for m in reversed(running) if m.kp is not None), KP_DEFAULT)
+        want = dict.fromkeys(MOTOR_TO_ID, int(base))
+        for m in running:
+            want.update(m.robot.kp)
+        changed = {n: k for n, k in want.items() if self._kp.get(n) != k}
         write_kp = getattr(self.controller, "sync_write_kp", None)
-        if kp != self._kp and callable(write_kp):
-            ids = list(MOTOR_TO_ID.values())
-            write_kp(ids, [int(kp)] * len(ids))
-            self._kp = kp
+        if not changed or not callable(write_kp):
+            return
+        for kp in sorted(set(changed.values())):
+            names = [n for n, k in changed.items() if k == kp]
+            write_kp([MOTOR_TO_ID[n] for n in names], [kp] * len(names))
+        self._kp.update(changed)
 
     def _set_torque(self, on: bool) -> None:
         for move in self.registered_moves.values():     # every motor at once: no joint left limp by a move

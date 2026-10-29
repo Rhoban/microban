@@ -45,6 +45,8 @@ class SimController:
         self._reset_source = reset_source
         self._index = {mid: JOINTS.index(name) for mid, name in ID_TO_MOTOR.items()}   # motor ID -> sim order
         self.sim.servos.kp = KP_DEFAULT
+        self._kp = dict.fromkeys(ID_TO_MOTOR, KP_DEFAULT)                     # motor ID -> the gain written
+        self._kp_warned = False
         self.reset(sync=False)
         self._viewer = sim.view(realtime=False, key_callback=key_callback)   # the scheduler keeps the pace
 
@@ -64,10 +66,18 @@ class SimController:
 
     # ---- writes ------------------------------------------------------------------------------------------
     def sync_write_kp(self, ids: list[int], gains: list[int]) -> None:
-        self.sim.servos.kp = gains[0]
+        """The simulated servos share one gain: the one most joints have (a per-joint set_kp is the robot's only)."""
+        for mid, g in zip(ids, gains):
+            self._kp[mid] = int(g)
+        values = list(self._kp.values())
+        self.sim.servos.kp = max(set(values), key=values.count)
+        if len(set(values)) > 1 and not self._kp_warned:
+            print("Simulation: per-joint servo gains are the robot's only; the simulated servos keep one gain "
+                  f"({self.sim.servos.kp:g})", end="\r\n", flush=True)
+            self._kp_warned = True
 
     def sync_read_kp(self, ids: list[int]) -> list[int]:
-        return [int(self.sim.servos.kp)] * len(ids)
+        return [self._kp[mid] for mid in ids]
 
     def sync_write_torque_enable(self, ids: list[int], values: list[bool]) -> None:
         on = self.sim.servos.torque.copy()
