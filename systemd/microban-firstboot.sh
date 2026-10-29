@@ -15,6 +15,7 @@ root_dev=$(findmnt -n -o SOURCE /)                       # /dev/mmcblk1p3
 disk=/dev/$(lsblk -n -o PKNAME "$root_dev")
 part=$(cat "/sys/class/block/$(basename "$root_dev")/partition")
 growpart "$disk" "$part" && log "partition $root_dev grown" || log "partition $root_dev already full"
+partx -u -n "$part" "$disk" || true            # the kernel's view of the new size (else resize2fs sees the old one)
 resize2fs "$root_dev" && log "filesystem $root_dev resized"
 
 # 2. a new machine-id

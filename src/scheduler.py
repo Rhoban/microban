@@ -57,6 +57,7 @@ class Scheduler:
         self.controller = controller
         self.stop_flag_path = Path(stop_flag_path)
         self._cleanup_done = False
+        self.failed: Optional[str] = None   # why the loop stopped by itself (main.py: a non-zero exit, the service restarts)
         self.input_source = input_source
 
         self.observer = Observer(self.controller)
@@ -124,6 +125,7 @@ class Scheduler:
                     self._serial_errors += 1
                     if self._serial_errors >= 3:
                         print(f"Serial communication error: {e}", end="\r\n", flush=True)
+                        self.failed = f"serial: {e}"
                         break
                     print(f"Warning: serial read error (attempt {self._serial_errors}/3): {e}", end="\r\n", flush=True)
                     time.sleep(self.dt)                      # retry at the next tick, not at once
@@ -177,6 +179,7 @@ class Scheduler:
                 # would inflate the error term and false-trigger at gait start.
                 aligned_targets = self._cmd_history[0] if self._cmd_history else command.target_angles
                 if self._check_overcurrent(robot_state, aligned_targets):
+                    self.failed = "overcurrent"
                     break
 
                 # A power-up or init ramp replaces the moves' targets; no move running: torque off

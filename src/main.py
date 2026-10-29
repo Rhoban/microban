@@ -101,6 +101,11 @@ def main() -> None:
                 pass
 
         scheduler.run()
+        if scheduler.failed:
+            # e.g. the motors without power (USB only, battery off): exit 1, so that the robot service starts again
+            # (systemd Restart=on-failure, every 3 s) and the program comes up once the motors answer
+            print(f"Control loop stopped ({scheduler.failed}): exit 1", flush=True)
+            sys.exit(1)
 
     finally:
         if PID_FILE.exists():
