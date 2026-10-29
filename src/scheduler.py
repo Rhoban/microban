@@ -67,6 +67,8 @@ class Scheduler:
         self.registered_moves: dict[str, Runner] = dict(moves or {})
         self._targets: dict[str, float] = dict(NEUTRAL_POSE)   # the last ones sent: a joint no move drives keeps its own
         self._kp = KP_DEFAULT
+        for move in self.registered_moves.values():
+            move.robot.controller = controller                   # the moves' self.robot (moves.move.Robot)
 
         self.loop_start_time = time.perf_counter()
         self._serial_errors = 0
@@ -145,7 +147,7 @@ class Scheduler:
                 # Each move asked starts, runs, or is stopped; its targets over the last ones sent
                 command = MotorCommand(dict(self._targets))
                 for name, move in self.registered_moves.items():
-                    move.set_inputs(self._keys, obs.user_input.velocity)
+                    move.set_inputs(self._keys, obs.user_input.velocity, robot_state)
                     try:
                         with self._output.capture(name):
                             if name in requested and move.state == MoveState.INACTIVE and name not in self._ended:
@@ -159,7 +161,12 @@ class Scheduler:
                                 self._end(name)            # over by itself (step returned None)
                     except Exception:
                         self._move_failed(name, move)      # that move stops; its joints keep their last targets
+                    if move.state == MoveState.INACTIVE:
+                        self._release(move)
                 self._update_kp()
+                enable = set().union(*(m.robot.to_enable for m in self.registered_moves.values()))
+                if enable and self.powered:                # torque back on: held where the joints are, no jump
+                    command.target_angles.update({n: robot_state.motor_positions[n] for n in enable})
 
                 # Overcurrent safety: estimate the current from the command that was actually
                 # active when the (delayed) position/velocity feedback was sampled — the oldest
@@ -181,6 +188,11 @@ class Scheduler:
                 self._targets = dict(command.target_angles)
                 self._cmd_history.append(dict(command.target_angles))
                 self._send_to_motors(command)
+                if enable and self.powered:
+                    ids = [MOTOR_TO_ID[n] for n in sorted(enable)]
+                    self.controller.sync_write_torque_enable(ids, [True] * len(ids))
+                for move in self.registered_moves.values():
+                    move.robot.to_enable.clear()
 
                 # Live dashboard: what was just read and sent, and its commands (the bus is free here)
                 if self.telemetry is not None:
@@ -405,7 +417,18 @@ class Scheduler:
         """em / init: every move stops at once (no stopping(); start() begins it anew next time)."""
         for move in self.registered_moves.values():
             move.state = MoveState.INACTIVE
+            self._release(move)
         self._update_kp()
+
+    def _release(self, move: Runner) -> None:
+        """A move that stopped gives the servos back: the joints it turned off on again (after this tick's targets),
+        the gain back to the robot's (_update_kp)."""
+        r = move.robot
+        r.to_enable |= r.limp
+        r.limp = set()
+        if r.kp_changed:
+            r.kp_changed = False
+            self._kp = None                                # written again by _update_kp
 
     def _update_kp(self) -> None:
         """The servos' gain: the kp of the running move that sets one (the last in the moves' order), else the
@@ -419,6 +442,8 @@ class Scheduler:
             self._kp = kp
 
     def _set_torque(self, on: bool) -> None:
+        for move in self.registered_moves.values():     # every motor at once: no joint left limp by a move
+            move.robot.limp, move.robot.to_enable = set(), set()
         ids = list(MOTOR_TO_ID.values())
         self.controller.sync_write_torque_enable(ids, [on] * len(ids))
         self.powered = on

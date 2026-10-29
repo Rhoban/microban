@@ -232,6 +232,45 @@ MOVE_KEYS = {..., "w": "wave"}
 GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}
 ```
 
+## The servos one by one: `self.robot`
+
+Most moves need only `obs` and their targets. For more, every move has `self.robot` (set by the program, from
+`start` on):
+
+| | |
+|---|---|
+| `self.robot.set_torque(on, joints=None)` | torque off on these joints (names, or all): they go limp at once; back on: after this tick's targets, held where they are (no jump) |
+| `self.robot.set_kp(kp, joints=None)` | the servos' gain, of these joints or all (`kp` in the class sets it for the whole move) |
+| `self.robot.state` | this tick's raw measurements (`observer.RobotState`: the IMU in its chip's frame, the motors' voltages, currents by joint name) |
+
+When the move stops (Stop, over by itself, an error, em / init), the joints it turned off get their torque back (if
+the robot is powered) and the gain goes back to the robot's. Another move's `kp` starting or stopping rewrites the
+gain of every joint.
+
+```python
+from microban_model import JOINTS
+
+ELBOW = JOINTS.index("left_elbow")
+
+
+class FeelMove:
+    """Let the left elbow go limp for one second: move it by hand, read where it is."""
+
+    def start(self, obs):
+        self.t0 = obs["time"]
+        self.robot.set_torque(False, ["left_elbow"])
+
+    def step(self, obs):
+        if obs["time"] - self.t0 > 1.0:
+            self.robot.set_torque(True, ["left_elbow"])
+            return None                                       # over
+        self.angle = obs["q"][ELBOW]                          # where the hand put it
+        return {}                                             # no target to change
+```
+
+In the simulator (`run_move`), `self.robot` has the same `set_torque` and `set_kp` (every joint at once only: the
+simulated servos share one gain); `state` is None there.
+
 ## Messages and errors
 
 * `print()` in a move goes to the dashboard's Events (`wave: text`, at most 10 lines a second per move; the rest is

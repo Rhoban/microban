@@ -34,7 +34,7 @@ from enum import Enum, auto
 import microban_model
 import numpy as np
 
-from constants import IMU_MOUNT_QUAT, NEUTRAL_POSE
+from constants import IMU_MOUNT_QUAT, MOTOR_TO_ID, NEUTRAL_POSE
 from observer import Observation
 
 # The versions of the robot: walking hands and feet (classic), or the climbing forearms and feet (climber). A move may
@@ -112,6 +112,50 @@ def targets_dict(targets) -> dict[str, float]:
     return dict(zip(JOINTS, targets.tolist()))
 
 
+class Robot:
+    """``self.robot`` of a move: the robot's raw measurements and its servos one by one, for the moves that need more
+    than obs and targets (the simulators give the same methods: microban_sim's run_move).
+
+    * ``state``: this tick's raw measurements (observer.RobotState: the IMU in its chip's frame, the motors' voltages,
+      currents by joint name...); None in the simulators.
+    * ``set_kp(kp, joints=None)``: the servos' gain, of these joints (names) or all of them; back to the robot's when
+      the move stops (in the simulators: every joint at once only).
+    * ``set_torque(on, joints=None)``: torque off (the joint goes limp at once) or back on. Back on: after this tick's
+      targets, held where the joint is (no jump). Back on by itself when the move stops.
+    """
+
+    def __init__(self, controller=None) -> None:
+        self.controller = controller                              # set by the scheduler
+        self.state = None
+        self.kp_changed = False
+        self.limp: set[str] = set()                               # joints this move turned off
+        self.to_enable: set[str] = set()                          # back on after this tick's targets
+
+    @staticmethod
+    def _joints(joints) -> list[str]:
+        names = list(JOINTS) if joints is None else [joints] if isinstance(joints, str) else list(joints)
+        unknown = set(names) - set(JOINTS)
+        if unknown:
+            raise ValueError(f"unknown joints {sorted(unknown)} (microban_model.JOINTS)")
+        return names
+
+    def set_kp(self, kp, joints=None) -> None:
+        names = self._joints(joints)
+        self.controller.sync_write_kp([MOTOR_TO_ID[n] for n in names], [int(kp)] * len(names))
+        self.kp_changed = True
+
+    def set_torque(self, on: bool, joints=None) -> None:
+        names = set(self._joints(joints))
+        if on:
+            self.to_enable |= names & self.limp
+            self.limp -= names
+        else:
+            ids = [MOTOR_TO_ID[n] for n in sorted(names)]
+            self.controller.sync_write_torque_enable(ids, [False] * len(ids))
+            self.limp |= names
+            self.to_enable -= names
+
+
 class Runner:
     """A move in the robot's program: its state, what the dashboard sets (options, sliders, keys) and the velocity
     asked (sticks / arrows), given to the move as attributes, and its calls."""
@@ -136,9 +180,12 @@ class Runner:
         move.slider = self.slider = {n: float(s[2]) for n, s in self.sliders.items()}
         move.pressed = set()
         move.velocity = dict(NO_VELOCITY)
+        move.robot = self.robot = Robot()
 
-    def set_inputs(self, pressed: set[str], velocity: dict[str, float]) -> None:
+    def set_inputs(self, pressed: set[str], velocity: dict[str, float], state=None) -> None:
         self.move.pressed, self.move.velocity = set(pressed), dict(velocity)
+        if state is not None:
+            self.robot.state = state
 
     def start(self, obs: Observation) -> None:
         """Asked: its sliders back to their start values, then its start()."""
