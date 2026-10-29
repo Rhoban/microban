@@ -7,8 +7,8 @@ import placo
 
 import numpy as np
 
-from observer import Observation
-from moves.move import CLASSIC, MotorCommand, Move, MoveState
+from microban_model import JOINTS
+
 from constants import NEUTRAL_POSE
 
 _LOWER_JOINTS = [
@@ -24,55 +24,22 @@ _UPPER_JOINTS = [
 ]
 
 
-# Set to True to log IMU and COM data during the squat move
-LOGGING = False 
+_JOINTS = _LOWER_JOINTS + _UPPER_JOINTS
+_INDEX = [JOINTS.index(n) for n in _JOINTS]
+LERP_S = 1.0                      # to the squat's start pose, and back to the neutral pose when stopped
 
 
-class SquatMove(Move):
-    """Squat motion using placo IK."""
+class SquatMove:
+    """Squat up and down: the centre of mass goes down and up (inverse kinematics, placo), the feet flat."""
 
     description = "Squat up and down (inverse kinematics)"
-    variants = (CLASSIC,)          # its inverse kinematics uses the walking feet
+    variants = ("classic",)          # its inverse kinematics uses the walking feet
+    start_pose = "neutral"
+    options = {"frequency": 0.3, "amplitude": 0.02}
+    option_docs = {"frequency": "squats per second (Hz)", "amplitude": "how far the centre of mass goes down (m)"}
 
-    def __init__(
-        self,
-        frequency: float = 0.3,
-        amplitude: float = 0.02,
-        lerp_duration: float = 1.0,
-    ) -> None:
-        super().__init__()
-        self._model_path = str(microban_model.URDF_DIR)
-        self.frequency = frequency
-        self.amplitude = amplitude
-        self.lerp_duration = lerp_duration
-
-        self._start_lerp_time_s: float | None = None
-        self._start_lerp_angles: list[float] = []
-        self._stop_lerp_time_s: float | None = None
-        self._stop_lerp_angles: list[float] = []
-        self._active_start_time_s: float = 0.0
-
-        self._placo_ready = False
-
-        # Logging
-        self._initialiation_delay_s = 5.0
-        self._target_com_z: list[float] = []
-        self._obs_projected_gravity_x: list[float] = []
-        self._obs_projected_gravity_y: list[float] = []
-        self._obs_projected_gravity_z: list[float] = []
-        self._obs_gyro_roll: list[float] = []
-        self._obs_gyro_pitch: list[float] = []
-        self._obs_gyro_yaw: list[float] = []
-
-    def preload(self) -> None:
-        self._initialize()
-
-    def _initialize(self) -> None:
-        """Lazy initialization of placo model and IK solver (deferred to first activation)."""
-        if self._placo_ready:
-            return
-
-        self._robot = placo.RobotWrapper(self._model_path)
+    def __init__(self) -> None:
+        self._robot = placo.RobotWrapper(str(microban_model.URDF_DIR))
         self._solver = placo.KinematicsSolver(self._robot)
 
         for name, angle in NEUTRAL_POSE.items():
@@ -111,89 +78,36 @@ class SquatMove(Move):
             self._robot.update_kinematics()
 
         self._start_target_angles = [self._robot.get_joint(name) for name in _LOWER_JOINTS + _UPPER_JOINTS]
-        self._placo_ready = True
+        self._start_angles = [self._robot.get_joint(name) for name in _JOINTS]
 
-    def reset(self) -> None:
-        self._start_lerp_time_s = None
-        self._stop_lerp_time_s = None
+    def start(self, obs) -> None:
+        self.t0, self.from_angles = obs["time"], obs["q"][_INDEX].tolist()
+        self.stop_t0 = None
+        for name, angle in zip(_JOINTS, self._start_angles):
+            self._robot.set_joint(name, angle)
+        self._robot.set_T_world_frame("left_foot", self._T_left_foot)
+        self._robot.update_kinematics()
+        self._com_task.target_world = self._com_initial.copy()
 
-    def on_start(self, obs: Observation, command: MotorCommand) -> None:
-        self._initialize()
-        if self._start_lerp_time_s is None:
-            self._start_lerp_time_s = obs.robot_state.time_s
-            self._start_lerp_angles = [obs.robot_state.motor_positions.get(name, 0.0) for name in _LOWER_JOINTS + _UPPER_JOINTS]
-
-        t = (obs.robot_state.time_s - self._start_lerp_time_s) / self.lerp_duration
-        t = min(t, 1.0)
-        for i, name in enumerate(_LOWER_JOINTS + _UPPER_JOINTS):
-            command.target_angles[name] = self._start_lerp_angles[i] * (1.0 - t) + self._start_target_angles[i] * t
-
-        if t >= 1.0:
-            for i, name in enumerate(_LOWER_JOINTS + _UPPER_JOINTS):
-                self._robot.set_joint(name, self._start_target_angles[i])
-            self._robot.set_T_world_frame("left_foot", self._T_left_foot)
-            self._robot.update_kinematics()
-            self._com_task.target_world = self._com_initial.copy()
-
-            
-            if LOGGING and self._initialiation_delay_s > 0.0:
-                self.save_state(obs)
-                self._initialiation_delay_s -= 0.02
-                return
-            
-            self._start_lerp_time_s = None
-            self._active_start_time_s = obs.robot_state.time_s
-
-            self.state = MoveState.ACTIVE
-
-    def save_state(self, obs: Observation) -> None:
-        self._obs_projected_gravity_x.append(obs.robot_state.projected_gravity[0])
-        self._obs_projected_gravity_y.append(obs.robot_state.projected_gravity[1])
-        self._obs_projected_gravity_z.append(obs.robot_state.projected_gravity[2])
-        self._obs_gyro_roll.append(obs.robot_state.gyro[0])
-        self._obs_gyro_pitch.append(obs.robot_state.gyro[1])
-        self._obs_gyro_yaw.append(obs.robot_state.gyro[2])
-        self._target_com_z.append(self._com_task.target_world[2])
-
-    def step(self, obs: Observation, command: MotorCommand) -> None:
-        t = obs.robot_state.time_s - self._active_start_time_s
+    def step(self, obs):
+        t = obs["time"] - self.t0
+        if t < LERP_S:                                    # to the squat's start pose first
+            return _lerp(self.from_angles, self._start_angles, t)
+        t -= LERP_S
         p_com = self._com_initial.copy()
-        p_com[2] -= self.amplitude * (1.0 - math.cos(2.0 * math.pi * self.frequency * t))
+        p_com[2] -= self.options["amplitude"] * (1.0 - math.cos(2.0 * math.pi * self.options["frequency"] * t))
         self._com_task.target_world = p_com
-
         self._solver.solve(True)
         self._robot.update_kinematics()
+        return {name: self._robot.get_joint(name) for name in _JOINTS}
 
-        for name in _LOWER_JOINTS + _UPPER_JOINTS:
-            command.target_angles[name] = self._robot.get_joint(name)
+    def stopping(self, obs):
+        if self.stop_t0 is None:                          # back to the neutral pose
+            self.stop_t0, self.from_angles = obs["time"], obs["q"][_INDEX].tolist()
+        t = obs["time"] - self.stop_t0
+        return _lerp(self.from_angles, [NEUTRAL_POSE[n] for n in _JOINTS], t) if t < LERP_S else None
 
-        if LOGGING:
-            self.save_state(obs)
 
-    def on_stop(self, obs: Observation, command: MotorCommand) -> None:
-        if LOGGING:
-            import json
-            with open("squat_log.json", "w") as f:
-                json.dump({
-                    "obs_projected_gravity_x": self._obs_projected_gravity_x,
-                    "obs_projected_gravity_y": self._obs_projected_gravity_y,
-                    "obs_projected_gravity_z": self._obs_projected_gravity_z,
-                    "obs_gyro_roll": self._obs_gyro_roll,
-                    "obs_gyro_pitch": self._obs_gyro_pitch,
-                    "obs_gyro_yaw": self._obs_gyro_yaw,
-                    "target_com_z": self._target_com_z,
-                }, f, indent=2)
-
-        if self._stop_lerp_time_s is None:
-            self._stop_lerp_time_s = obs.robot_state.time_s
-            self._stop_lerp_angles = [obs.robot_state.motor_positions.get(name, 0.0) for name in _LOWER_JOINTS + _UPPER_JOINTS]
-
-        t = (obs.robot_state.time_s - self._stop_lerp_time_s) / self.lerp_duration
-        t = min(t, 1.0)
-        for i, name in enumerate(_LOWER_JOINTS + _UPPER_JOINTS):
-            command.target_angles[name] = self._stop_lerp_angles[i] * (1.0 - t) + NEUTRAL_POSE[name] * t
-
-        if t >= 1.0:
-            self._stop_lerp_time_s = None
-            self._start_lerp_time_s = None
-            self.state = MoveState.INACTIVE
+def _lerp(start: list[float], end: list[float], t: float) -> dict[str, float]:
+    a = min(t / LERP_S, 1.0)
+    return {n: s * (1.0 - a) + e * a for n, s, e in zip(_JOINTS, start, end)}

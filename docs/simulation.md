@@ -9,18 +9,18 @@ the robot's delays).
 |---|---|
 | `make sim` | The classic robot on the floor; `VARIANT=climber`: the climbing one. |
 | `make sim WALL=N2` | The climbing robot on the hackathon's wall: `N1`, `N2`, `N3` or a wall JSON file (from the simulator's wall editor). It starts hanging on the wall's start holds; `START=floor`: standing in front of the wall. |
-| `CONTROLLER=my_moves.py` | The simple moves of a file kept outside `src/moves/` ([moves.md](moves.md#a-simple-move)); a class `Controller` is the move `controller`. |
+| `MOVES=my_moves.py` | Also the moves of a file kept outside `src/moves/` ([moves.md](moves.md)). |
 
-In the viewer: [c] starts / stops the move `controller` (and the other moves' keys, listed in the terminal), [r] puts the
+In the viewer: the moves' keys (listed in the terminal) start / stop them, [r] puts the
 robot back at the start, [q] quits. The dashboard works on it: `make dashboard HOST=127.0.0.1`.
 
 As on the real robot:
 
 * the robot's program starts with the torque off: the robot is held where it starts until a move is launched (the
   torque goes on), as someone holds the real robot;
-* a move launched with `power_up = "neutral"` (the default) first brings the robot to the neutral standing pose in
-  2 s: on the wall, the robot then lets go. A move meant to start on the wall sets `power_up = "current"` (a
-  simple move does);
+* a move turns the torque on where the robot is (`start_pose = "current"`, the default), so it may start hanging on
+  the wall; one with `start_pose = "neutral"` (the walk, the squat) first brings the robot to the neutral standing
+  pose in 2 s: on the wall, the robot then lets go;
 * the moves are those made for the robot's version ([moves.md](moves.md)): the wall's robot is a climber.
 
 `src/sim/sim_controller.py` connects the robot's program to the simulator: it gives the program what the real robot
@@ -30,8 +30,8 @@ sends the joint targets, the servos' gain and torque to the simulation.
 ## Fast simulation, without the robot's program
 
 For planning, learning or evaluating many runs, use the simulator directly in Python: `sim.step(target)` as fast as
-it computes, no real time (see [microban_sim](https://github.com/Rhoban/microban_sim)). A simple move written there
-([moves.md](moves.md#a-simple-move), `run_move`) runs unchanged here and on the robot.
+it computes, no real time (see [microban_sim](https://github.com/Rhoban/microban_sim)). A move written there
+([moves.md](moves.md#the-same-file-in-the-simulator), `run_move`) runs unchanged here and on the robot.
 
 ## The wall: the hackathon's simulator
 

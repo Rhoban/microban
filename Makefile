@@ -4,7 +4,7 @@ HOST ?= microban
 ID ?=
 
 # Sends this folder to the robot's ~/microban; the PC's own files stay here: the dashboard's recordings, the options
-# saved from a simulation (move_options.json), the CONTROLLER copy (make run puts it there itself)
+# saved from a simulation (move_options.json), the MOVES copy (make run puts it there itself)
 sync:
 	rsync -avz \
 		--exclude='.git' \
@@ -19,15 +19,14 @@ sync:
 		--exclude='recordings' \
 		--exclude='move_options.json' \
 		--exclude='robot_variant.txt' \
-		--exclude='user_controller.py' \
+		--exclude='user_moves.py' \
 		./ $(HOST):microban
 
 setup: sync
 	ssh $(HOST) "bash -l -c 'cd microban && uv sync'"
 
-# CONTROLLER=path/to/file.py: simple moves kept outside src/moves/ (src/moves/simple.py); a class named Controller is
-# started / stopped with [c] (gamepad: Y)
-CONTROLLER ?=
+# MOVES=path/to/file.py: the moves of a file kept outside src/moves/, for this session (make run, make sim)
+MOVES ?=
 # The robot's program on Rhoban's robot simulator (microban_sim): VARIANT=climber for the climbing robot on the
 # floor; WALL=N1|N2|N3|wall.json on the hackathon's climbing wall, its simulator cloned next to this folder (SIMULATOR,
 # used from there: a change made in it applies at once); START=floor: standing in front of the wall
@@ -41,16 +40,16 @@ sim:
 	@$(if $(WALL),test -f $(SIMULATOR)/pyproject.toml || { echo "The climbing simulator is not in $(SIMULATOR): \
 	git clone https://github.com/rock-climbing-robots/simulator $(SIMULATOR)  (or SIMULATOR=its/folder)"; exit 1; })
 	PYTHONPATH=src uv run --group sim $(if $(MICROBAN_SIM),--with-editable $(MICROBAN_SIM)) $(if $(WALL),--with-editable $(SIMULATOR)) \
-		src/sim/sim_main.py --hz 50 --variant $(VARIANT) $(if $(CONTROLLER),--controller $(CONTROLLER)) \
+		src/sim/sim_main.py --hz 50 --variant $(VARIANT) $(if $(MOVES),--moves $(MOVES)) \
 		$(if $(WALL),--wall $(WALL) --start $(START))
 
 viewer:
 	PYTHONPATH=src uv run src/sim/viewer_main.py --hz 25
 
 run: sync
-	$(if $(CONTROLLER),scp $(CONTROLLER) $(HOST):microban/user_controller.py)
+	$(if $(MOVES),scp $(MOVES) $(HOST):microban/user_moves.py)
 	-ssh $(HOST) "systemctl is-active -q microban.service && sudo systemctl stop microban.service && echo 'robot service stopped for this session (make robot-service-start to restart it)'"
-	ssh -tt $(HOST) "bash -l -c 'cd microban && $(if $(CONTROLLER),MICROBAN_CONTROLLER=user_controller.py) PYTHONPATH=src .venv/bin/python src/main.py'"
+	ssh -tt $(HOST) "bash -l -c 'cd microban && $(if $(MOVES),MICROBAN_MOVES=user_moves.py) PYTHONPATH=src .venv/bin/python src/main.py'"
 
 # The robot service: the control loop starts at boot (torque off until a move is launched), for the dashboard
 robot-service-enable: setup

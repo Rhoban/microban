@@ -259,7 +259,7 @@ make run
 ```
 
 The control loop runs at 50 Hz attached to your terminal. The torque stays off until a move is launched (a key, the
-gamepad, or the dashboard): the robot then ramps to its neutral pose in 2 s and the move starts. Press `q` or run
+gamepad, or the dashboard): the torque goes on (the walk first ramps to the neutral pose in 2 s) and the move starts. Press `q` or run
 `make stop` to stop.
 
 🎉 For the full set of controls — Makefile commands, keyboard and gamepad driving,

@@ -6,11 +6,11 @@ targets, IMU, tick time) and the moves' states in one UDP packet, only while a P
 reads the motors' health about once a second (torque, hardware error, voltage, temperature: two small sync reads) and
 runs the page's commands between two ticks: `reboot` a motor (clears overheating / overload; its torque stays off),
 `torque` on/off for one motor; and passes the scheduler's to it: `em` (stop the moves, torque off), `init` (stop the
-moves, every motor to its zero, held until a move is launched), `move_start` / `move_stop` (a registered move or
-switch, as its key would). The moves' live controls: `slider` sets a move's slider (Move.sliders), `keys` the keys
-held in the page's keyboard zone (Move.pressed, Move.on_key; the page repeats it while keys are held: without news
+moves, every motor to its zero, held until a move is launched), `move_start` / `move_stop` (a registered move, as its
+key would). The moves' live controls: `slider` sets a move's slider (its sliders), `keys` the keys held in the page's
+keyboard zone (the move's pressed, on_key; the page repeats it while keys are held: without news
 for KEYS_TIMEOUT_S, e.g. the PC's link lost, they are released). `variant` says which version the robot is (classic /
-climber: the moves made for it, Move.variants), saved on the robot by the scheduler.
+climber: the moves made for it, their variants), saved on the robot by the scheduler.
 Without the humanoid_dashboard package, or with MICROBAN_DASHBOARD=0, it does nothing.
 """
 import math
@@ -31,7 +31,7 @@ CURRENT_LIMIT_A = 1.75             # XL330 at 5-8 V (BAM max_current)
 TEMPERATURE_LIMIT_C = 70           # XL330 factory Temperature Limit
 VOLTAGE_BIT = 1                    # always set above 7 V (the robot runs at ~8 V): not an error for Microban
 KEYS_TIMEOUT_S = 0.6               # the page repeats the held keys every 0.2 s
-MOVE_STATE = {"INACTIVE": 0, "STARTING": 1, "ACTIVE": 2, "STOPPING": 3}   # the page's codes (a switch: 0 / 2)
+MOVE_STATE = {"INACTIVE": 0, "ACTIVE": 2, "STOPPING": 3}   # the page's codes
 
 
 def _move_problems() -> list[str]:
@@ -55,23 +55,21 @@ class Telemetry:
         self.voltage, self.temperature = [math.nan] * n, [math.nan] * n
         self.health = getattr(controller, "sync_read_health", None)       # the real robot only
         self.requests: list[tuple[str, str | None]] = []                  # for the scheduler (take_requests)
-        self.moves: dict = {}
-        self.switches: list[str] = []
+        self.moves: dict = {}                                             # name -> moves.move.Runner
         self.variant = CLASSIC
         self.sliders: list[tuple[str, str]] = []                          # (move, slider) in the field's order
         self.tick_count = 0
         self._keys: set[str] = set()
         self._keys_t = 0.0
 
-    def configure(self, moves: dict, switches: list[str] | None = None, variant: str = CLASSIC) -> None:
-        """The scheduler's moves (name -> Move) and switches (names a key toggles that are not moves): the page lists
-        them, with each move's `description` and the versions of the robot it is made for, and can start / stop them.
-        variant: the robot's version (classic / climber)."""
+    def configure(self, moves: dict, variant: str = CLASSIC) -> None:
+        """The scheduler's moves (name -> Runner): the page lists them, with each move's description and the versions
+        of the robot it is made for, and can start / stop them. variant: the robot's version (classic / climber)."""
         if not self.enabled or self.link is not None:
             return
-        self.moves, self.switches, self.variant = moves, list(switches or []), variant
+        self.moves, self.variant = moves, variant
         listed = self._listing()
-        self.sliders = [(k, n) for k, m in moves.items() for n in getattr(m, "sliders", {})]
+        self.sliders = [(k, n) for k, m in moves.items() for n in m.sliders]
         cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop",
                                                                                      "move_option", "save_options",
                                                                                      "slider", "keys", "variant"]
@@ -98,14 +96,11 @@ class Telemetry:
             self.enabled = False
 
     def _listing(self) -> list[dict]:
-        return [{"name": k, "kind": "move", "options": dict(getattr(m, "options", {}) or {}),
-                 "option_docs": dict(getattr(m, "option_docs", {}) or {}),
-                 "sliders": {n: list(v) for n, v in (getattr(m, "sliders", {}) or {}).items()},
-                 "keys": getattr(m, "keys", "") or "",
-                 "variants": list(getattr(m, "variants", None) or ALL),     # the page lists it for those only
-                 "available": self.variant in (getattr(m, "variants", None) or ALL),
-                 "doc": getattr(m, "description", "") or (type(m).__doc__ or "").strip().split("\n")[0]}
-                for k, m in self.moves.items()] + [{"name": s, "kind": "switch", "doc": ""} for s in self.switches]
+        return [{"name": k, "kind": "move", "options": dict(m.options), "option_docs": m.option_docs,
+                 "sliders": {n: list(v) for n, v in m.sliders.items()}, "keys": m.keys,
+                 "variants": list(m.variants),                           # the page lists it for those only
+                 "available": self.variant in m.variants, "doc": m.description}
+                for k, m in self.moves.items()]
 
     def event(self, text: str, level: str = "info") -> None:
         if self.link is not None:
@@ -137,10 +132,8 @@ class Telemetry:
     def torque_changed(self, on: bool) -> None:
         self.torque = [int(on)] * len(self.ids)
 
-    def tick(self, state, target_angles: dict, tick_ms: float, status: dict | None = None,
-             requested: set[str] | None = None) -> None:
-        """Call once per tick, after the motors were commanded (the bus is free). requested: the moves and switches
-        asked this tick (for the switches' state)."""
+    def tick(self, state, target_angles: dict, tick_ms: float, status: dict | None = None) -> None:
+        """Call once per tick, after the motors were commanded (the bus is free)."""
         if self.link is None:
             self.configure({})
             if self.link is None:
@@ -150,9 +143,7 @@ class Telemetry:
             self._read_health()
         names = self.names
         status = status or {}
-        requested = requested or set()
-        moves = [MOVE_STATE.get(m.state.name, 0) for m in self.moves.values()] + \
-                [2 if s in requested else 0 for s in self.switches]
+        moves = [MOVE_STATE.get(m.state.name, 0) for m in self.moves.values()]
         self.link.publish(
             q=[state.motor_positions.get(n, math.nan) for n in names],
             q_target=[target_angles.get(n, math.nan) for n in names],
@@ -188,7 +179,7 @@ class Telemetry:
         if name == "slider":                          # no answer either (many while dragged): the frames show it
             m = self.moves.get(cmd["args"].get("move"))
             sl = cmd["args"].get("slider")
-            spec = (getattr(m, "sliders", {}) or {}).get(sl) if m is not None else None
+            spec = m.sliders.get(sl) if m is not None else None
             value = cmd["args"].get("value")
             if spec is not None and isinstance(value, (int, float)) and math.isfinite(value):
                 m.slider[sl] = min(max(float(value), spec[0]), spec[1])
@@ -213,7 +204,7 @@ class Telemetry:
         if name == "move_option":
             move, opt, value = cmd["args"].get("move"), cmd["args"].get("option"), cmd["args"].get("value")
             m = self.moves.get(move)
-            if m is None or opt not in getattr(m, "options", {}):
+            if m is None or opt not in m.options:
                 self.link.ack(cmd, False, f"{move} has no option {opt}")
                 return
             old = m.options[opt]
@@ -227,7 +218,7 @@ class Telemetry:
             return
         if name in ("move_start", "move_stop"):
             move = cmd["args"].get("move")
-            if move not in self.moves and move not in self.switches:
+            if move not in self.moves:
                 self.link.ack(cmd, False, f"unknown move {move}")
                 return
             self.requests.append(("start" if name == "move_start" else "stop", move))

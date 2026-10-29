@@ -16,8 +16,7 @@ from scheduler import Scheduler
 from moves.move import CLASSIC
 from input.keyboard_input import KeyboardInputSource
 from sim.placo_controller import PlacoViewerController
-from moves.rotate_head import RotateHeadMove
-from moves.squat import SquatMove
+from moves.discover import discover_moves
 
 
 def main() -> None:
@@ -32,10 +31,7 @@ def main() -> None:
         frequency_hz=args.hz,
         controller=controller,
         input_source=input_source,
-        moves={
-            "head": RotateHeadMove(),
-            "squat": SquatMove(),
-        },
+        moves={n: m for n, m in discover_moves().items() if n in ("head", "squat")},
         variant=CLASSIC,
     )
     scheduler.run()

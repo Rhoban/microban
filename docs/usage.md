@@ -22,7 +22,7 @@ takes it too, or the bare name).
 | Command | What it does |
 | :--- | :--- |
 | `make discover-robots` | The robots on this network: name (`microban-XXXX`), address, whether their program runs, their version, torque on / off; with the commands to reach the first one. |
-| `make run` | Sync the code and start the control loop on the robot (50 Hz). Stays attached to your terminal for live control (it stops the robot service for the session). `CONTROLLER=path.py`: the simple moves of a file kept elsewhere ([moves.md](moves.md#a-simple-move)). |
+| `make run` | Sync the code and start the control loop on the robot (50 Hz). Stays attached to your terminal for live control (it stops the robot service for the session). `MOVES=path.py`: also the moves of a file kept outside `src/moves/` ([moves.md](moves.md)). |
 | `make deploy` | Sync the code and restart the robot service: your moves run, the dashboard shows them by itself ([moves.md](moves.md)). |
 | `make stop` | Stop the control loop and disable torque on all motors. The robot service stays stopped (until `make robot-service-start` or a reboot). |
 | `make shutdown` | Power off the Pi cleanly. |
@@ -31,7 +31,7 @@ takes it too, or the bare name).
 | `make imu` | Stream the robot's IMU/gyro readings to your terminal. |
 | `make voltage` | Read the voltage of all motors. |
 | `make voltage ID=<id>` | Read the voltage of motor `<id>`. |
-| `make sim` | The robot's program on the simulated robot, locally (no robot needed): the classic robot on the floor, `VARIANT=climber`, or `WALL=N2` on the hackathon's climbing wall; `CONTROLLER=path.py` as `make run` ([simulation.md](simulation.md)). |
+| `make sim` | The robot's program on the simulated robot, locally (no robot needed): the classic robot on the floor, `VARIANT=climber`, or `WALL=N2` on the hackathon's climbing wall; `MOVES=path.py` as `make run` ([simulation.md](simulation.md)). |
 | `make viewer` | Open the PlaCo / MeshCat kinematic viewer locally (no physics, no robot needed). |
 | `make dashboard` | The live dashboard on this PC ([dashboard.md](dashboard.md)); `HOST=` the robot (else chosen in the page). |
 | `make robot-service-enable` / `-disable` | Install (or remove) the robot service: the control loop starts at every boot. |
@@ -39,8 +39,9 @@ takes it too, or the bare name).
 
 ## Running the robot
 
-1. Place the robot on a stable surface, or hold it securely. The torque is off until a move is launched: the
-   robot then ramps to its neutral pose in 2 s with the torque on, and the move starts. When no move runs, the
+1. Place the robot on a stable surface, or hold it securely. The torque is off until a move is launched: it then
+   goes on where the robot is, or after a 2 s ramp to the neutral pose for the moves that ask it (the walk, the
+   squat), and the move starts. When no move runs, the
    torque goes off again.
 2. `make run` — the control loop starts at 50 Hz and stays attached to your terminal. Some latency is expected due to the SSH connection.
    With the robot service (`make robot-service-enable`, [dashboard.md](dashboard.md)) the loop already runs from boot:
@@ -55,7 +56,6 @@ takes it too, or the bare name).
 | `v` | toggle the **walk** move |
 | `h` | toggle the **head** move |
 | `s` | toggle the **squat** move |
-| `c` | toggle your own **controller** (`make run CONTROLLER=...`) |
 | arrows | `vx` (up/down), `vtheta` (left/right) |
 | `x` | reset velocity to zero |
 | `i` | toggle the IMU/gyro display |
@@ -69,18 +69,16 @@ Using a gamepad allows to drive the robot through two different modes: with a te
 
 ## Moves
 
-Moves are toggled independently (keys, gamepad, or the dashboard's Moves list: [dashboard.md](dashboard.md)) and run
-on top of the neutral pose. Each is made for a version of the robot, classic or climber (the robot knows its own and
+Moves are toggled independently (keys, gamepad, or the dashboard's Moves list: [dashboard.md](dashboard.md)); a joint
+no running move drives keeps its last target. Each is made for a version of the robot, classic or climber (the robot knows its own and
 runs only those: [moves.md](moves.md)):
 
 - **Walk** (`v` / gamepad **A**, classic) — a reinforcement-learning policy. Once active, the
   velocity command drives it: `vx` (forward/back), `vy` (lateral), `vtheta` (turn),
   set from the arrow keys or the gamepad sticks; in the dashboard, its arrows and its speed slider.
-- **Head** (`h`, both) — oscillates the head.
+- **Head** (`h`, both) — turns the head left and right (its frequency and amplitude in the dashboard's ⚙).
 - **Look** (both) — turns the head from the dashboard: its slider, or the ← → keys.
-- **Squat** (`s`, classic) — squat motion computed with inverse kinematics.
-- **Controller** (`c` / gamepad **Y**) — a class `Controller` of a file given with `make run CONTROLLER=...`
-  ([moves.md](moves.md#a-simple-move)).
+- **Squat** (`s`, classic) — squat motion computed with inverse kinematics (its frequency and amplitude in ⚙).
 
 ### Velocity command
 
@@ -98,9 +96,9 @@ keyboard, gamepad and sim. Defaults (in [constants.py](../src/constants.py)):
 
 ## Developing: adding your own moves
 
-A move is a class in [src/moves/](../src/moves/), found by itself when the program starts: the full guide, with an
-example, is [moves.md](moves.md): a simple move (`step(obs)` -> targets, the same file in the simulator and on the
-robot) or an advanced one, the versions it is for, the dashboard's variables, sliders and keys.
+A move is a class with `step(obs)` -> the joints' targets, in a file of [src/moves/](../src/moves/), found by itself
+when the program starts; the same file runs in the simulator. The guide, from a ten-line example to the dashboard's
+variables, sliders and keys: [moves.md](moves.md).
 Try it in simulation first: [simulation.md](simulation.md).
 
 ### Training your own walk (or other RL) policies

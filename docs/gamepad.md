@@ -33,7 +33,6 @@ When the controller is connected, the `make run` command uses it as input automa
 - **Left stick**: `vx` (up/down), `vy` (left/right)
 - **Right stick** (left/right): `vtheta`
 - **A**: toggle the `walk` move
-- **Y**: toggle the move `controller` (a class `Controller` in `make run CONTROLLER=...`, [moves.md](moves.md#a-simple-move))
 - **B**: stop the scheduler (writes the stop flag)
 - **View/Back** button: toggle the IMU/gyro display
 

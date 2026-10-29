@@ -1,162 +1,181 @@
 # Moves: write your own
 
-A move is a class that gives the 19 servos their targets every tick (50 Hz). The robot's program runs the moves that
-are asked (the dashboard's Moves list, keyboard, gamepad) and sends their targets to the motors. There are two ways
-to write one: a **simple move** (start here: the same file runs in the simulator and on the robot) and an
-**advanced move** (the robot's program's own class, for full control).
+A move is a Python class with a `step(obs)` method: every 20 ms it gets what the robot measures and returns the
+targets of its joints. Put it in a file of `src/moves/` and the robot's program finds it by itself: it appears in the
+dashboard's Moves list with Start / Stop. The same file runs in the simulators, on the robot's program in simulation
+and on the real robot.
 
-## A simple move
-
-```python
-# src/moves/hold.py
-import math
-from microban_model import JOINTS
-
-HEAD = JOINTS.index("head")
-
-
-class HoldMove:                                 # no base class
-    description = "Hold the pose, turn the head" # shown in the dashboard's Moves list (optional)
-    options = {"amplitude": 0.3}                # variables edited live in the dashboard (optional, see below)
-    sliders = {"speed": (0.0, 2.0, 0.5)}        # name -> (min, max, start), shown while it runs (optional)
-
-    def reset(self, obs):                       # when it starts (optional)
-        self.start, self.phase = obs["q"].copy(), 0.0
-
-    def step(self, obs):                        # every 20 ms: the observation in, the 19 targets out
-        self.phase += 0.02 * self.slider["speed"]
-        target = self.start.copy()
-        target[HEAD] += self.options["amplitude"] * math.sin(self.phase)
-        return target                           # rad, in the order JOINTS; or None: keep the last ones
-```
-
-* `obs` is the simulator's observation, built on the robot from what it measures: `q`, `dq` (joints, order `JOINTS`,
-  every zero at the motor's zero), `gyro` (rad/s), `accel` (m/s^2), `gravity` (unit vector) in the trunk frame,
-  `quat` (trunk orientation w x y z), `current` (A), `time` (s).
-* The same file runs in the fast simulator, as fast as it computes, for planning or learning:
-  `run_move(HoldMove(), sim, seconds)` in [microban_sim](https://github.com/Rhoban/microban_sim) or the hackathon's
-  [climbing simulator](https://github.com/rock-climbing-robots/simulator) (`load_moves(path)` loads a file's moves).
-  There, nobody edits the options and sliders: they keep their defaults.
-* It starts where the robot is: the torque goes on with no move to the neutral pose first, so it may start hanging on
-  the wall. While it runs the servos' gain is `kp_fw` (a class attribute, 125 by default), back to normal after.
-* Optional too: `variants` (the robot versions it is for, both by default, see below), `option_docs`, `keys`,
-  `on_key(key, down)`, `on_option(name, value)`, `name`: as an advanced move's, below.
-* A file it needs (a network) goes in the repository with it (`make deploy` sends it), loaded from a path relative
-  to the move's file (`pathlib.Path(__file__).parent / "net.onnx"`).
-
-A file kept outside `src/moves/` runs too: `make run CONTROLLER=path/to/file.py` (or `make sim ...
-CONTROLLER=...`) adds its simple moves for that session; a class named `Controller` is the move `controller`,
-started and stopped with [c] (gamepad: Y).
-
-## An advanced move
-
-A class derived from `Move` gets the robot's program's own view: its states (starting, stopping), the robot's raw
-measurements by joint name, the user's input, the servos (`controller`). The walk, the squat and the head are written
-this way.
+## The smallest move
 
 ```python
 # src/moves/wave.py
 import math
-from moves.move import ALL, Move, MoveState, MotorCommand
-from observer import Observation
 
 
-class WaveMove(Move):
-    description = "Wave the right arm"     # shown in the dashboard's Moves list
-    variants = ALL                          # the robots it is for: ALL, (CLASSIC,) or (CLIMBER,) (required)
-    power_up = "neutral"                    # torque off when launched: ramp to NEUTRAL_POSE first ("current": stay)
+class WaveMove:
+    """Wave the right arm."""
 
-    def on_start(self, obs: Observation, command: MotorCommand) -> None:
-        self.t0 = obs.robot_state.time_s    # called each tick while STARTING: set ACTIVE when the transition is done
-        self.state = MoveState.ACTIVE
+    def start(self, obs):
+        self.t0 = obs["time"]
 
-    def step(self, obs: Observation, command: MotorCommand) -> None:
-        t = obs.robot_state.time_s - self.t0
-        command.target_angles["right_shoulder_roll"] = -0.3 - 0.4 * (1 + math.sin(3 * t))
-
-    def on_stop(self, obs: Observation, command: MotorCommand) -> None:
-        self.state = MoveState.INACTIVE     # called each tick while STOPPING: set INACTIVE when done
+    def step(self, obs):
+        t = obs["time"] - self.t0
+        return {"right_shoulder_roll": -0.8 + 0.4 * math.sin(3 * t)}
 ```
 
-## Found by itself
+That is all: no base class, nothing to register. Its name is the class name without "Move", in snake_case:
+`WaveMove` -> `wave` (`RaiseArmMove` -> `raise_arm`; or set `name = "..."` in the class). Its docstring's first line
+is its description in the dashboard. The joints it does not return keep their last target.
 
-Nothing to register: every move class (simple or advanced) of a file in `src/moves/` is found by itself when the robot's program (or the
-simulation) starts (`src/moves/discover.py`). Its name is the class name without "Move", in snake_case
-(`WaveMove` -> `wave`; or set `name = "..."` in the class). Its constructor gets `controller=` if it takes one. It
-appears in the dashboard's Moves list (`make dashboard`), with Start / Stop.
+## Try it
 
-**Which robot it is for.** `variants` is required for an advanced move (a simple move is for both unless it sets it): `ALL` for any version of the robot, `(CLASSIC,)` for the walking
-hands and feet only, `(CLIMBER,)` for the climbing forearms and feet only (`from moves.move import ALL, CLASSIC,
-CLIMBER`). The robot knows its version (the dashboard's **robot version** menu changes it, saved on the robot in
-`robot_variant.txt`; classic until set; the simulation: `make sim` classic, `make sim WALL=N2` climber): it runs a move only on
-the versions it is made for (the keyboard and the gamepad too), and the dashboard lists only those. The walk, trained
-with the walking feet, is `(CLASSIC,)`: a climber does not walk.
-
-A file that does not load (a Python error), a move class that cannot be built or does not say its `variants` is skipped, and
-the robot starts anyway: the reason, with the line of your file, shows in the dashboard's Events (and in
-`make robot-service-logs`).
-
-A key or a gamepad button for it, optional, in `src/main.py`:
-
-```python
-MOVE_KEYS = {..., "w": "wave"}                    # a key toggles it (make run)
-GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}
+```bash
+make sim                       # the robot's program on the simulated classic robot (WALL=N2: the climber on the wall)
+make dashboard HOST=127.0.0.1  # in another terminal: Moves -> wave -> Start / Stop
 ```
 
-## Put it on the robot
+Then on the robot:
 
 ```bash
 make deploy HOST=radxa@microban-1a2b.local    # sends your code and restarts the robot's program
 ```
 
-Or, without typing anything: the **⟳ Deploy code** button of the dashboard (`make dashboard`) runs the same command
-for the robot it shows (a first click asks to confirm), its output in the page's Events.
+Or, without typing anything: the **⟳ Deploy code** button of the dashboard runs the same command for the robot it
+shows (a first click asks to confirm), its output in the page's Events. The program reads its moves when it starts:
+after any change to a move's code, deploy again (only the options, below, change live without a restart). The
+dashboard shows the new Moves list by itself a few seconds later. The torque goes off during the restart: hold the
+robot or let it sit, never on the wall. A new Python dependency in `pyproject.toml` needs `make setup` first.
 
-That is all: the robot's program (the service started at boot) reads its moves when it starts, so `make deploy`
-restarts it with your code, and a dashboard page already open shows the new Moves list by itself a few seconds later
-(nothing to reload or type). The same command after **any change to a move's code**: the running program keeps the
-code it started with until it restarts. Only the variables of the ⚙ editor change live, without a restart (see below).
+A file kept outside `src/moves/` runs too, for one session: `make run MOVES=path/to/my_moves.py` (on the robot, from
+a terminal) or `make sim MOVES=path/to/my_moves.py`.
 
-The torque goes off during the restart (the old program stops the motors, the new one starts with no torque until a
-move is launched): hold the robot or let it sit, never on the wall. Check the
-program's messages with `make robot-service-logs`. A new Python dependency in `pyproject.toml` needs `make setup`
-first. To try a move from a terminal instead (keyboard keys, its prints), `make run` stops the service for the session.
+## What a move gets: `obs`
 
-## What an advanced move gets and gives
+`obs` is a dict, the same as the simulator's observation:
 
-* `obs.robot_state`: `motor_positions`, `motor_velocities` (joint name -> rad, rad/s; every zero at the motor's zero,
-  see docs/model.md), `measured_currents`, `gyro`, `acc` (IMU frame), `body_quat`, `projected_gravity` (trunk
-  frame), `time_s`. `obs.user_input`: `active_moves`, `velocity` (sticks / arrows).
-* `command.target_angles`: joint name -> target (rad). It starts each tick at `NEUTRAL_POSE`; a move overwrites the
-  joints it drives. Several moves may run together (the head and the walk); the later one in `moves` wins a joint.
-* `print()` in a move (simple or advanced) goes to the dashboard's Events (`wave: text`, at most 10 lines a second per move; the rest is
-  counted there) and to the robot's log as before (`make robot-service-logs`, or the terminal with `make run`).
-* `preload()`: called once before the loop (load a network there). A move that needs the controller (the servos'
-  gain, `sync_write_kp`) takes it in its constructor, as `WalkMove(controller=controller)`.
+| Key | What |
+|---|---|
+| `q`, `dq` | the 19 joints' angles (rad) and velocities (rad/s), in the order `microban_model.JOINTS`; every zero at the motor's zero ([model.md](model.md)) |
+| `gyro` | angular velocity (rad/s), trunk frame |
+| `accel` | acceleration (m/s^2), trunk frame |
+| `gravity` | the gravity's direction, unit vector in the trunk frame (`[0, 0, -1]` upright) |
+| `quat` | the trunk's orientation, w x y z |
+| `current` | the motors' currents (A) |
+| `time` | seconds, steady (use differences: `obs["time"] - self.t0`) |
 
-## The life of an advanced move
+A sensor that gave nothing this tick reads NaN (`np.isnan(obs["gravity"]).any()`).
 
-* INACTIVE -> STARTING when it is asked (its key, button or the dashboard), -> ACTIVE when `on_start` says so;
-  ACTIVE -> STOPPING when it is no longer asked, -> INACTIVE when `on_stop` says so.
-* Torque: off while no move runs. The first move launched turns it on (`power_up`: ramp to `NEUTRAL_POSE` in 2 s, or
-  hold where the robot is), and it goes off again when every move is INACTIVE.
-* `em` (dashboard) stops every move at once and cuts the torque; `init` stops them and holds every motor at zero.
-  After either, a move still asked by a key stays off until it is asked again.
-* Switches: a name a key toggles that is not a move (a move reads it in `obs.user_input.active_moves`, e.g. a
-  "go" for a move that waits): pass it as `Scheduler(..., switches=["name"])` and it is listed in the dashboard too.
+## What it returns
+
+* A dict `{joint: angle}` (rad): only these joints; the others keep their last target (another move's, or the pose
+  the robot had when the torque went on). Two moves can run together this way (the head and the walk); when both
+  drive a joint, the later one in the Moves list wins.
+* Or 19 angles (a list or a numpy array) in the order `JOINTS`: the whole pose.
+* Or `None`: the move is over. It stops by itself (as if Stop was clicked) and stays off until asked again.
+
+```python
+from microban_model import JOINTS            # the joint names, in the order of q, dq and a 19-angle return
+
+HEAD = JOINTS.index("head")
+
+
+class HoldMove:
+    def start(self, obs):
+        self.pose = obs["q"].copy()          # the pose it starts in
+
+    def step(self, obs):
+        target = self.pose.copy()
+        target[HEAD] = 0.3
+        return target                        # 19 angles
+```
+
+## Start, step, stop
+
+| Method | When |
+|---|---|
+| `start(self, obs)` | once, when it is launched (optional): reset what `step` uses |
+| `step(self, obs)` | every 20 ms while it runs: returns the targets |
+| `stopping(self, obs)` | after Stop (or after `step` returned None), every 20 ms until it returns None (optional): a smooth stop |
+
+Without `stopping`, the move ends at once. `em` and `init` (dashboard) stop every move at once, without `stopping`.
+
+A move that starts and stops smoothly, the head going from where it is to its target in half a second:
+
+```python
+from microban_model import JOINTS
+
+HEAD = JOINTS.index("head")
+LERP_S = 0.5
+
+
+def lerp(a, b, t):
+    """From a to b in LERP_S, t seconds after it began."""
+    s = min(t / LERP_S, 1.0)
+    return a + (b - a) * s
+
+
+class NodMove:
+    """Look down, then back up when stopped."""
+
+    def start(self, obs):
+        self.t0, self.from_angle = obs["time"], obs["q"][HEAD]
+        self.stop_t0 = None
+
+    def step(self, obs):
+        return {"head": lerp(self.from_angle, 0.4, obs["time"] - self.t0)}
+
+    def stopping(self, obs):
+        if self.stop_t0 is None:                          # the first call after Stop
+            self.stop_t0, self.from_angle = obs["time"], obs["q"][HEAD]
+        t = obs["time"] - self.stop_t0
+        return {"head": lerp(self.from_angle, 0.0, t)} if t < LERP_S else None
+```
+
+`src/moves/head.py` and `src/moves/squat.py` are written this way.
+
+## Settings of the class
+
+All optional:
+
+| Attribute | Default | What |
+|---|---|---|
+| `description` | the docstring's first line | one line in the dashboard's Moves list |
+| `name` | the class name without "Move", snake_case | its name in the dashboard and for the keys |
+| `variants` | both | the robot versions it is for: `("classic",)` or `("climber",)` (below) |
+| `start_pose` | `"current"` | when the torque is off at its launch: `"current"` turns it on where the robot is; `"neutral"` first brings the robot to the neutral standing pose in 2 s |
+| `kp` | the robot's gain (400) | the servos' gain while it runs (the walk: 125, the gain its policy was trained with) |
+| `options`, `option_docs` | none | variables edited live in the dashboard (below) |
+| `sliders` | none | sliders shown while it runs (below) |
+| `keys` | none | the keys it reads, shown in the dashboard's keyboard zone (below) |
+
+**Which robot it is for.** `"classic"` is the walking hands and feet, `"climber"` the climbing forearms and feet
+(plain strings: the file runs in the simulator too). The robot knows its version (the dashboard's **robot version** menu
+changes it, saved on the robot in `robot_variant.txt`; classic until set; `make sim` is classic, `make sim WALL=N2`
+climber): it runs a move only on the versions it is made for (the keyboard and the gamepad too), and the dashboard
+lists only those. The walk, trained with the walking feet, is `("classic",)`.
+
+**Where it starts.** The torque is off while no move runs. The first move launched turns it on: where the robot is
+(`start_pose = "current"`, the default: a move may start with the robot hanging on the wall), or after a 2 s ramp to
+the neutral standing pose (`"neutral"`: the walk and the squat; on the wall the robot would let go). When every move
+has stopped, the torque goes off again.
+
+**The servos' gain.** While moves with a `kp` run, the servos use it (the last one in the Moves list when several
+set one); otherwise the robot's gain, 400.
 
 ## Variables to edit from the dashboard
 
-The same for a simple move and an advanced one (the examples are advanced moves; a simple move sets the same class
-attributes and reads `self.options`, `self.slider`, `self.pressed` in its `step(obs)`). A move chooses the variables it exposes (as RhIO's parameters): they get an editor in the dashboard (the move's ⚙).
+A move chooses the variables it exposes (as RhIO's parameters): they get an editor in the dashboard (the move's ⚙).
 
 ```python
-class WaveMove(Move):
+class WaveMove:
     options = {"amplitude": 0.4, "both_arms": False}     # the exposed variables: int / float / bool
     option_docs = {"amplitude": "arm swing (rad)", "both_arms": "wave with both arms"}
 
-    def on_option(self, name, value):                    # called when one changed (self.options[name] already set)
-        print(f"wave: {name} = {value}")
+    def step(self, obs):
+        ... self.options["amplitude"] ...
+
+    def on_option(self, name, value):                    # optional: called when one changed (already set)
+        print(f"{name} = {value}")
 ```
 
 The move reads `self.options[...]` where it needs them; a change applies at once, the robot running (no restart).
@@ -169,14 +188,17 @@ A move can also be driven while it runs, from the dashboard's Moves card: slider
 keyboard zone (click it, then the keys you press go to the robot; click elsewhere and they are released).
 
 ```python
-class LookMove(Move):                                   # src/moves/look.py, the full example
+KEY_SPEED = 1.0                                         # rad/s while an arrow is held
+
+
+class LookMove:                                         # src/moves/look.py, the full example
     sliders = {"head": (-0.8, 0.8, 0.0)}                # name -> (min, max, start value)
     keys = "← →: turn the head"                         # shown in the keyboard zone (the zone appears with it)
 
-    def step(self, obs, command):
+    def step(self, obs):
         if "ArrowLeft" in self.pressed:                 # the keys held now
-            self.slider["head"] += 0.02
-        command.target_angles["head"] = self.slider["head"]
+            self.slider["head"] += KEY_SPEED * 0.02
+        return {"head": self.slider["head"]}
 
     def on_key(self, key, down):                        # optional: once per press (down=True) and release
         if key == "space" and down:
@@ -194,18 +216,63 @@ Variables (⚙) or sliders? A variable is a setting: it keeps its value from one
 the robot, and is edited in the ⚙ panel, even while the move is off. A slider is for driving: it shows only while the
 move runs, has a min and a max, starts again from its start value at each launch, and is never saved.
 
-## Simple or advanced?
+**The velocity asked.** `self.velocity` is `{"vx": m/s, "vy": m/s, "vtheta": rad/s}`, from the gamepad's sticks or the
+keyboard's arrows (`make run`), within the limits of [usage.md](usage.md#velocity-command); zero otherwise. The walk
+reads it (and its own dashboard arrows, `src/moves/walk.py`).
 
-| | Simple move | Advanced move (`Move`) |
-|---|---|---|
-| Written as | `step(obs)` returns the 19 targets (or None) | `on_start` / `step(obs, command)` / `on_stop` fill `command.target_angles` |
-| What it reads | the simulator's observation (numpy, order `JOINTS`) | `obs.robot_state` by joint name, `obs.user_input` |
-| Runs in the fast simulator (`run_move`) | yes, the same file | no (the robot's program only: the robot, `make sim`) |
-| Starts | where the robot is | `power_up`: the neutral pose first by default |
-| Servos' gain | `kp_fw`, set for it | its own (`controller.sync_write_kp`) |
-| Ends | when it is stopped | it may end by itself |
-| `variants` | optional (both) | required |
-| Options, sliders, keys, prints, dashboard | the same | the same |
+A key of `make run`'s keyboard or a gamepad button for a move, optional, in `src/main.py`:
 
-Write a simple move unless it needs what only an advanced one has: developed and tried in the simulator, then
-`make sim WALL=N2`, then the robot, with no change.
+```python
+MOVE_KEYS = {..., "w": "wave"}                    # a key toggles it (make run)
+GAMEPAD_BUTTON_MOVES = {..., "LB": "wave"}
+```
+
+## Messages and errors
+
+* `print()` in a move goes to the dashboard's Events (`wave: text`, at most 10 lines a second per move; the rest is
+  counted there) and to the robot's log (`make robot-service-logs`, or the terminal with `make run`).
+* A file that does not load (a Python error), a move that cannot be built (an error in `__init__`) or whose
+  `variants` is wrong is skipped, and the robot starts anyway: the reason, with the line of your file, shows in the
+  dashboard's Events (and in `make robot-service-logs`).
+* An error in `start`, `step` or `stopping` stops that move at once (the others go on; its joints keep their last
+  targets, and the torque goes off if no move runs any more): the error, with the line of your file, shows in the
+  Events. Try the move in simulation first.
+
+## The same file in the simulator
+
+The hackathon's simulator ([rock-climbing-robots/simulator](https://github.com/rock-climbing-robots/simulator), built
+on Rhoban's [microban_sim](https://github.com/Rhoban/microban_sim)) runs the same class as fast as it computes, for
+planning or learning:
+
+```python
+from climbing_sim import ClimbingSim, load_moves, run_move
+
+sim = ClimbingSim("N2")
+sim.reset_hanging()
+moves = load_moves("../microban/src/moves/my_move.py")     # {name: move}
+run_move(moves["my"], sim, seconds=30)
+```
+
+There, nobody edits the options and sliders: they keep their defaults, `self.pressed` is empty and `self.velocity`
+zero. `run_move` runs `step` until it returns None or the time is over, then `stopping`; `kp` while it runs.
+
+A move should therefore import only what both have: `numpy`, `microban_model` (`JOINTS`), its own files. A file it
+needs (a network, a table) goes next to it in the repository (`make deploy` sends it), loaded from the move's folder:
+
+```python
+from pathlib import Path
+
+NET = Path(__file__).parent / "my_policy.onnx"
+```
+
+## Good practice
+
+* Keep `step` fast: well under 20 ms on the robot's small computer, every tick. Load what is heavy (a network, a
+  model) in `__init__`, which runs once when the program starts.
+* Never block: no `time.sleep`, no waiting on input in `step`. Measure time with `obs["time"]`.
+* Start and stop smoothly: go from where the joints are (`obs["q"]` in `start`) to where you want them over a fraction
+  of a second; a `stopping` that brings them back.
+* Return `None` when the move is done rather than holding forever.
+* Check what you read: a NaN sensor, a fall (`obs["gravity"][2] > -0.5`): then hold (`return obs["q"]`) rather than
+  push on.
+* Try it in simulation first (`make sim`, `make sim WALL=N2`), then on the robot held in the hand or on the floor.

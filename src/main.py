@@ -12,10 +12,7 @@ from scheduler import Scheduler
 from telemetry import Telemetry
 from input.input_source import InputSource
 from input.keyboard_input import KeyboardInputSource
-from moves.rotate_head import RotateHeadMove
-from moves.squat import SquatMove
-from moves.walk import WalkMove
-from moves.discover import with_discovered_moves
+from moves.discover import discover_moves, load_file
 
 PID_FILE = Path("/tmp/microban_scheduler.pid")
 
@@ -33,22 +30,19 @@ def _another_session_running() -> bool:
     return True
 
 # Which moves can be toggled from the gamepad / keyboard.
-MOVE_KEYS = {"h": "head", "s": "squat", "v": "walk", "c": "controller"}
-GAMEPAD_BUTTON_MOVES = {"A": "walk", "Y": "controller"}   # B is the gamepad's stop button (input/gamepad_input.py)
+MOVE_KEYS = {"h": "head", "s": "squat", "v": "walk"}
+GAMEPAD_BUTTON_MOVES = {"A": "walk"}   # B is the gamepad's stop button (input/gamepad_input.py)
 
 
 def _stop_like_ctrl_c(signum, frame) -> None:
     raise KeyboardInterrupt
 
 
-def _controller_move(controller) -> dict:
-    """MICROBAN_CONTROLLER=path/to/file.py: the simple moves of a file kept elsewhere (moves/simple.py); a class named
-    Controller is the move "controller" ([c])."""
-    path = os.environ.get("MICROBAN_CONTROLLER")
-    if not path:
-        return {}
-    from moves.simple import load_file
-    return load_file(path, controller)
+def moves() -> dict:
+    """The moves of src/moves/, and those of MICROBAN_MOVES=path/to/file.py (make run MOVES=...): a file kept
+    elsewhere."""
+    path = os.environ.get("MICROBAN_MOVES")
+    return {**discover_moves(), **(load_file(path) if path else {})}
 
 
 def build_input_source() -> InputSource:
@@ -99,19 +93,11 @@ def main() -> None:
             frequency_hz=50.0,
             controller=controller,
             input_source=build_input_source(),
-            moves=with_discovered_moves(controller, {
-                "head": RotateHeadMove(),
-                "squat": SquatMove(),
-                **_controller_move(controller),
-                "walk": WalkMove(controller=controller),
-            }),
+            moves=moves(),
             telemetry=Telemetry(controller),
         )
 
-        for move in scheduler.registered_moves.values():
-            move.preload()
-
-        # Flush stale UART bytes accumulated during preload
+        # Flush stale UART bytes accumulated while the moves loaded
         for _ in range(10):
             try:
                 controller.sync_read_present_position(motor_ids)

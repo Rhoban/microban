@@ -2,208 +2,84 @@
 # Copyright 2026 Marc Duclusaud
 
 import math
-import onnxruntime as ort
+from pathlib import Path
+
 import numpy as np
+import onnxruntime as ort
+from microban_model import JOINTS
 
-from constants import MOTOR_TO_ID, KP_DEFAULT, KP_RL, OBSERVATION_DOF_ORDER
-from controller import ControllerProtocol
+from constants import KP_RL, OBSERVATION_DOF_ORDER
 from input.input_source import scale_velocity
-from observer import Observation
-from moves.move import CLASSIC, MotorCommand, Move, MoveState
+from moves.move import R_TRUNK_IMU
 
-
-# Set to True to log motor positions and voltages during the walk move
-# Note: requires to set observe_voltage = True in the Observer to log voltages
-LOGGING = False
-
-# Policy name
-AGENT_NAME = "walk.onnx"
-
-
-
+AGENT = Path(__file__).parents[1] / "agents" / "walk.onnx"
 WALK_V1_SHOULDER_OFFSET = {"left_shoulder_pitch": math.pi / 2, "right_shoulder_pitch": math.pi / 2}
+FALLEN_GRAVITY_Z = -0.5           # projected gravity's z above this: fallen, no policy step
+PHASE_STEPS = 20                  # the reference phase's period (ticks), for the policies that take it
+ARROWS = {"ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"}
 
-class WalkMove(Move):
+
+class WalkMove:
     """Walk using a RL policy trained in simulation."""
 
     description = "Walk (learned policy): the velocity from the sticks / arrows"
-    variants = (CLASSIC,)          # its policy was trained with the walking feet
+    variants = ("classic",)          # its policy was trained with the walking feet
+    start_pose = "neutral"
+    kp = KP_RL                     # the gain it was trained with
     # the dashboard: the arrows held in its keyboard zone walk at the slider's speed (a fraction of the maximum)
     sliders = {"speed": (0.0, 1.0, 0.5)}
     keys = "↑ ↓: forward / backward, ← →: turn (at the speed slider)"
 
-    def __init__(self, controller: ControllerProtocol | None = None) -> None:
-        super().__init__()
-        self._controller = controller
-        self._last_action = [0.0] * len(OBSERVATION_DOF_ORDER)
-        self._velocity = {"vx": 0.0, "vy": 0.0, "vtheta": 0.0}     # this tick's (see velocity())
-
-        # Load ONNX policy
-        self._ort_session = ort.InferenceSession(f"src/agents/{AGENT_NAME}")
-
-        self.action_scale = 1.0
-
-        # Reference pose: read from ONNX metadata
-        meta = self._ort_session.get_modelmeta().custom_metadata_map
+    def __init__(self) -> None:
+        self._session = ort.InferenceSession(str(AGENT))
+        self._input = self._session.get_inputs()[0]
+        meta = self._session.get_modelmeta().custom_metadata_map
         names = meta["joint_names"].split(",")
         positions = [float(v) for v in meta["default_joint_pos"].split(",")]
         # The policy was trained on Microban v1, whose shoulder pitch is 0 with the arm down: a quarter turn from the
         # motors' zero used here. Its inputs (angle - default) and outputs (default + action) stay the same.
-        self._default_pose: dict[str, float] = {n: p + WALK_V1_SHOULDER_OFFSET.get(n, 0.0) for n, p in zip(names, positions)}
+        default = {n: p + WALK_V1_SHOULDER_OFFSET.get(n, 0.0) for n, p in zip(names, positions)}
+        self._index = [JOINTS.index(n) for n in OBSERVATION_DOF_ORDER]
+        self._default = np.array([default[n] for n in OBSERVATION_DOF_ORDER])
+        # gyro(3) + gravity(3) + q, dq, last action (N each) + command(3) [+ the reference phase's cos, sin]
+        self._use_phase = self._input.shape[1] > 3 + 3 + 3 * len(OBSERVATION_DOF_ORDER) + 3
 
-        # Detect reference phase from model input size:
-        # base_obs = gyro(3) + proj_grav(3) + pos(N) + vel(N) + action(N) + cmd(3)
-        # phase_obs = base_obs + phase(2)
-        base_obs_size = 3 + 3 + 3 * len(OBSERVATION_DOF_ORDER) + 3
-        self._use_reference_phase: bool = self._ort_session.get_inputs()[0].shape[1] > base_obs_size
-        self._phase_step = 0
-        self._phase_total_steps = 20
-
-        # Safety parameters
-        self._projected_gravity_z_threshold = -0.5  # Threshold for detecting a fall based on projected gravity
-
-        # Logging
-        self.position = {
-            "head": [],
-            "left_hip_yaw": [],
-            "left_hip_roll": [],
-            "left_hip_pitch": [],
-            "left_knee": [],
-            "left_ankle_pitch": [],
-            "left_ankle_roll": [],
-            "right_hip_yaw": [],
-            "right_hip_roll": [],
-            "right_hip_pitch": [],
-            "right_knee": [],
-            "right_ankle_pitch": [],
-            "right_ankle_roll": [],
-            "left_shoulder_pitch": [],
-            "left_shoulder_roll": [],
-            "left_elbow": [],
-            "right_shoulder_pitch": [],
-            "right_shoulder_roll": [],
-            "right_elbow": [],
-        }
-        self.voltage = {
-            "head": [],
-            "left_hip_yaw": [],
-            "left_hip_roll": [],
-            "left_hip_pitch": [],
-            "left_knee": [],
-            "left_ankle_pitch": [],
-            "left_ankle_roll": [],
-            "right_hip_yaw": [],
-            "right_hip_roll": [],
-            "right_hip_pitch": [],
-            "right_knee": [],
-            "right_ankle_pitch": [],
-            "right_ankle_roll": [],
-            "left_shoulder_pitch": [],
-            "left_shoulder_roll": [],
-            "left_elbow": [],
-            "right_shoulder_pitch": [],
-            "right_shoulder_roll": [],
-            "right_elbow": [],
-        }
-        
-    def reset(self) -> None:
-        self._last_action = [0.0] * len(OBSERVATION_DOF_ORDER)
+    def start(self, obs) -> None:
+        self._last_action = np.zeros(len(OBSERVATION_DOF_ORDER))      # a new walk
         self._phase_step = 0
 
-    def on_start(self, obs: Observation, command: MotorCommand) -> None:
-        self.reset()                                    # a new walk: not the last action of the previous one
-        if self._controller is not None:
-            ids = list(MOTOR_TO_ID.values())
-            self._controller.sync_write_kp(ids, [KP_RL] * len(ids))
-        self.state = MoveState.ACTIVE
-
-    def velocity(self, obs: Observation) -> dict[str, float]:
+    def command(self) -> dict[str, float]:
         """The velocity to walk at: the dashboard's arrows while some are held, else the gamepad's / keyboard's."""
-        arrows = {"ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"} & self.pressed
+        arrows = ARROWS & self.pressed
         if not arrows:
-            return obs.user_input.velocity
+            return self.velocity
         speed = self.slider["speed"]
         forward = ("ArrowUp" in arrows) - ("ArrowDown" in arrows)
         left = ("ArrowLeft" in arrows) - ("ArrowRight" in arrows)
         return scale_velocity({"vx": forward * speed, "vy": 0.0, "vtheta": left * speed})
 
-    def step(self, obs: Observation, command: MotorCommand) -> None:
-        self._velocity = self.velocity(obs)
+    def step(self, obs):
+        v = self.command()
+        cmd = [v["vx"], v["vy"], v["vtheta"]]
+        if self._use_phase:
+            self._phase_step = self._phase_step + 1 if np.mean(np.abs(cmd)) > 0.01 else 0
 
-        # Update reference phase
-        if self._use_reference_phase:
-            commanded_vel = np.mean([np.abs(self._velocity["vx"]), np.abs(self._velocity["vy"]), np.abs(self._velocity["vtheta"])])
-            if commanded_vel > 0.01:
-                self._phase_step += 1
-            else:
-                self._phase_step = 0
+        # fallen (or no IMU reading this tick): no policy step, the joints hold where they are
+        gravity = obs["gravity"]
+        if np.isnan(gravity).any() or gravity[2] > FALLEN_GRAVITY_Z:
+            return obs["q"]
 
-        # Safety check: fallen (or no IMU reading this tick): no policy step, the joints hold where they are
-        gravity = obs.robot_state.projected_gravity
-        if not gravity or gravity[2] > self._projected_gravity_z_threshold:
-            command.target_angles.update(obs.robot_state.motor_positions)
-            return
-        
-        # Run policy
-        input_obs = self.build_observation(obs)
-        ort_inputs = {self._ort_session.get_inputs()[0].name: [input_obs]}
-        ort_outs = self._ort_session.run(None, ort_inputs)
-        action = ort_outs[0][0]
-        self._last_action = action.tolist()
-
-        # Update command
-        for i, name in enumerate(OBSERVATION_DOF_ORDER):
-            command.target_angles[name] = self._default_pose[name] + action[i] * self.action_scale
-
-        # Log positions and voltages
-        if LOGGING:
-            for name in MOTOR_TO_ID.keys():
-                self.position[name].append(obs.robot_state.motor_positions[name])
-                self.voltage[name].append(obs.robot_state.motor_voltages[name])
-
-    def build_observation(self, obs: Observation) -> list[float]:
-        """Build policy observation from robot state."""
-        input_obs = []
-        
-        # IMU data: gyroscope and projected gravity in body frame
-        input_obs.extend(obs.robot_state.gyro)
-        input_obs.extend(obs.robot_state.projected_gravity)
-        
-        # Motor positions
-        for name in OBSERVATION_DOF_ORDER:
-            input_obs.append(obs.robot_state.motor_positions[name] - self._default_pose[name])
-        
-        # Motor velocities
-        for name in OBSERVATION_DOF_ORDER:
-            input_obs.append(obs.robot_state.motor_velocities[name])
-        
-        # Last action
-        input_obs.extend(self._last_action)
-
-        # Command
-        input_obs.append(self._velocity["vx"])
-        input_obs.append(self._velocity["vy"])
-        input_obs.append(self._velocity["vtheta"])
-
-        # Reference phase
-        if self._use_reference_phase:
-            reference_phase = (self._phase_step % self._phase_total_steps) / self._phase_total_steps * 2 * np.pi
-            input_obs.append(np.cos(reference_phase))
-            input_obs.append(np.sin(reference_phase))
-
-        return input_obs
-
-    def on_stop(self, obs: Observation, command: MotorCommand) -> None:
-        if self._controller is not None:
-            ids = list(MOTOR_TO_ID.values())
-            self._controller.sync_write_kp(ids, [KP_DEFAULT] * len(ids))
-        self.state = MoveState.INACTIVE
-
-        # Save json logs
-        if LOGGING:
-            import json
-            with open("walk_log.json", "w") as f:
-                json.dump({
-                    "position": self.position,
-                    "voltage": self.voltage,
-                }, f, indent=4)
+        policy_obs = [
+            R_TRUNK_IMU.T @ obs["gyro"],      # the policy was trained with the gyro in the IMU's frame
+            gravity,
+            obs["q"][self._index] - self._default,
+            obs["dq"][self._index],
+            self._last_action,
+            cmd,
+        ]
+        if self._use_phase:
+            phase = (self._phase_step % PHASE_STEPS) / PHASE_STEPS * 2 * np.pi
+            policy_obs.append([np.cos(phase), np.sin(phase)])
+        x = np.concatenate([np.asarray(o, np.float32) for o in policy_obs])
+        self._last_action = self._session.run(None, {self._input.name: [x]})[0][0].astype(float)
+        return dict(zip(OBSERVATION_DOF_ORDER, (self._default + self._last_action).tolist()))

@@ -10,7 +10,7 @@ plots and messages. It also starts and stops the moves, deploys your code, and r
 | 1 | **Link and robot** | link rate (green: data arrives), the robot shown (click to change it), its version (Classic / Climber), the loop time, torque on / off |
 | 2 | **Whole-robot buttons** | **Init (zero)**, **⏻ Torque off (em)**, **⟳ Deploy code**, **● Record**, **▶ Replay** |
 | 3 | **3D view** | the robot as it is (drag: rotate, right-drag: pan, wheel: zoom); click a part to select its motor |
-| 4 | **Moves** | every move of the robot, with Start / Stop and its state (off, starting, on, stopping); the moves' sliders and keyboard zone |
+| 4 | **Moves** | every move of the robot, with Start / Stop and its state (off, on, stopping); the moves' sliders and keyboard zone |
 | 5 | **Motors** | ID, joint, angle, error to its target, current, temperature, state, Reboot / Torque buttons |
 | 6 | **Plots** | the last 10 s: total current, the selected motor's angle and target, the trunk's roll and pitch |
 | 7 | **Events** | the robot's messages, the answers to your commands, your moves' `print()` (`move: text`), and a move file that does not load |
@@ -42,7 +42,8 @@ it, the page opens on its robot picker. `make discover-robots` lists the robots 
 
 ![Moves list: a Start asks to confirm](images/dashboard/moves.png)
 
-**Start** asks to confirm (a second click within 3 s): the robot takes its neutral pose in 2 s, then the move runs.
+**Start** asks to confirm (a second click within 3 s): the torque goes on where the robot is (or, for a move that asks
+it, after a 2 s ramp to the neutral pose), then the move runs.
 **Stop** stops it. A move you write in `src/moves/` appears here by itself after **⟳ Deploy code** (or `make deploy`),
 which sends your code to the robot and restarts its program; see [moves.md](moves.md). Deploy needs your SSH key on
 the robot (`ssh-copy-id radxa@<robot>`); it shows its progress in the Events. A move's ⚙ button edits the variables
@@ -92,7 +93,8 @@ is a Classic.
 ## Torque, em and init
 
 As on Rhoban's other robots, the motors have no torque until a move is launched (keyboard, gamepad, or the Moves
-list): the robot then goes to the neutral pose in 2 s with the torque on, and the move starts. When no move runs any
+list): the torque then goes on where the robot is, or after a 2 s ramp to the neutral pose for a move that asks it
+(`start_pose`, [moves.md](moves.md#settings-of-the-class)), and the move starts. When no move runs any
 more, the torque goes off again. The two whole-robot buttons:
 
 * **⏻ Torque off (em)**: emergency stop, the moves stop and every motor goes limp at once;

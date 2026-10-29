@@ -2,7 +2,9 @@
 # Copyright 2026 Marc Duclusaud
 
 import json
+import sys
 import time
+import traceback
 import math
 from collections import deque
 from pathlib import Path
@@ -28,11 +30,8 @@ from controller import ControllerProtocol
 from imu_reader import imu_quat_to_body
 from observer import Observer, Observation
 from input.input_source import InputSource, UserInput, scale_velocity
-from moves.move import ALL, CLASSIC, MotorCommand, Move, MoveState
+from moves.move import ALL, CLASSIC, MotorCommand, MoveState, Runner
 from move_output import MoveOutput
-from moves.rotate_head import RotateHeadMove
-from moves.squat import SquatMove
-from moves.walk import WalkMove
 
 OPTIONS_FILE = Path("move_options.json")   # the moves' options saved from the dashboard (repo root on the robot)
 VARIANT_FILE = Path("robot_variant.txt")   # this robot's version, classic or climber, set from the dashboard (repo root)
@@ -47,12 +46,12 @@ class Scheduler:
         controller: ControllerProtocol = None,
         stop_flag_path: str = "/tmp/microban_scheduler.stop",
         input_source: Optional[InputSource] = None,
-        moves: Optional[dict[str, Move]] = None,
+        moves: Optional[dict[str, Runner]] = None,
         telemetry=None,
-        switches: Optional[list[str]] = None,
         variant: Optional[str] = None,
     ):
-        """variant: the version of the robot (moves.move.CLASSIC / CLIMBER) for the simulation; None: the robot's,
+        """moves: name -> Runner (moves/discover.py); a joint driven by several running moves gets the later one's
+        target. variant: the version of the robot (moves.move.CLASSIC / CLIMBER) for the simulation; None: the robot's,
         read from VARIANT_FILE (classic when never set), and set from the dashboard (saved in that file)."""
         self.dt = 1.0 / frequency_hz
         self.controller = controller
@@ -64,12 +63,10 @@ class Scheduler:
         self.telemetry = telemetry          # live dashboard (telemetry.Telemetry), or None
         self._last_total_current: Optional[float] = None
 
-        # All moves are registered here. They only run when activated via user_input.active_moves.
-        self.registered_moves: dict[str, Move] = moves if moves is not None else {
-            "head": RotateHeadMove(),
-            "squat": SquatMove(),
-            "walk": WalkMove(),
-        }
+        # All moves are registered here. They only run when asked (user_input.active_moves, the dashboard).
+        self.registered_moves: dict[str, Runner] = dict(moves or {})
+        self._targets: dict[str, float] = dict(NEUTRAL_POSE)   # the last ones sent: a joint no move drives keeps its own
+        self._kp = KP_DEFAULT
 
         self.loop_start_time = time.perf_counter()
         self._serial_errors = 0
@@ -88,18 +85,16 @@ class Scheduler:
         self._pose: Optional[dict] = None           # a ramp: {t0, duration, start, target, hold}
         self._locked = False
         self._prev_requested: set[str] = set()
-        # names a key toggles that are not moves (a move reads them in user_input.active_moves); the dashboard can
-        # toggle them as well as the moves: what it asks is added to what the keyboard / gamepad asks
-        self.switches = list(switches or [])
         self._dash_requested: set[str] = set()
-        self._keys: set[str] = set()                # held in the dashboard's keyboard zone (Move.pressed, on_key)
+        self._keys: set[str] = set()                # held in the dashboard's keyboard zone (the moves' pressed, on_key)
         self._save_variant = variant is None
         self.variant = variant or self._load_variant()
         self._refused: set[str] = set()             # moves asked that are not for this version (said once)
+        self._ended: set[str] = set()               # moves over by themselves, still asked (a key toggled on)
         self._output = MoveOutput(self.telemetry)    # the moves' print(): terminal and dashboard events
         self._load_options()
         if self.telemetry is not None:
-            self.telemetry.configure(self.registered_moves, self.switches, self.variant)
+            self.telemetry.configure(self.registered_moves, self.variant)
 
     def run(self):
         print(f"Starting control loop at {1 / self.dt:.1f} Hz", end="\r\n", flush=True)
@@ -108,8 +103,6 @@ class Scheduler:
 
         if self.input_source:
             self.input_source.start()
-        if self.telemetry is not None:          # the moves are loaded now (preload may expose more variables)
-            self.telemetry.options_changed()
 
         try:
             while True:
@@ -148,24 +141,25 @@ class Scheduler:
                 requested = self._requested_moves(obs)
                 self._dispatch_keys()
 
-                # Update move states and dispatch one call per move per tick
-                command = MotorCommand()
+                # Each move asked starts, runs, or is stopped; its targets over the last ones sent
+                command = MotorCommand(dict(self._targets))
                 for name, move in self.registered_moves.items():
-                    in_active = name in requested
-
-                    if in_active and move.state == MoveState.INACTIVE:
-                        move.state = MoveState.STARTING
-                        move.slider.update({n: float(sl[2]) for n, sl in type(move).sliders.items()})
-                    elif not in_active and move.state in (MoveState.STARTING, MoveState.ACTIVE):
-                        move.state = MoveState.STOPPING
-
-                    with self._output.capture(name):
-                        if move.state == MoveState.STARTING:
-                            move.on_start(obs, command)
-                        elif move.state == MoveState.ACTIVE:
-                            move.step(obs, command)
-                        elif move.state == MoveState.STOPPING:
-                            move.on_stop(obs, command)
+                    move.set_inputs(self._keys, obs.user_input.velocity)
+                    try:
+                        with self._output.capture(name):
+                            if name in requested and move.state == MoveState.INACTIVE and name not in self._ended:
+                                move.start(obs)
+                            elif name not in requested and move.state == MoveState.ACTIVE:
+                                move.state = MoveState.STOPPING
+                            if move.state != MoveState.INACTIVE:
+                                command.target_angles.update(move.tick(obs))
+                    except Exception:
+                        self._move_failed(name, move)      # that move stops; its joints keep their last targets
+                    if move.state != MoveState.ACTIVE and name in requested:
+                        self._ended.add(name)              # over by itself: not again until asked anew
+                        self._dash_requested.discard(name)
+                self._ended &= requested
+                self._update_kp()
 
                 # Overcurrent safety: estimate the current from the command that was actually
                 # active when the (delayed) position/velocity feedback was sampled — the oldest
@@ -184,6 +178,7 @@ class Scheduler:
                     self._set_torque(False)
 
                 # Send command to motors
+                self._targets = dict(command.target_angles)
                 self._cmd_history.append(dict(command.target_angles))
                 self._send_to_motors(command)
 
@@ -191,8 +186,7 @@ class Scheduler:
                 if self.telemetry is not None:
                     self.telemetry.tick(robot_state, command.target_angles, (time.perf_counter() - start_time) * 1000,
                                         status={"powered": int(self.powered),
-                                                "init": int(self._pose is not None and self._pose["hold"])},
-                                        requested=self._prev_requested)
+                                                "init": int(self._pose is not None and self._pose["hold"])})
 
                 # IMU / gyro terminal display
                 if obs.user_input.show_imu and (start_time - self._last_imu_print_s) >= 0.5:
@@ -236,8 +230,8 @@ class Scheduler:
 
     # ---- torque, em, init ---------------------------------------------------------------------------------
     def _requested_moves(self, obs: Observation) -> set[str]:
-        """The moves to run this tick, after the dashboard's requests (em, init, start / stop a move or switch) and the
-        torque power-up. user_input.active_moves gets what the dashboard asks too (moves read their switches there)."""
+        """The moves to run this tick, after the dashboard's requests (em, init, start / stop a move) and the torque
+        power-up."""
         for op, name, *extra in (self.telemetry.take_requests() if self.telemetry is not None else []):
             if op == "option":
                 opt, value = extra[0]
@@ -278,15 +272,15 @@ class Scheduler:
         obs.user_input.active_moves = set(requested)
         launched = requested - self._prev_requested
         self._prev_requested = set(requested)
-        launched &= set(self.registered_moves)        # a switch that is not a move (a move's own) launches nothing
+        launched &= set(self.registered_moves)
         if self._locked:
             if not launched:
                 return set()
             self._locked = False                       # a move launched again: it leaves em / init
         moves = requested & set(self.registered_moves)
         if moves and (not self.powered or (self._pose is not None and self._pose["hold"])):
-            if all(getattr(self.registered_moves[n], "power_up", "neutral") == "current" for n in moves):
-                # moves that start where the robot is (a user's controller, maybe hanging on the wall)
+            if all(self.registered_moves[n].start_pose == "current" for n in moves):
+                # moves that start where the robot is (maybe hanging on the wall)
                 here = {n: obs.robot_state.motor_positions.get(n, NEUTRAL_POSE[n]) for n in MOTOR_TO_ID}
                 self._start_pose(obs.robot_state, here, 0.1, hold=False)
             else:
@@ -295,9 +289,20 @@ class Scheduler:
             return set()                               # the moves start once at the neutral pose
         return requested
 
+    def _move_failed(self, name: str, move: Runner) -> None:
+        """A move raised an error: it stops at once (the others go on), the traceback in the robot's log and one line
+        in the dashboard's events, with the line of the move's file."""
+        move.state = MoveState.INACTIVE
+        text = traceback.format_exc()
+        frames = [f for f in traceback.extract_tb(sys.exc_info()[2]) if f.filename == move.file]
+        where = f" line {frames[-1].lineno}" if frames else ""
+        print(f"Move {name} stopped by an error:\r\n{text}".replace("\n", "\r\n"), end="\r\n", flush=True)
+        if self.telemetry is not None:
+            self.telemetry.event(f"{name} stopped by an error{where}: {text.strip().splitlines()[-1]}", "error")
+
     def _dispatch_keys(self) -> None:
-        """The keys pressed / released in the dashboard's keyboard zone since the last tick: Move.pressed for every
-        move, Move.on_key for the running ones."""
+        """The keys pressed / released in the dashboard's keyboard zone since the last tick: on_key for the running
+        moves (the moves' pressed: set each tick)."""
         if self.telemetry is None:
             return
         held = self.telemetry.keys_held()
@@ -306,8 +311,7 @@ class Scheduler:
         changes = [(k, False) for k in sorted(self._keys - held)] + [(k, True) for k in sorted(held - self._keys)]
         self._keys = held
         for name, move in self.registered_moves.items():
-            move.pressed = set(held)
-            if move.state in (MoveState.STARTING, MoveState.ACTIVE):
+            if move.state == MoveState.ACTIVE:
                 with self._output.capture(name):
                     for key, down in changes:
                         move.on_key(key, down)
@@ -344,8 +348,8 @@ class Scheduler:
 
     # ---- the robot's version (classic / climber) ----------------------------------------------------------------
     def made_for(self, name: str) -> bool:
-        """The move runs on this version of the robot (Move.variants; a move that does not say: on every one)."""
-        return self.variant in (getattr(self.registered_moves[name], "variants", None) or ALL)
+        """The move runs on this version of the robot (its variants; a move that does not say: on every one)."""
+        return self.variant in self.registered_moves[name].variants
 
     def _load_variant(self) -> str:
         try:
@@ -373,15 +377,21 @@ class Scheduler:
         return f"move options saved to {OPTIONS_FILE.resolve()}"
 
     def _stop_moves(self) -> None:
-        """em / init: every move stops at once (no on_stop): each forgets its own transition (Move.reset)."""
+        """em / init: every move stops at once (no stopping(); start() begins it anew next time)."""
         for move in self.registered_moves.values():
-            if move.state != MoveState.INACTIVE:
-                move.reset()
             move.state = MoveState.INACTIVE
+        self._update_kp()
+
+    def _update_kp(self) -> None:
+        """The servos' gain: the kp of the running move that sets one (the last in the moves' order), else the
+        robot's (KP_DEFAULT)."""
+        kp = next((m.kp for m in reversed(self.registered_moves.values())
+                   if m.state != MoveState.INACTIVE and m.kp is not None), KP_DEFAULT)
         write_kp = getattr(self.controller, "sync_write_kp", None)
-        if callable(write_kp):                         # a move may have changed the gain (the walk: KP_RL)
+        if kp != self._kp and callable(write_kp):
             ids = list(MOTOR_TO_ID.values())
-            write_kp(ids, [KP_DEFAULT] * len(ids))
+            write_kp(ids, [int(kp)] * len(ids))
+            self._kp = kp
 
     def _set_torque(self, on: bool) -> None:
         ids = list(MOTOR_TO_ID.values())
@@ -393,6 +403,7 @@ class Scheduler:
     def _start_pose(self, robot_state, target: dict[str, float], duration: float, hold: bool) -> None:
         """Ramp from where the motors are to target; the torque goes on without a jump (goal = present first)."""
         start = {n: robot_state.motor_positions.get(n, target[n]) for n in MOTOR_TO_ID}
+        self._targets = dict(start)
         if not self.powered:
             self.controller.sync_write_goal_position(list(MOTOR_TO_ID.values()), [start[n] for n in MOTOR_TO_ID])
             self._set_torque(True)

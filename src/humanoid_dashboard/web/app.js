@@ -428,7 +428,8 @@ function renderRobotCmds() {
     b.title = "emergency: stop the moves, torque off on every motor"; b.onclick = () => cmd("em", {}); box.appendChild(b);
   }
 }
-// the robot's moves and switches (meta.moves; their states in the field "moves": 0 off, 1 starting, 2 on, 3 stopping)
+// the robot's moves (meta.moves; their states in the field "moves": 0 off, 2 on, 3 stopping; 1 starting and the
+// switches (dashed) in older recordings)
 let movesKey = "";
 function renderMoves() {
   const list = meta.moves || [], card = $("moves");

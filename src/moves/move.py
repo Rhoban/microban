@@ -1,85 +1,170 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2026 Marc Duclusaud
+"""A move: a class with ``step(obs) -> targets``, no base class, the same file in the simulator and on the robot.
 
-from abc import ABC, abstractmethod
+The robot's program finds every move of src/moves/ by itself (moves/discover.py) and runs it through a
+:class:`Runner`; the simulators run the same class with ``run_move`` (microban_sim, climbing_sim)::
+
+    class WaveMove:
+        description = "..."                    # one line for the dashboard (default: the docstring's first line)
+        variants = (CLIMBER,)                  # the robot versions it is for (default: both)
+        start_pose = "current"                 # torque on where the robot is; "neutral": the standing pose first (2 s)
+        kp = 125                               # the servos' gain while it runs (default: the robot's, KP_DEFAULT)
+        options = {"amplitude": 0.3}           # variables the dashboard edits live (int / float / bool)
+        option_docs = {"amplitude": "rad"}
+        sliders = {"speed": (0.0, 1.0, 0.5)}   # name -> (min, max, start), shown while it runs
+        keys = "arrows: ..."                   # the keys it reads in the dashboard's keyboard zone
+
+        def start(self, obs): ...              # when it starts
+        def step(self, obs):                   # every 20 ms
+            ... self.options["amplitude"], self.slider["speed"], self.pressed, self.velocity ...
+            return targets                     # 19 angles (order JOINTS) or {joint: angle}; None: it is over
+        def stopping(self, obs): ...           # once stopped, every 20 ms until it returns None (a smooth stop)
+        def on_key(self, key, down): ...
+        def on_option(self, name, value): ...
+
+Everything but step is optional. ``obs`` is the simulator's observation (microban_sim's observation()), built here from
+what the robot measures (:func:`observation`).
+"""
+import inspect
+import math
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
+import microban_model
+import numpy as np
+
+from constants import IMU_MOUNT_QUAT, NEUTRAL_POSE
 from observer import Observation
-from constants import NEUTRAL_POSE
 
-
-# The versions of the robot: walking hands and feet (classic), or the climbing forearms and feet (climber). Each move
-# says which ones it is made for: variants = ALL, or (CLASSIC,), or (CLIMBER,); the dashboard lists it only for those.
+# The versions of the robot: walking hands and feet (classic), or the climbing forearms and feet (climber). A move may
+# say which ones it is made for: variants = ALL (the default), (CLASSIC,) or (CLIMBER,); the dashboard lists it only
+# for those.
 CLASSIC, CLIMBER = "classic", "climber"
 ALL = (CLASSIC, CLIMBER)
+
+JOINTS = list(microban_model.JOINTS)
+G = 9.81
+NO_VELOCITY = {"vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 
 
 class MoveState(Enum):
     INACTIVE = auto()
-    STARTING = auto()
     ACTIVE = auto()
     STOPPING = auto()
 
 
 @dataclass
 class MotorCommand:
-    """
-    Final motor command built by the scheduler pipeline.
-    
-    Initialized with the neutral pose.
-    """
+    """The joints' targets sent this tick (joint name -> rad)."""
 
     target_angles: dict[str, float] = field(default_factory=lambda: dict(NEUTRAL_POSE))
 
 
-class Move(ABC):
-    """Base class for all motion behaviors (docs/moves.md)."""
+def _quat_mat(q):
+    w, x, y, z = q
+    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                     [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                     [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
 
-    description: str = ""         # one line for the dashboard's Moves list (default: the class docstring's first line)
-    variants: tuple | None = None # the versions of the robot it is made for: ALL, (CLASSIC,) or (CLIMBER,); required:
-                                  # a move that does not say is skipped (docs/moves.md)
-    power_up: str = "neutral"     # launched with the torque off: "neutral" ramps to NEUTRAL_POSE first (2 s),
-                                  # "current" holds where the robot is (e.g. a move that may start on the wall)
 
-    options: dict = {}            # settings the dashboard can change while the robot runs: name -> int / float / bool
-    option_docs: dict = {}        # name -> one line, shown in the dashboard's editor
+R_TRUNK_IMU = _quat_mat(IMU_MOUNT_QUAT)          # IMU vectors -> trunk frame
 
-    sliders: dict = {}            # live controls in the dashboard's Moves card: name -> (min, max, start value);
-                                  # read self.slider[name] in step(); back to its start value at each launch
-    keys: str = ""                # the keys it reads, shown by the dashboard's keyboard zone, e.g. "arrows: turn the head"
 
-    def __init__(self) -> None:
-        self.state: MoveState = MoveState.INACTIVE
-        self.options = dict(type(self).options)
-        self.slider: dict[str, float] = {name: float(s[2]) for name, s in type(self).sliders.items()}
-        self.pressed: set[str] = set()     # the keys held in the dashboard's keyboard zone ("a", "space", "ArrowUp"...)
+def observation(obs: Observation) -> dict:
+    """The robot's measurements in the simulator's format: q, dq (order JOINTS, every zero at the motor's zero), gyro
+    (rad/s), accel (m/s^2), gravity (unit vector) in the trunk frame, quat (trunk orientation w x y z), current (A),
+    time (s); NaN where a sensor gave nothing this tick."""
+    s = obs.robot_state
+    nan3 = [math.nan] * 3
+    current = s.measured_currents or s.motor_currents
+    return {"q": np.array([s.motor_positions[n] for n in JOINTS]),
+            "dq": np.array([s.motor_velocities[n] for n in JOINTS]),
+            "gyro": R_TRUNK_IMU @ np.array(s.gyro or nan3),
+            "accel": R_TRUNK_IMU @ np.array(s.acc or nan3) * G,              # the IMU reads g
+            "gravity": np.array(s.projected_gravity or nan3),
+            "quat": np.array(s.body_quat or [math.nan] * 4),
+            "current": np.array([abs(current.get(n, math.nan)) for n in JOINTS]) if current else np.full(19, math.nan),
+            "time": s.time_s}
 
-    def on_option(self, name: str, value) -> None:
-        """Called when the dashboard changed self.options[name] (already set), between two ticks."""
 
-    def on_key(self, key: str, down: bool) -> None:
-        """Called while the move runs (starting or on), between two ticks, when a key of the dashboard's keyboard zone
-        is pressed (down=True) or released: "a" to "z", "0" to "9", "space", "ArrowUp", "Enter"... (self.pressed:
-        the keys held now)."""
+def is_move(cls) -> bool:
+    """A move: a class with a step(self, obs)."""
+    if not inspect.isclass(cls) or inspect.isabstract(cls) or not callable(getattr(cls, "step", None)):
+        return False
+    try:
+        params = list(inspect.signature(cls.step).parameters.values())
+    except (TypeError, ValueError):
+        return False
+    return len(params) == 2 and all(p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) for p in params)
 
-    def reset(self) -> None:
-        """Called when em or init stops the move at once (on_stop is not called then): forget any transition in
-        progress, so that the next launch starts cleanly. Override when on_start / on_stop keep state."""
 
-    def preload(self) -> None:
-        """Called before the control loop starts. Override to load heavy resources."""
+def targets_dict(targets) -> dict[str, float]:
+    """A move's targets as joint name -> rad: 19 angles in the order JOINTS, or a dict of some joints."""
+    if isinstance(targets, dict):
+        unknown = set(targets) - set(JOINTS)
+        if unknown:
+            raise ValueError(f"unknown joints {sorted(unknown)} (microban_model.JOINTS)")
+        return {n: float(v) for n, v in targets.items()}
+    targets = np.asarray(targets, float)
+    if targets.shape != (len(JOINTS),):
+        raise ValueError(f"step must return {len(JOINTS)} targets (order JOINTS) or a dict, got shape {targets.shape}")
+    return dict(zip(JOINTS, targets.tolist()))
 
-    def on_start(self, obs: Observation, command: MotorCommand) -> None:
-        """Called each tick while state is STARTING.
-        Must set self.state = MoveState.ACTIVE when the transition is done."""
-        self.state = MoveState.ACTIVE
 
-    @abstractmethod
-    def step(self, obs: Observation, command: MotorCommand) -> None:
-        """Called each tick while state is ACTIVE."""
+class Runner:
+    """A move in the robot's program: its state, what the dashboard sets (options, sliders, keys) and the velocity
+    asked (sticks / arrows), given to the move as attributes, and its calls."""
 
-    def on_stop(self, obs: Observation, command: MotorCommand) -> None:
-        """Called each tick while state is STOPPING.
-        Must set self.state = MoveState.INACTIVE when the transition is done."""
+    def __init__(self, move) -> None:
+        cls = type(move)
+        self.move = move
+        self.file = inspect.getsourcefile(cls)                    # where its errors are (the dashboard's events)
+        self.description = getattr(cls, "description", "") or (cls.__doc__ or "").strip().split("\n")[0]
+        self.variants = tuple(getattr(cls, "variants", None) or ALL)
+        self.start_pose = getattr(cls, "start_pose", "current")
+        if self.start_pose not in ("current", "neutral"):
+            raise ValueError(f"start_pose must be 'current' or 'neutral', not {self.start_pose!r}")
+        self.kp = getattr(cls, "kp", None)
+        self.option_docs = dict(getattr(cls, "option_docs", {}) or {})
+        self.sliders = dict(getattr(cls, "sliders", {}) or {})
+        self.keys = getattr(cls, "keys", "") or ""
         self.state = MoveState.INACTIVE
+        # the move reads them as its own attributes: the same objects
+        move.options = self.options = dict(getattr(cls, "options", {}) or {})
+        move.slider = self.slider = {n: float(s[2]) for n, s in self.sliders.items()}
+        move.pressed = set()
+        move.velocity = dict(NO_VELOCITY)
+
+    def set_inputs(self, pressed: set[str], velocity: dict[str, float]) -> None:
+        self.move.pressed, self.move.velocity = set(pressed), dict(velocity)
+
+    def start(self, obs: Observation) -> None:
+        """Asked: its sliders back to their start values, then its start()."""
+        self.slider.update({n: float(s[2]) for n, s in self.sliders.items()})
+        self.state = MoveState.ACTIVE
+        if callable(getattr(self.move, "start", None)):
+            self.move.start(observation(obs))
+
+    def tick(self, obs: Observation) -> dict[str, float]:
+        """Its targets this tick (step while it runs, stopping once stopped); {} when it has nothing more to say."""
+        if self.state == MoveState.ACTIVE:
+            targets = self.move.step(observation(obs))
+            if targets is not None:
+                return targets_dict(targets)
+            self.state = MoveState.STOPPING                       # over by itself
+        if self.state == MoveState.STOPPING:
+            stopping = getattr(self.move, "stopping", None)
+            targets = stopping(observation(obs)) if callable(stopping) else None
+            if targets is not None:
+                return targets_dict(targets)
+            self.state = MoveState.INACTIVE
+        return {}
+
+    def on_option(self, name, value) -> None:
+        if callable(getattr(self.move, "on_option", None)):
+            self.move.on_option(name, value)
+
+    def on_key(self, key, down) -> None:
+        if callable(getattr(self.move, "on_key", None)):
+            self.move.on_key(key, down)

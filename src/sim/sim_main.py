@@ -16,11 +16,7 @@ from telemetry import Telemetry
 from moves.move import CLASSIC, CLIMBER
 from sim.mujoco_input import MuJoCoInputSource
 from sim.sim_controller import SimController
-from moves.rotate_head import RotateHeadMove
-from moves.squat import SquatMove
-from moves.walk import WalkMove
-from moves.simple import load_file
-from moves.discover import with_discovered_moves
+from moves.discover import discover_moves, load_file
 
 
 def main() -> None:
@@ -28,7 +24,7 @@ def main() -> None:
     parser.add_argument("--hz", type=float, default=50.0, metavar="FREQ", help="Scheduler frequency in Hz (default: 50)")
     parser.add_argument("--variant", default=CLASSIC, choices=[CLASSIC, CLIMBER],
                         help="the robot's version on the floor: walking or climbing forearms and feet")
-    parser.add_argument("--controller", default=None, help="a file of simple moves kept elsewhere (moves/simple.py); a class Controller starts with [c]")
+    parser.add_argument("--moves", default=None, metavar="FILE", help="the moves of a file kept outside src/moves/")
     parser.add_argument("--wall", default=None, metavar="WALL", help="on the hackathon's climbing wall (the simulator "
                         "cloned next to this folder): N1, N2, N3 or a wall JSON file; the climbing robot")
     parser.add_argument("--start", default="hang", choices=["hang", "floor"],
@@ -48,7 +44,7 @@ def main() -> None:
         sim = MicrobanSim(args.variant)
         start, variant = sim.reset, args.variant
 
-    input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "v": "walk", "c": "controller"})
+    input_source = MuJoCoInputSource(move_keys={"h": "head", "s": "squat", "v": "walk"})
     controller = SimController(sim, start, key_callback=input_source.key_callback, reset_source=input_source)
     input_source.set_viewer_opt(controller.viewer_opt)
 
@@ -56,12 +52,7 @@ def main() -> None:
         frequency_hz=args.hz,
         controller=controller,
         input_source=input_source,
-        moves=with_discovered_moves(controller, {
-            "head": RotateHeadMove(),
-            "squat": SquatMove(),
-            **(load_file(args.controller, controller) if args.controller else {}),
-            "walk": WalkMove(controller=controller),
-        }),
+        moves={**discover_moves(), **(load_file(args.moves) if args.moves else {})},
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)
         variant=variant,                            # the moves made for this version (Move.variants)
     )

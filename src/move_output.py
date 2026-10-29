@@ -2,7 +2,7 @@
 """What the moves print(): to the terminal as before (make run, make robot-service-logs), and to the live dashboard's
 events, "move: line", so that a print shows in the page.
 
-The scheduler runs each call of a move (on_start, step, on_stop, on_key, on_option) inside ``capture(name)``. At most
+The scheduler runs each call of a move (start, step, stopping, on_key, on_option) inside ``capture(name)``. At most
 MAX_LINES_PER_S lines a second per move go to the dashboard (a print in step() would be 50 a second): the others are
 counted, and said at most once a second. Nothing is sent while no dashboard listens.
 """
