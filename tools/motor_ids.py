@@ -64,6 +64,14 @@ class Robot:
                 time.sleep(0.02)
                 for mid in self.bus.broadcast_scan():
                     self.found.setdefault(mid, baud)
+            # the robot's program answers only reads (status return level 1, until the motors lose power): writes
+            # would wait for a reply that never comes; every motor answers everything again (2)
+            for mid, baud in self.found.items():
+                self.bus.set_baudrate(baud)
+                try:
+                    self.bus.write_status_return_level(mid, 2)
+                except Exception:              # no reply: it was at 1, the write went through
+                    pass
             self.joint = {i: j for i, j in self.joint.items() if i in self.found}
             self.progress = None
             self.say(f"scan: {len(self.found)} motors: " + ", ".join(f"ID {i} @ {b}" for i, b in sorted(self.found.items())))
