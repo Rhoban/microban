@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Your own controller as a move: the same file runs in the climbing simulator (climbing_sim.run_controller) and here,
-on the robot or in microban's simulation.
+"""Your own controller as a move: the same file runs in Rhoban's robot simulator (microban_sim.run_controller, or the
+hackathon's climbing_sim built on it) and here, on the robot or in its simulation (make sim).
 
     make run CONTROLLER=path/to/my_controller.py            (robot)      keyboard [c] / gamepad [Y]: start / stop it
     make sim WALL=N2 CONTROLLER=path/to/my_controller.py    (the robot's program on the simulated wall)
@@ -11,7 +11,7 @@ The file defines ``class Controller`` with:
   last ones; called every 20 ms;
 * optionally ``reset(obs)`` (called when it starts) and ``kp_fw`` (the servos' gain while it runs; default 125).
 
-``obs`` is what ``ClimbingSim.observation()`` returns, built from what the robot measures: ``q``, ``dq`` (joints, order
+``obs`` is what the simulator's ``observation()`` returns, built from what the robot measures: ``q``, ``dq`` (joints, order
 JOINTS, every zero at the motor's zero), ``gyro`` (rad/s), ``accel`` (m/s^2), ``gravity`` (unit vector) in the trunk
 frame, ``quat`` (trunk orientation w x y z), ``current`` (A), ``time`` (s). When it starts, the torque goes on where
 the robot is (no move to the neutral pose first), so it may start hanging on the wall.
@@ -43,7 +43,7 @@ R_TRUNK_IMU = _quat_mat(IMU_MOUNT_QUAT)          # IMU vectors -> trunk frame
 
 
 def observation(obs: Observation) -> dict:
-    """The robot's measurements in the climbing simulator's format (ClimbingSim.observation())."""
+    """The robot's measurements in the simulator's format (microban_sim's MicrobanSim.observation())."""
     s = obs.robot_state
     nan3 = [math.nan] * 3
     current = s.measured_currents or s.motor_currents
@@ -65,7 +65,7 @@ def load_controller(path: str):
 
 
 class ControllerMove(Move):
-    description = "Your Controller file (CONTROLLER=...), the same as in the climbing simulator"
+    description = "Your Controller file (CONTROLLER=...), the same as in the simulator"
     variants = (CLIMBER,)         # the climbing simulator's robot
     power_up = "current"          # the torque goes on where the robot is (see Scheduler)
 

@@ -138,4 +138,5 @@ Variables (⚙) or sliders? A variable is a setting: it keeps its value from one
 the robot, and is edited in the ⚙ panel, even while the move is off. A slider is for driving: it shows only while the
 move runs, has a min and a max, starts again from its start value at each launch, and is never saved.
 
-Your own controller written for the climbing simulator runs as a move with no code here: docs/controller.md.
+A controller written in the simulator's format runs as a move with no code here; which one to write, a Controller or
+a move: [controller.md](controller.md#controller-or-move).
