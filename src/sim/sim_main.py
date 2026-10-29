@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import os
 
 from constants import MOVE_KEYS
 from scheduler import Scheduler
@@ -35,9 +36,14 @@ def main() -> None:
     if args.wall:
         try:
             from climbing_sim import ClimbingSim
-        except ImportError:
+        except ModuleNotFoundError as e:
+            if e.name != "climbing_sim":
+                raise
             raise SystemExit("The hackathon's simulator is not found: clone it next to this folder (git clone "
                              "https://github.com/rock-climbing-robots/simulator ../simulator), see docs/simulation.md")
+        except ImportError as e:      # the simulator is newer than the microban_sim installed here
+            raise SystemExit(f"The hackathon's simulator does not load ({e}): update Rhoban's robot simulator here, "
+                             "uv sync --group sim --upgrade-package microban-sim, then make sim again")
         sim = ClimbingSim(args.wall, cameras=[])
         start, variant = (sim.reset if args.start == "floor" else sim.reset_hanging), CLIMBER
     else:
@@ -45,7 +51,10 @@ def main() -> None:
         sim = MicrobanSim(args.variant)
         start, variant = sim.reset, args.variant
 
-    input_source = MuJoCoInputSource(move_keys=MOVE_KEYS)
+    moves = all_moves(args.moves)
+    # the viewer's keys: the moves this robot runs (a move of your own has none: the dashboard starts it)
+    keys = {k: n for k, n in MOVE_KEYS.items() if n in moves and variant in moves[n].variants}
+    input_source = MuJoCoInputSource(move_keys=keys)
     controller = SimController(sim, start, key_callback=input_source.key_callback, reset_source=input_source)
     input_source.set_viewer_opt(controller.viewer_opt)
 
@@ -53,11 +62,13 @@ def main() -> None:
         frequency_hz=args.hz,
         controller=controller,
         input_source=input_source,
-        moves=all_moves(args.moves),
+        moves=moves,
         telemetry=Telemetry(controller),            # the dashboard works on the simulation too (make dashboard HOST=127.0.0.1)
         variant=variant,                            # the moves made for this version (their variants)
     )
     scheduler.run()
+    controller.close()
+    os._exit(0)            # Ctrl+C or q: quit at once (MuJoCo's viewer thread would keep the process alive)
 
 
 if __name__ == "__main__":

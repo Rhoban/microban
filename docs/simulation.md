@@ -11,8 +11,10 @@ the robot's delays).
 | `make sim WALL=N2` | The climbing robot on the hackathon's wall: `N1`, `N2`, `N3` or a wall JSON file (from the simulator's wall editor). It starts hanging on the wall's start holds; `START=floor`: standing in front of the wall. |
 | `MOVES=my_moves.py` | Also the moves of a file kept outside `src/moves/` ([moves.md](moves.md)). |
 
-In the viewer: the moves' keys (listed in the terminal) start / stop them, [r] puts the
-robot back at the start, [q] quits. The dashboard works on it: `make dashboard HOST=127.0.0.1`.
+In the viewer (click it first): the keys listed in the terminal start / stop the program's moves made for this robot,
+[r] puts the robot back at the start, [q] (or Ctrl+C in the terminal) quits. Your own moves have no key: start them
+from the dashboard, `make dashboard HOST=127.0.0.1` in another terminal (or give them one in `MOVE_KEYS`,
+`src/constants.py`). On macOS, MuJoCo's viewer needs `mjpython`: `make sim PYTHON=mjpython WALL=N2`.
 
 As on the real robot:
 

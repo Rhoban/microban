@@ -37,11 +37,13 @@ START ?= hang
 SIMULATOR ?= ../simulator
 # MICROBAN_SIM=path/to/microban_sim: a clone of Rhoban's robot simulator instead of its release (to change it)
 MICROBAN_SIM ?=
+# PYTHON=mjpython on macOS (MuJoCo's viewer needs it)
+PYTHON ?= python
 sim:
 	@$(if $(WALL),test -f $(SIMULATOR)/pyproject.toml || { echo "The climbing simulator is not in $(SIMULATOR): \
 	git clone https://github.com/rock-climbing-robots/simulator $(SIMULATOR)  (or SIMULATOR=its/folder)"; exit 1; })
 	PYTHONPATH=src uv run --group sim $(if $(MICROBAN_SIM),--with-editable $(MICROBAN_SIM)) $(if $(WALL),--with-editable $(SIMULATOR)) \
-		src/sim/sim_main.py --hz 50 --variant $(VARIANT) $(if $(MOVES),--moves $(MOVES)) \
+		$(PYTHON) src/sim/sim_main.py --hz 50 $(if $(WALL),,--variant $(VARIANT)) $(if $(MOVES),--moves $(MOVES)) \
 		$(if $(WALL),--wall $(WALL) --start $(START))
 
 viewer:
@@ -98,13 +100,15 @@ discover-robots:
 # Live dashboard on this PC (motors, IMU, 3D, reboot a motor): the robot streams while its program runs (service or
 # `make run`). HOST: the robot to open with; another one can be chosen, and saved under a name, in the page.
 # The robot says its version, Classic or Climber: the page shows its model (and changes it, in its header menu).
-MODELS ?= $(shell uv run --group dashboard python -c "import microban_model as m; print(f'--model Classic={m.mjcf()} --model Climber={m.mjcf(True)}')")
+MODELS ?=
+MODELS_CMD = uv run -q --group dashboard python -c "import microban_model as m; print(f'--model Classic={m.mjcf()} --model Climber={m.mjcf(True)}')"
 # the page's Deploy button runs make deploy for the robot shown, as this user (the SD image's: radxa)
 ROBOT_USER ?= radxa
 # only a HOST given (command line or environment), not the default one: else the page opens on its robot picker;
 # with or without its user (radxa@microban-XXXX.local as for make deploy: the page needs the host only)
 DASH_ROBOT = $(if $(filter command line environment,$(origin HOST)),--robot $(lastword $(subst @, ,$(HOST))))
 dashboard:
-	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app $(DASH_ROBOT) $(MODELS) \
+	@echo "Starting the dashboard (the first time, uv installs its packages: about a minute)..."
+	PYTHONPATH=src uv run --group dashboard python -m humanoid_dashboard.app $(DASH_ROBOT) $(if $(MODELS),$(MODELS),$$($(MODELS_CMD))) \
 		--title Microban \
 		--deploy 'make deploy HOST=$(ROBOT_USER)@{host}'

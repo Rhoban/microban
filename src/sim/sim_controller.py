@@ -47,8 +47,13 @@ class SimController:
         self.sim.servos.kp = KP_DEFAULT
         self._kp = dict.fromkeys(ID_TO_MOTOR, KP_DEFAULT)                     # motor ID -> the gain written
         self._kp_warned = False
+        self._torque_t = 0.0
         self.reset(sync=False)
         self._viewer = sim.view(realtime=False, key_callback=key_callback)   # the scheduler keeps the pace
+
+    def close(self) -> None:
+        """Close MuJoCo's viewer window."""
+        self._viewer.close()
 
     @property
     def viewer_opt(self):
@@ -57,6 +62,7 @@ class SimController:
     def reset(self, sync: bool = True) -> None:
         """Back to the start: as the robot's program starts, torque off, held there until the torque goes on."""
         self._start()
+        self._torque_t = 0.0
         self.sim.set_torque(False)
         self._held = True
         self._obs, self._imu = self.sim.observation(), self.sim.imu_raw()
@@ -104,8 +110,9 @@ class SimController:
         if self._reset_source is not None and self._reset_source.consume_reset():
             self.reset()
             return
-        if self._reset_source is not None and self._reset_source.show_torque:
-            print(f"Torque sum: {float(np.abs(self.sim.data.actuator_force).sum()):.3f} Nm")
+        if self._reset_source is not None and self._reset_source.show_torque and self.sim.data.time >= self._torque_t:
+            self._torque_t = self.sim.data.time + 0.5          # twice a second ([t] in the viewer: off)
+            print(f"Torque sum: {float(np.abs(self.sim.data.actuator_force).sum()):.3f} Nm ([t] in the viewer: off)")
         self._obs, self._imu = self.sim.observation(), self.sim.imu_raw()
 
     # ---- reads (what the robot's sensors read, with their delays) ---------------------------------------

@@ -23,6 +23,14 @@ The main features of Microban are:
 
 To see the robot take its first steps, check out this YouTube video: [https://youtu.be/1pnFrT_jfXQ](https://youtu.be/1pnFrT_jfXQ)
 
+> **Programming a robot you have** (a hackathon, a class): you need git with git-lfs, `make` and
+> [uv](https://docs.astral.sh/uv/getting-started/installation/) on Linux or macOS (Windows: in WSL, Ubuntu), and the
+> hackathon's simulator cloned next to this folder ([its README](https://github.com/rock-climbing-robots/simulator):
+> install, examples, walls). Then: [write a move](docs/moves.md) (a class with `step(obs)`, the same file in the
+> simulator and on the robot), try it with `make sim WALL=N2` and `make dashboard HOST=127.0.0.1`, find your robot
+> with `make discover-robots`, send your code with `make deploy HOST=radxa@<robot>`
+> ([usage](docs/usage.md), [dashboard](docs/dashboard.md)).
+
 ---
 
 ## 🛠️ Components Overview
