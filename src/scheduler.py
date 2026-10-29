@@ -90,7 +90,8 @@ class Scheduler:
         self._save_variant = variant is None
         self.variant = variant or self._load_variant()
         self._refused: set[str] = set()             # moves asked that are not for this version (said once)
-        self._ended: set[str] = set()               # moves over by themselves, still asked (a key toggled on)
+        self._ended: set[str] = set()               # moves over by themselves or by an error, still asked (a key
+                                                    # toggled on): off until asked anew
         self._output = MoveOutput(self.telemetry)    # the moves' print(): terminal and dashboard events
         self._load_options()
         if self.telemetry is not None:
@@ -148,17 +149,16 @@ class Scheduler:
                     try:
                         with self._output.capture(name):
                             if name in requested and move.state == MoveState.INACTIVE and name not in self._ended:
-                                move.start(obs)
+                                move.start(obs)                # (_ended: on_key may have failed just now)
                             elif name not in requested and move.state == MoveState.ACTIVE:
                                 move.state = MoveState.STOPPING
+                            running = move.state == MoveState.ACTIVE
                             if move.state != MoveState.INACTIVE:
                                 command.target_angles.update(move.tick(obs))
+                            if running and move.state != MoveState.ACTIVE:
+                                self._end(name)            # over by itself (step returned None)
                     except Exception:
                         self._move_failed(name, move)      # that move stops; its joints keep their last targets
-                    if move.state != MoveState.ACTIVE and name in requested:
-                        self._ended.add(name)              # over by itself: not again until asked anew
-                        self._dash_requested.discard(name)
-                self._ended &= requested
                 self._update_kp()
 
                 # Overcurrent safety: estimate the current from the command that was actually
@@ -237,8 +237,11 @@ class Scheduler:
                 opt, value = extra[0]
                 move = self.registered_moves[name]
                 move.options[opt] = value
-                with self._output.capture(name):
-                    move.on_option(opt, value)
+                try:
+                    with self._output.capture(name):
+                        move.on_option(opt, value)
+                except Exception:
+                    self._move_failed(name, move, stop=move.state != MoveState.INACTIVE)
                 self.telemetry.options_changed()
             elif op == "save_options":
                 self.telemetry.event(self._save_options())
@@ -246,6 +249,7 @@ class Scheduler:
                 self.telemetry.event(self._set_variant(name))
             elif op == "start":
                 self._dash_requested.add(name)
+                self._ended.discard(name)                  # asked anew, even if a key still holds it
             elif op == "stop":
                 self._dash_requested.discard(name)
             elif op == "em":
@@ -269,6 +273,8 @@ class Scheduler:
                 self.telemetry.event(text, "error")
         self._refused = refused
         requested -= refused
+        self._ended &= requested                       # no longer asked: it may run again when asked anew
+        requested -= self._ended
         obs.user_input.active_moves = set(requested)
         launched = requested - self._prev_requested
         self._prev_requested = set(requested)
@@ -289,16 +295,26 @@ class Scheduler:
             return set()                               # the moves start once at the neutral pose
         return requested
 
-    def _move_failed(self, name: str, move: Runner) -> None:
+    def _end(self, name: str) -> None:
+        """The move is over by itself or by an error: not run again until asked anew (a key or button pressed again,
+        Start in the dashboard)."""
+        self._ended.add(name)
+        self._dash_requested.discard(name)
+
+    def _move_failed(self, name: str, move: Runner, stop: bool = True) -> None:
         """A move raised an error: it stops at once (the others go on), the traceback in the robot's log and one line
-        in the dashboard's events, with the line of the move's file."""
-        move.state = MoveState.INACTIVE
+        in the dashboard's events, with the line of the move's file. stop=False: an error of a move that is not
+        running (its on_option), reported only."""
+        if stop:
+            move.state = MoveState.INACTIVE
+            self._end(name)
         text = traceback.format_exc()
         frames = [f for f in traceback.extract_tb(sys.exc_info()[2]) if f.filename == move.file]
         where = f" line {frames[-1].lineno}" if frames else ""
-        print(f"Move {name} stopped by an error:\r\n{text}".replace("\n", "\r\n"), end="\r\n", flush=True)
+        print(f"Move {name} {'stopped by an' if stop else 'raised an'} error:\n{text}".replace("\n", "\r\n"),
+              end="\r\n", flush=True)
         if self.telemetry is not None:
-            self.telemetry.event(f"{name} stopped by an error{where}: {text.strip().splitlines()[-1]}", "error")
+            self.telemetry.event(f"{name} {'stopped by an' if stop else 'raised an'} error{where}: {text.strip().splitlines()[-1]}", "error")
 
     def _dispatch_keys(self) -> None:
         """The keys pressed / released in the dashboard's keyboard zone since the last tick: on_key for the running
@@ -311,10 +327,14 @@ class Scheduler:
         changes = [(k, False) for k in sorted(self._keys - held)] + [(k, True) for k in sorted(held - self._keys)]
         self._keys = held
         for name, move in self.registered_moves.items():
+            move.set_inputs(held, move.move.velocity)  # on_key sees the keys held now
             if move.state == MoveState.ACTIVE:
-                with self._output.capture(name):
-                    for key, down in changes:
-                        move.on_key(key, down)
+                try:
+                    with self._output.capture(name):
+                        for key, down in changes:
+                            move.on_key(key, down)
+                except Exception:
+                    self._move_failed(name, move)
 
     # ---- the moves' options (dashboard) -----------------------------------------------------------------------
     def _load_options(self) -> None:
@@ -340,10 +360,15 @@ class Scheduler:
                 old = move.options[opt]
                 try:
                     new = bool(value) if isinstance(old, bool) else type(old)(value)
-                    move.on_option(opt, new)
-                    move.options[opt] = new
                 except (TypeError, ValueError) as e:      # a value edited by hand: that option keeps its default
                     print(f"Warning: {OPTIONS_FILE}: {name}.{opt} = {value!r} skipped ({e})", end="\r\n", flush=True)
+                    continue
+                move.options[opt] = new
+                try:
+                    move.on_option(opt, new)
+                except Exception:                          # the move's error: the robot starts anyway
+                    print(f"Warning: {name}.on_option({opt!r}, {new!r}) failed:\r\n{traceback.format_exc()}",
+                          end="\r\n", flush=True)
         print(f"Move options from {OPTIONS_FILE}", end="\r\n", flush=True)
 
     # ---- the robot's version (classic / climber) ----------------------------------------------------------------

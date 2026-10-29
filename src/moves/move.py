@@ -7,7 +7,7 @@ The robot's program finds every move of src/moves/ by itself (moves/discover.py)
 
     class WaveMove:
         description = "..."                    # one line for the dashboard (default: the docstring's first line)
-        variants = (CLIMBER,)                  # the robot versions it is for (default: both)
+        variants = ("climber",)                # the robot versions it is for (default: both)
         start_pose = "current"                 # torque on where the robot is; "neutral": the standing pose first (2 s)
         kp = 125                               # the servos' gain while it runs (default: the robot's, KP_DEFAULT)
         options = {"amplitude": 0.3}           # variables the dashboard edits live (int / float / bool)
@@ -120,18 +120,19 @@ class Runner:
         cls = type(move)
         self.move = move
         self.file = inspect.getsourcefile(cls)                    # where its errors are (the dashboard's events)
-        self.description = getattr(cls, "description", "") or (cls.__doc__ or "").strip().split("\n")[0]
-        self.variants = tuple(getattr(cls, "variants", None) or ALL)
-        self.start_pose = getattr(cls, "start_pose", "current")
+        self.description = getattr(move, "description", "") or (cls.__doc__ or "").strip().split("\n")[0]
+        self.variants = tuple(getattr(move, "variants", None) or ALL)
+        self.start_pose = getattr(move, "start_pose", "current")
         if self.start_pose not in ("current", "neutral"):
             raise ValueError(f"start_pose must be 'current' or 'neutral', not {self.start_pose!r}")
-        self.kp = getattr(cls, "kp", None)
-        self.option_docs = dict(getattr(cls, "option_docs", {}) or {})
-        self.sliders = dict(getattr(cls, "sliders", {}) or {})
-        self.keys = getattr(cls, "keys", "") or ""
+        self.kp = getattr(move, "kp", None)
+        # the class's attributes, or the instance's when its __init__ set them
+        self.option_docs = dict(getattr(move, "option_docs", {}) or {})
+        self.sliders = dict(getattr(move, "sliders", {}) or {})
+        self.keys = getattr(move, "keys", "") or ""
         self.state = MoveState.INACTIVE
         # the move reads them as its own attributes: the same objects
-        move.options = self.options = dict(getattr(cls, "options", {}) or {})
+        move.options = self.options = dict(getattr(move, "options", {}) or {})
         move.slider = self.slider = {n: float(s[2]) for n, s in self.sliders.items()}
         move.pressed = set()
         move.velocity = dict(NO_VELOCITY)

@@ -27,7 +27,7 @@ def move_name(cls) -> str:
     if isinstance(name, str) and name:
         return name
     base = cls.__name__[:-4] if cls.__name__.endswith("Move") and cls.__name__ != "Move" else cls.__name__
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", base).lower()
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", base).lower()   # IKSquatMove -> ik_squat
 
 
 def _skip(text: str, path=None) -> None:
@@ -67,6 +67,8 @@ def _moves_of(module, path: pathlib.Path, found: dict) -> None:
 
 def discover_moves() -> dict:
     """The moves of src/moves/, as {name: Runner}."""
+    if str(HERE) not in sys.path:                  # a move imports its own files by name (import helper), as in the sim
+        sys.path.append(str(HERE))
     found = {}
     for path in sorted(HERE.glob("*.py")):
         if path.stem in SKIP or path.stem.startswith("_"):
@@ -83,6 +85,8 @@ def discover_moves() -> dict:
 def load_file(path) -> dict:
     """The moves of a file kept elsewhere (make run MOVES=...), as {name: Runner}."""
     path = pathlib.Path(path).expanduser().resolve()
+    if str(path.parent) not in sys.path:
+        sys.path.append(str(path.parent))
     spec = importlib.util.spec_from_file_location(f"user_moves_{path.stem}", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module

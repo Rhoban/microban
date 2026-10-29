@@ -4,9 +4,10 @@ HOST ?= microban
 ID ?=
 
 # Sends this folder to the robot's ~/microban; the PC's own files stay here: the dashboard's recordings, the options
-# saved from a simulation (move_options.json), the MOVES copy (make run puts it there itself)
+# saved from a simulation (move_options.json), the MOVES copy (make run puts it there itself). A file deleted here is
+# deleted on the robot too (--delete; the files excluded below stay there)
 sync:
-	rsync -avz \
+	rsync -avz --delete \
 		--exclude='.git' \
 		--exclude='.venv' \
 		--exclude='__pycache__' \
