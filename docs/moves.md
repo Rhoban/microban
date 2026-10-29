@@ -26,6 +26,8 @@ class WaveMove:
 That is all: no base class, nothing to register. Its name is the class name without "Move", in snake_case:
 `WaveMove` -> `wave` (`RaiseArmMove` -> `raise_arm`; or set `name = "..."` in the class). Its docstring's first line
 is its description in the dashboard. The joints it does not return keep their last target.
+On the wall (the climber), this one lets go of the right hand's hold: add `variants = ("classic",)` to keep it for
+the walking robot.
 
 ## Try it
 
@@ -244,6 +246,7 @@ Most moves need only `obs` and their targets. For more, every move has `self.rob
 |---|---|
 | `self.robot.set_torque(on, joints=None)` | torque off on these joints (names, or all): they go limp at once; back on: after this tick's targets, held where they are (no jump) |
 | `self.robot.set_kp(kp, joints=None)` | the servos' gain (0 to 1000), of these joints or all, over the moves' `kp` (in the class: the whole move's), written after the tick |
+| `self.robot.variant` | the robot's version, `"classic"` or `"climber"` (None in `run_move`) |
 | `self.robot.state` | this tick's raw measurements (`observer.RobotState`: the IMU in its chip's frame, the motors' voltages, currents by joint name) |
 
 When the move stops (Stop, over by itself, an error, em / init), the joints it turned off get their torque back (if

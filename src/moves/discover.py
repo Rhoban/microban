@@ -60,7 +60,8 @@ def _moves_of(module, path: pathlib.Path, found: dict) -> None:
             continue
         try:
             found[name] = Runner(cls())
-            print(f"Move {name} ({path.name}) found", end="\r\n", flush=True)
+            only = "" if set(found[name].variants) == set(ALL) else f", {' / '.join(found[name].variants)} only"
+            print(f"Move {name} ({path.name}{only}) found", end="\r\n", flush=True)
         except Exception:
             _skip(f"Move {cls.__name__} ({path.name}) skipped (it cannot be built):\n{traceback.format_exc()}", path)
 

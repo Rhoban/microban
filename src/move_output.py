@@ -51,7 +51,7 @@ class MoveOutput:
                 continue
             if self._skipped.get(name) and now - self._said.get(name, 0.0) >= 1.0:
                 self.telemetry.event(f"{name}: ({self._skipped.pop(name)} printed lines not shown here: "
-                                     f"too many a second; all in make robot-service-logs)")
+                                     f"too many a second; all in the robot's log, make robot-service-logs, or the terminal of make run / make sim)")
                 self._said[name] = now
                 tokens -= 1
                 if tokens < 1:

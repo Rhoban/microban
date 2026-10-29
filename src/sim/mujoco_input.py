@@ -62,7 +62,7 @@ class MuJoCoInputSource(InputSource):
     def start(self) -> None:
         print("MuJoCo viewer keyboard controls:")
         for char, name in self._move_keys_display.items():
-            print(f"  [{char}]      toggle move '{name}'")
+            print(f"  [{char}]       toggle move '{name}'")
         print("  [i]       toggle IMU frame + terminal display")
         print("  [t]       toggle torque sum display")
         print("  [arrows]  vx (up/down), vtheta (left/right)")
