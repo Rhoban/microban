@@ -16,6 +16,12 @@ In the viewer (click it first): the keys listed in the terminal start / stop the
 from the dashboard, `make dashboard HOST=127.0.0.1` in another terminal (or give them one in `MOVE_KEYS`,
 `src/constants.py`). On macOS, MuJoCo's viewer needs `mjpython`: `make sim PYTHON=mjpython WALL=N2`.
 
+**A slow viewer** (under 1 image a second, e.g. in WSL, where OpenGL may run on the CPU): `make sim WALL=N2 VIEWER=0`
+runs without MuJoCo's window, at full speed; watch it and drive it from the dashboard (`make dashboard HOST=127.0.0.1`,
+in another terminal; from WSL, the page also opens in a Windows browser at http://127.0.0.1:8780). To get the GPU in
+WSL instead: `glxinfo -B | grep renderer` (needs `mesa-utils`) should name your graphics card, not `llvmpipe`; if it
+says llvmpipe, update WSL (`wsl --update` in Windows) and your graphics card's Windows driver.
+
 As on the real robot:
 
 * the robot's program starts with the torque off: the robot is held where it starts until a move is launched (the

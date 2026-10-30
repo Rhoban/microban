@@ -31,6 +31,8 @@ def main() -> None:
                         "cloned next to this folder): N1, N2, N3 or a wall JSON file; the climbing robot")
     parser.add_argument("--start", default="hang", choices=["hang", "floor"],
                         help="--wall: hanging on the start holds, or standing in front of the wall")
+    parser.add_argument("--no-viewer", action="store_true",
+                        help="no MuJoCo window (a slow OpenGL, e.g. WSL): watch and drive it from the dashboard")
     args = parser.parse_args()
 
     if args.wall:
@@ -55,7 +57,10 @@ def main() -> None:
     # the viewer's keys: the moves this robot runs (a move of your own has none: the dashboard starts it)
     keys = {k: n for k, n in MOVE_KEYS.items() if n in moves and variant in moves[n].variants}
     input_source = MuJoCoInputSource(move_keys=keys)
-    controller = SimController(sim, start, key_callback=input_source.key_callback, reset_source=input_source)
+    controller = SimController(sim, start, key_callback=input_source.key_callback, reset_source=input_source,
+                               viewer=not args.no_viewer)
+    if args.no_viewer:
+        print("No viewer: the dashboard shows and drives it (make dashboard HOST=127.0.0.1); Ctrl+C quits")
     input_source.set_viewer_opt(controller.viewer_opt)
 
     scheduler = Scheduler(

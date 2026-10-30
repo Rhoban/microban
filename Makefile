@@ -38,12 +38,14 @@ SIMULATOR ?= ../simulator
 # MICROBAN_SIM=path/to/microban_sim: a clone of Rhoban's robot simulator instead of its release (to change it)
 MICROBAN_SIM ?=
 # PYTHON=mjpython on macOS (MuJoCo's viewer needs it)
+# VIEWER=0: no MuJoCo window (slow OpenGL, e.g. WSL): watch and drive it from the dashboard
+VIEWER ?= 1
 PYTHON ?= python
 sim:
 	@$(if $(WALL),test -f $(SIMULATOR)/pyproject.toml || { echo "The climbing simulator is not in $(SIMULATOR): \
 	git clone https://github.com/rock-climbing-robots/simulator $(SIMULATOR)  (or SIMULATOR=its/folder)"; exit 1; })
 	PYTHONPATH=src uv run --group sim $(if $(MICROBAN_SIM),--with-editable $(MICROBAN_SIM)) $(if $(WALL),--with-editable $(SIMULATOR)) \
-		$(PYTHON) src/sim/sim_main.py --hz 50 $(if $(WALL),,--variant $(VARIANT)) $(if $(MOVES),--moves $(MOVES)) \
+		$(PYTHON) src/sim/sim_main.py --hz 50 $(if $(WALL),,--variant $(VARIANT)) $(if $(MOVES),--moves $(MOVES)) $(if $(filter 0,$(VIEWER)),--no-viewer) \
 		$(if $(WALL),--wall $(WALL) --start $(START))
 
 viewer:

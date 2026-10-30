@@ -27,6 +27,20 @@ if TYPE_CHECKING:
 G = 9.81
 
 
+class _NoViewer:
+    """Stands for MuJoCo's viewer when there is none (make sim VIEWER=0)."""
+    opt = None
+
+    def sync(self) -> None:
+        pass
+
+    def is_running(self) -> bool:
+        return True
+
+    def close(self) -> None:
+        pass
+
+
 class SimController:
     """The robot's program on a ``microban_sim.MicrobanSim`` (same methods as RobotController). ``start``: called to
     put the robot back at its start (key [r]), e.g. ``sim.reset`` or ``sim.reset_hanging``."""
@@ -38,7 +52,10 @@ class SimController:
         key_callback: Callable[[int], None] | None = None,
         stop_flag_path: str = "/tmp/microban_scheduler.stop",
         reset_source: "MuJoCoInputSource | None" = None,
+        viewer: bool = True,
     ) -> None:
+        """viewer=False: no MuJoCo window (a slow OpenGL, e.g. WSL without the GPU): watch and drive it from the
+        dashboard."""
         self.sim = sim
         self._start = start
         self._stop_flag_path = Path(stop_flag_path)
@@ -49,7 +66,8 @@ class SimController:
         self._kp_warned = False
         self._torque_t = 0.0
         self.reset(sync=False)
-        self._viewer = sim.view(realtime=False, key_callback=key_callback)   # the scheduler keeps the pace
+        self._viewer = (sim.view(realtime=False, key_callback=key_callback) if viewer   # the scheduler keeps the pace
+                        else _NoViewer())
 
     def close(self) -> None:
         """Close MuJoCo's viewer window."""
