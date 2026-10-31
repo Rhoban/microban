@@ -107,10 +107,26 @@
   #multilink { color: var(--ink); text-decoration: none; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line); }
   #multilink:hover { border-color: var(--accent); }
   table.nohealth th:nth-child(6), table.nohealth td:nth-child(6) { display: none; }
-  /* a page of /multi (?compact=1): no plots, no link to /multi, the 3D view and the motors share the space */
-  body.compact #bottom, body.compact #multilink, body.compact #replay, body.compact #rec { display: none; }
-  body.compact header { gap: 8px; padding: 6px 10px; }
-  body.compact h1 { display: none; }
+  /* a pane of /multi (?compact=1): the robot is chosen and the motor health set in /multi's own bar; here the 3D
+     view on the left, the moves and motors on the right, one header row, no plots */
+  body.compact #bottom, body.compact #multilink, body.compact #replay, body.compact #rec, body.compact h1,
+  body.compact .robotpick, body.compact #healthbox, body.compact #overlay { display: none; }
+  html:has(body.compact), body.compact { height: 100%; }
+  body.compact header { gap: 6px; padding: 4px 8px; flex-wrap: nowrap; overflow-x: auto; }
+  body.compact header button { padding: 3px 8px; font-size: 12px; white-space: nowrap; }
+  body.compact #variantbox { font-size: 0; gap: 0; }
+  body.compact #variant { font-size: 12px; padding: 1px 4px; }
+  body.compact main { flex: 1; min-height: 0; padding: 6px; gap: 6px;
+                      grid-template-columns: minmax(0, 1fr) minmax(230px, 40%); grid-template-rows: minmax(0, 1fr); }
+  body.compact #view { grid-row: 1; grid-column: 1; }
+  body.compact #right { grid-row: 1; grid-column: 2; min-height: 0; gap: 6px; }
+  body.compact #motors { flex: 1; min-height: 0; }
+  body.compact #motors .scroll { overflow: auto; }
+  body.compact #movelist { max-height: 30vh; }
+  body.compact table th:nth-child(3), body.compact table td:nth-child(3),
+  body.compact table th:nth-child(4), body.compact table td:nth-child(4) { display: none; }
+  body.compact td, body.compact th { padding: 3px 4px; font-size: 11px; }
+  body.compact .card h2 { padding: 5px 8px; }
   #empty { padding: 20px; color: var(--muted); }
   .robotpick { position: relative; }
   #rname { font-family: inherit !important; }

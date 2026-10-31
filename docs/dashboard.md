@@ -83,7 +83,8 @@ keyboard or the gamepad too. To change it, choose another one in that menu and c
 is a Classic.
 
 **Four robots at once.** *⊞ 4 robots* (header) opens `http://127.0.0.1:8780/multi`: four panes, each a full
-dashboard of one robot (its em, moves, motors; no plots), chosen in the menus at the top among the saved robots. One
+dashboard of one robot (its em, moves, motors; no plots), chosen in its bar among the saved robots; the *motor health* box at the top sets it for all four. In a pane, the
+3D view is on the left, the moves and the motors (current, temperature, state) on the right. One
 dashboard serves them all; each robot sends only to this PC, while its pane is open. A recording made in a pane is
 named after its robot's address.
 
