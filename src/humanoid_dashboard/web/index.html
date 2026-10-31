@@ -127,6 +127,10 @@
   body.compact table th:nth-child(4), body.compact table td:nth-child(4) { display: none; }
   body.compact td, body.compact th { padding: 3px 4px; font-size: 11px; }
   body.compact .card h2 { padding: 5px 8px; }
+  #robotname { display: none; }
+  body.compact #robotname { display: block; position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 6px;
+                            background: var(--panel); border: 1px solid var(--line); font: 600 12px ui-monospace, monospace;
+                            pointer-events: none; opacity: .9; }
   #empty { padding: 20px; color: var(--muted); }
   .robotpick { position: relative; }
   #rname { font-family: inherit !important; }
@@ -204,11 +208,11 @@
   <span id="robotcmds" class="chips"></span>
   <button id="deploy" hidden title="send this folder's code to the robot and restart its program (as make deploy): the torque goes off a few seconds, hold the robot">⟳ Deploy code</button>
   <button class="rec" id="rec">● Record</button>
-  <a id="multilink" href="/multi" target="_blank" title="four robots side by side, chosen among the saved ones">⊞ 4 robots</a>
+  <a id="multilink" href="/multi" title="four robots side by side, chosen among the saved ones">⊞ 4 robots</a>
   <button id="replay" title="replay a recording (the live robot keeps running; em still acts on it)">▶ Replay</button>
 </header>
 <main>
-  <div class="card" id="view"><div id="overlay">drag: rotate · right-drag: pan · wheel: zoom · click a part: select its motor</div>
+  <div class="card" id="view"><div id="overlay">drag: rotate · right-drag: pan · wheel: zoom · click a part: select its motor</div><div id="robotname"></div>
     <div id="replaybar">
       <select id="rp_file" title="recordings (--recordings folder)"></select>
       <button id="rp_back" title="one frame back (←; shift: 1 s)">⏮</button>

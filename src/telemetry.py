@@ -2,11 +2,11 @@
 """The robot's side of the live dashboard (humanoid-dashboard, run on the PC: `make dashboard`).
 
 Once per tick, after the motors were commanded, sends what the loop already read (positions, velocities, currents,
-targets, IMU, tick time) and the moves' states in one UDP packet, only while a PC listens. While one listens, it also
+targets, IMU, tick time, the computer's CPU load once a second) and the moves' states in one UDP packet, only while a PC listens. While one listens, it also
 reads the motors' health about once a second (torque, hardware error, voltage, temperature: two small sync reads;
 not when every listening page has its motor-health option off) and
 runs the page's commands between two ticks: `reboot` a motor (clears overheating / overload; its torque stays off),
-`torque` on/off for one motor; and passes the scheduler's to it: `em` (stop the moves, torque off), `init` (stop the
+`torque` on/off for one motor, `poweroff` the robot's computer (torque off first); and passes the scheduler's to it: `em` (stop the moves, torque off), `init` (stop the
 moves, every motor to its zero, held until a move is launched), `move_start` / `move_stop` (a registered move, as its
 key would). The moves' live controls: `slider` sets a move's slider (its sliders), `keys` the keys held in the page's
 keyboard zone (the move's pressed, on_key; the page repeats it while keys are held: without news
@@ -17,6 +17,7 @@ Without the humanoid_dashboard package, or with MICROBAN_DASHBOARD=0, it does no
 import math
 import os
 import socket
+import subprocess
 import time
 
 from constants import MOTOR_TO_ID
@@ -53,6 +54,7 @@ class Telemetry:
         self.ids = [MOTOR_TO_ID[n] for n in self.names]
         n = len(self.names)
         self.torque, self.error = [math.nan] * n, [math.nan] * n
+        self.cpu, self._cpu_prev = math.nan, None          # the computer's load (%), read once a second
         self.voltage, self.temperature = [math.nan] * n, [math.nan] * n
         self.health = getattr(controller, "sync_read_health", None)       # the real robot only
         self.requests: list[tuple[str, str | None]] = []                  # for the scheduler (take_requests)
@@ -71,7 +73,7 @@ class Telemetry:
         self.moves, self.variant = moves, variant
         listed = self._listing()
         self.sliders = [(k, n) for k, m in moves.items() for n in m.sliders]
-        cmds = (["reboot", "torque"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop",
+        cmds = (["reboot", "torque", "poweroff"] if hasattr(self.controller, "reboot") else []) + ["em", "init", "move_start", "move_stop",
                                                                                      "move_option", "save_options",
                                                                                      "slider", "keys", "variant"]
         sliders = {"sliders": [f"{k}.{n}" for k, n in self.sliders]} if self.sliders else {}
@@ -80,7 +82,7 @@ class Telemetry:
                 "q": self.names, "q_target": self.names, "dq": self.names, "current": self.names,
                 "torque": self.names, "hw_error": self.names, "voltage": self.names, "temperature": self.names,
                 "imu_quat": ["w", "x", "y", "z"], "gyro": ["x", "y", "z"], "acc": ["x", "y", "z"],
-                "tick_ms": ["tick"], "powered": ["on"], "init": ["on"],
+                "tick_ms": ["tick"], "cpu": ["load"], "powered": ["on"], "init": ["on"],
                 "moves": [m["name"] for m in listed], **sliders},
                 meta={"motor_ids": MOTOR_TO_ID, "limits": {"current": CURRENT_LIMIT_A, "temperature": TEMPERATURE_LIMIT_C},
                       "hw_error_bits": {"0": "input voltage", "2": "overheating", "3": "motor encoder",
@@ -89,7 +91,7 @@ class Telemetry:
                       "warnings": _move_problems(), "variant": variant, "variants": list(ALL),
                       "host": socket.gethostname(),       # its name on the network (make discover-robots)
                       # how the page shows the one-value fields: a label and unit, or a flag's texts (on / off)
-                      "scalars": {"tick_ms": {"label": "loop", "unit": "ms"},
+                      "scalars": {"tick_ms": {"label": "loop", "unit": "ms"}, "cpu": {"label": "cpu", "unit": "%"},
                                   "powered": {"flag": ["torque off", "torque on"]},
                                   "init": {"flag": ["", "init: zero pose held"]}}})
         except OSError as e:          # port taken (another session): the robot runs without the dashboard
@@ -140,6 +142,8 @@ class Telemetry:
             if self.link is None:
                 return
         self.tick_count += 1
+        if self.link.listening and self.tick_count % HEALTH_EVERY == 0:
+            self._read_cpu()
         if self.health and self.link.wants_health and self.tick_count % HEALTH_EVERY == 0:
             self._read_health()
         elif self.health and self.link.listening and not self.link.wants_health and not math.isnan(sum(self.voltage)):
@@ -156,10 +160,22 @@ class Telemetry:
             current=[state.measured_currents.get(n, math.nan) for n in names] if state.measured_currents else None,
             torque=self.torque, hw_error=self.error, voltage=self.voltage, temperature=self.temperature,
             imu_quat=state.body_quat or None, gyro=state.gyro or None, acc=state.acc or None,
-            tick_ms=tick_ms, powered=status.get("powered"), init=status.get("init"),
+            tick_ms=tick_ms, cpu=self.cpu, powered=status.get("powered"), init=status.get("init"),
             moves=moves, sliders=[self.moves[k].slider[n] for k, n in self.sliders])
         for cmd in self.link.commands():
             self._run(cmd)
+
+    def _read_cpu(self) -> None:
+        """The computer's load (%, all its cores) since the last call, from /proc/stat (Linux; NaN elsewhere)."""
+        try:
+            with open("/proc/stat") as f:
+                t = [int(x) for x in f.readline().split()[1:]]
+        except (OSError, ValueError):
+            return
+        idle, total = t[3] + t[4], sum(t)                     # idle + iowait
+        if self._cpu_prev is not None and total > self._cpu_prev[1]:
+            self.cpu = 100.0 * (1.0 - (idle - self._cpu_prev[0]) / (total - self._cpu_prev[1]))
+        self._cpu_prev = (idle, total)
 
     def _read_health(self) -> None:
         try:
@@ -193,6 +209,16 @@ class Telemetry:
             self.requests.append((name, None))
             self.link.ack(cmd, True, "emergency stop: moves stopped, torque off" if name == "em" else
                           "init: moves stopped, every motor to its zero (held until a move is launched)")
+            return
+        if name == "poweroff":                        # the robot's computer off (the real robot only): torque off first
+            self.requests.append(("em", None))
+            try:
+                subprocess.Popen(["sudo", "-n", "shutdown", "-h", "+0"], stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+            except OSError as e:
+                self.link.ack(cmd, False, f"poweroff: {e}")
+                return
+            self.link.ack(cmd, True, "torque off, the robot's computer shuts down (unplug its power once its LED stops)")
             return
         if name == "variant":                         # set and saved by the scheduler
             v = cmd["args"].get("variant")

@@ -299,6 +299,7 @@ function onRobot(m) {
   $("table").classList.toggle("nohealth", m.health === false);
   const name = Object.keys(robot.saved).find(k => robot.saved[k].host === m.host);
   $("robotbtn").textContent = !m.host ? "choose a robot ▾" : (name ? `${name} · ${m.host} ▾` : `${m.host} ▾`);
+  $("robotname").textContent = !m.host ? "no robot: choose one at the top" : (name ? `${name} · ${m.host}` : m.host);
   renderSaved();
   if (!changed) return;
   if (replay) closeReplay();
@@ -433,6 +434,10 @@ function renderRobotCmds() {
   if (cmds.includes("em")) {
     const b = document.createElement("button"); b.className = "stop"; b.textContent = "⏻ Torque off (em)";
     b.title = "emergency: stop the moves, torque off on every motor"; b.onclick = () => cmd("em", {}); box.appendChild(b);
+  }  if (cmds.includes("poweroff")) {
+    const b = button("⏼ Shut down", "danger", () => cmd("poweroff", {}), "Shut down its computer?", "*");
+    b.classList.remove("small");
+    b.title = "torque off, then the robot's computer shuts down (to unplug it safely)"; box.appendChild(b);
   }
 }
 // the robot's moves (meta.moves; their states in the field "moves": 0 off, 2 on, 3 stopping; 1 starting and the
