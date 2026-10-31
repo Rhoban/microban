@@ -91,7 +91,8 @@ class Telemetry:
                       "warnings": _move_problems(), "variant": variant, "variants": list(ALL),
                       "host": socket.gethostname(),       # its name on the network (make discover-robots)
                       # how the page shows the one-value fields: a label and unit, or a flag's texts (on / off)
-                      "scalars": {"tick_ms": {"label": "loop", "unit": "ms"}, "cpu": {"label": "cpu", "unit": "%"},
+                      "scalars": {"tick_ms": {"label": "loop", "unit": "ms", "warn": 14, "bad": 18},     # of a 20 ms tick
+                                  "cpu": {"label": "cpu", "unit": "%", "warn": 60, "bad": 85, "digits": 0},
                                   "powered": {"flag": ["torque off", "torque on"]},
                                   "init": {"flag": ["", "init: zero pose held"]}}})
         except OSError as e:          # port taken (another session): the robot runs without the dashboard

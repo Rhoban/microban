@@ -23,6 +23,12 @@
   .pill.warn { background: var(--warn-soft); color: var(--warn); }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); }
   .chips b { color: var(--ink); font-weight: 600; }
+  #scalars { align-items: center; gap: 6px; }
+  .sc { display: inline-flex; align-items: baseline; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 12px;
+        line-height: 1.2; background: var(--grid); white-space: nowrap; }
+  .sc.ok { background: var(--ok-soft); } .sc.ok b { color: var(--ok); }
+  .sc.warn { background: var(--warn-soft); } .sc.warn b { color: var(--warn); }
+  .sc.bad { background: var(--bad-soft); } .sc.bad b { color: var(--bad); }
   .spacer { flex: 1; }
   button { font: inherit; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
   button:hover { border-color: var(--accent); }

@@ -90,7 +90,7 @@ dashboard serves them all; each robot sends only to this PC, while its pane is o
 named after its robot's address.
 
 **Robot's computer.** The header shows its CPU load (*cpu %*, all its cores, measured once a second) next to the
-loop time. *⏼ Shut down* (a second click confirms) turns the torque off and shuts the robot's computer down: unplug its
+loop time (green, orange from 60 %, red from 85 %; the loop: orange from 14 ms, red from 18 ms of its 20 ms). *⏼ Shut down* (a second click confirms) turns the torque off and shuts the robot's computer down: unplug its
 power once its LED stops.
 
 **Motor health.** The *motor health* box (header) off: the page no longer shows the motors' temperature and

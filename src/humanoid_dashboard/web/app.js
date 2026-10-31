@@ -409,9 +409,11 @@ function showFrame(m) {
   const sc = Object.entries(names).filter(([k, l]) => l.length === 1 && k !== "moves" && k !== "sliders").map(([k]) => {
     const v = m.values[k][0], d = desc[k] || {};
     if (d.flag) { const t = d.flag[v ? 1 : 0]; return t ? `<span class="pill ${v ? "ok" : "warn"}">${t}</span>` : ""; }
-    return `${d.label || k} <b>${v === null ? "–" : (+v).toFixed(1)}</b>${d.unit ? " " + d.unit : ""}`;
+    // a value with thresholds (meta.scalars warn / bad, e.g. the CPU load): coloured as a pill
+    const lvl = v === null || d.warn === undefined ? "" : v >= (d.bad ?? Infinity) ? "bad" : v >= d.warn ? "warn" : "ok";
+    return `<span class="sc ${lvl}">${d.label || k} <b>${v === null ? "–" : (+v).toFixed(d.digits ?? 1)}</b>${d.unit ? " " + d.unit : ""}</span>`;
   }).filter(Boolean);
-  $("scalars").innerHTML = sc.join(" · ");
+  $("scalars").innerHTML = sc.join("");
   if (scene3d) { const st = {}; for (const j of jointsList()) st[j] = j === selected ? "sel" : motorState(j); scene3d.tint(st); }
   renderTable();
   renderRobotCmds();
