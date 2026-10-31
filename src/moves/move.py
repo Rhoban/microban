@@ -128,6 +128,7 @@ class Robot:
 
     def __init__(self, controller=None) -> None:
         self.controller = controller                              # set by the scheduler
+        self.on_torque = None                                     # set by the scheduler: (joints, on) for the dashboard
         self.variant = None                                       # the robot's version (classic / climber)
         self.state = None
         self.kp: dict[str, int] = {}                             # the gains this move set (joint -> kp)
@@ -156,6 +157,8 @@ class Robot:
         else:
             ids = [MOTOR_TO_ID[n] for n in sorted(names)]
             self.controller.sync_write_torque_enable(ids, [False] * len(ids))
+            if self.on_torque is not None:
+                self.on_torque(names, False)
             self.limp |= names
             self.to_enable -= names
 

@@ -70,6 +70,8 @@ class Scheduler:
         self._kp: dict[str, int] = dict.fromkeys(MOTOR_TO_ID, KP_DEFAULT)   # the gains written (main.py: KP_DEFAULT)
         for move in self.registered_moves.values():
             move.robot.controller = controller                   # the moves' self.robot (moves.move.Robot)
+            if telemetry is not None:
+                move.robot.on_torque = telemetry.torque_set      # its joints turned off: shown by the dashboard
 
         self.loop_start_time = time.perf_counter()
         self._serial_errors = 0
@@ -196,6 +198,8 @@ class Scheduler:
                 if enable and self.powered:
                     ids = [MOTOR_TO_ID[n] for n in sorted(enable)]
                     self.controller.sync_write_torque_enable(ids, [True] * len(ids))
+                    if self.telemetry is not None:
+                        self.telemetry.torque_set(enable, True)
                 for move in self.registered_moves.values():
                     move.robot.to_enable.clear()
 

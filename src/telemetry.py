@@ -136,6 +136,13 @@ class Telemetry:
     def torque_changed(self, on: bool) -> None:
         self.torque = [int(on)] * len(self.ids)
 
+    def torque_set(self, names, on: bool) -> None:
+        """Some joints' torque switched by the program (a move's self.robot.set_torque, given back when it stops): the
+        page knows it without reading the motors (with the motor-health option off, nothing is read)."""
+        for n in names:
+            if n in self.names:
+                self.torque[self.names.index(n)] = int(on)
+
     def tick(self, state, target_angles: dict, tick_ms: float, status: dict | None = None) -> None:
         """Call once per tick, after the motors were commanded (the bus is free)."""
         if self.link is None:
@@ -148,7 +155,8 @@ class Telemetry:
         if self.health and self.link.wants_health and self.tick_count % HEALTH_EVERY == 0:
             self._read_health()
         elif self.health and self.link.listening and not self.link.wants_health and not math.isnan(sum(self.voltage)):
-            # the PCs asked for no health: no reads, and no stale values shown (the torque stays: the program knows it)
+            # the PCs asked for no health: no reads, and no stale values shown (the torque stays: the program keeps it,
+            # torque_changed / torque_set; a motor that shuts itself down on an error is seen by the health reads only)
             n = len(self.ids)
             self.error, self.voltage, self.temperature = [math.nan] * n, [math.nan] * n, [math.nan] * n
         names = self.names
