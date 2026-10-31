@@ -82,6 +82,15 @@ keyboard or the gamepad too. To change it, choose another one in that menu and c
 (saved on it in `robot_variant.txt`, for every PC; its moves for the other version stop). A robot that was never set
 is a Classic.
 
+**Four robots at once.** *⊞ 4 robots* (header) opens `http://127.0.0.1:8780/multi`: four panes, each a full
+dashboard of one robot (its em, moves, motors; no plots), chosen in the menus at the top among the saved robots. One
+dashboard serves them all; each robot sends only to this PC, while its pane is open. A recording made in a pane is
+named after its robot's address.
+
+**Motor health.** The *motor health* box (header) off: the page no longer shows the motors' temperature and
+hardware errors, and the robot no longer reads them (nor their voltage) once a second, as long as every PC watching
+it has the box off. The torque on/off stays shown: the robot's program knows it.
+
 ## Record and replay
 
 ![Replay of a recording: play, speed, frame by frame, slider](images/dashboard/replay.png)
@@ -127,7 +136,8 @@ flowchart LR
 
 The robot only sends what its control loop already reads, in one UDP packet per tick (port 7350), and only while a
 dashboard asks for it (a `hello` every second): no extra bus traffic while nobody watches. While one listens, the loop
-also reads the motors' health (torque, hardware error, voltage, temperature) once a second (two small reads, ~1.5 ms).
+also reads the motors' health (torque, hardware error, voltage, temperature) once a second (two small reads, ~1.5 ms;
+not with the page's *motor health* box off).
 The page's commands run in the control loop between two ticks. Everything else (kinematics, 3D, plots, recording)
 runs on the PC: `src/humanoid_dashboard` ([its README](../src/humanoid_dashboard/README.md)), which does not depend on
 Microban and can serve other robots. Only the page served by your dashboard may use it: another web page or site is

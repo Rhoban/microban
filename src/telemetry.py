@@ -3,7 +3,8 @@
 
 Once per tick, after the motors were commanded, sends what the loop already read (positions, velocities, currents,
 targets, IMU, tick time) and the moves' states in one UDP packet, only while a PC listens. While one listens, it also
-reads the motors' health about once a second (torque, hardware error, voltage, temperature: two small sync reads) and
+reads the motors' health about once a second (torque, hardware error, voltage, temperature: two small sync reads;
+not when every listening page has its motor-health option off) and
 runs the page's commands between two ticks: `reboot` a motor (clears overheating / overload; its torque stays off),
 `torque` on/off for one motor; and passes the scheduler's to it: `em` (stop the moves, torque off), `init` (stop the
 moves, every motor to its zero, held until a move is launched), `move_start` / `move_stop` (a registered move, as its
@@ -139,8 +140,12 @@ class Telemetry:
             if self.link is None:
                 return
         self.tick_count += 1
-        if self.health and self.link.listening and self.tick_count % HEALTH_EVERY == 0:
+        if self.health and self.link.wants_health and self.tick_count % HEALTH_EVERY == 0:
             self._read_health()
+        elif self.health and self.link.listening and not self.link.wants_health and not math.isnan(sum(self.voltage)):
+            # the PCs asked for no health: no reads, and no stale values shown (the torque stays: the program knows it)
+            n = len(self.ids)
+            self.error, self.voltage, self.temperature = [math.nan] * n, [math.nan] * n, [math.nan] * n
         names = self.names
         status = status or {}
         moves = [MOVE_STATE.get(m.state.name, 0) for m in self.moves.values()]

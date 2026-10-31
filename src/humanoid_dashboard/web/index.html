@@ -102,6 +102,15 @@
   #events { font: 12px/1.45 ui-monospace, monospace; padding: 6px 10px; }
   #events div.error { color: var(--bad); } #events div.warn { color: var(--warn); } #events div.ack { color: var(--ok); } #events div.nack { color: var(--bad); }
   #events small { color: var(--muted); }
+  #healthbox { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; cursor: pointer; }
+  #healthbox input { accent-color: var(--accent); margin: 0; }
+  #multilink { color: var(--ink); text-decoration: none; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line); }
+  #multilink:hover { border-color: var(--accent); }
+  table.nohealth th:nth-child(6), table.nohealth td:nth-child(6) { display: none; }
+  /* a page of /multi (?compact=1): no plots, no link to /multi, the 3D view and the motors share the space */
+  body.compact #bottom, body.compact #multilink, body.compact #replay, body.compact #rec { display: none; }
+  body.compact header { gap: 8px; padding: 6px 10px; }
+  body.compact h1 { display: none; }
   #empty { padding: 20px; color: var(--muted); }
   .robotpick { position: relative; }
   #rname { font-family: inherit !important; }
@@ -173,11 +182,13 @@
     <select id="variant"></select></label>
   <div id="variantask" class="card" hidden role="alertdialog"><span id="variantmsg"></span>
     <div class="row"><button id="variantno">Cancel</button><button id="variantgo"></button></div></div>
+  <label id="healthbox" title="the motors' temperature, hardware errors and voltage, read by the robot once a second while a page watches: off, the robot no longer reads them (the torque on/off stays shown)"><input type="checkbox" id="health" checked> motor health</label>
   <div class="chips" id="scalars"></div>
   <div class="spacer"></div>
   <span id="robotcmds" class="chips"></span>
   <button id="deploy" hidden title="send this folder's code to the robot and restart its program (as make deploy): the torque goes off a few seconds, hold the robot">⟳ Deploy code</button>
   <button class="rec" id="rec">● Record</button>
+  <a id="multilink" href="/multi" target="_blank" title="four robots side by side, chosen among the saved ones">⊞ 4 robots</a>
   <button id="replay" title="replay a recording (the live robot keeps running; em still acts on it)">▶ Replay</button>
 </header>
 <main>

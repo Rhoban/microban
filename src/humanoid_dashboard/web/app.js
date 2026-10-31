@@ -3,6 +3,9 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
+// ?h=N: which of the server's robots this page shows (/multi: four pages side by side, ?compact=1: no plots)
+const PARAMS = new URLSearchParams(location.search), H = PARAMS.get("h") || "0";
+if (PARAMS.get("compact")) document.body.classList.add("compact");
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const DEG = 180 / Math.PI, HISTORY_S = 10;
 let scene3d = null, schema = null, names = {}, meta = {}, last = null, selected = null, recording = false;
@@ -12,7 +15,7 @@ const hist = [];                      // [{t, cur, sel: [q, target], roll, pitch
 // ------------------------------------------------------------------------------------------------ 3D view
 let builtModel = null;               // the model the 3D view shows (the page reloads when the robot's is another)
 async function build3d() {
-  const sc = await (await fetch("/api/scene")).json();
+  const sc = await (await fetch(`/api/scene?h=${H}`)).json();
   builtModel = sc.model;
   if (!schema) { $("title").textContent = sc.title; document.title = sc.title + " · dashboard"; }
   const el = $("view");
@@ -35,7 +38,7 @@ async function build3d() {
   const meshCache = {};
   async function meshGeometry(i) {
     if (!meshCache[i]) meshCache[i] = (async () => {
-      const buf = await (await fetch(`/api/mesh/${i}`)).arrayBuffer();
+      const buf = await (await fetch(`/api/mesh/${i}?h=${H}`)).arrayBuffer();
       const [nv, nf] = new Uint32Array(buf, 0, 2);
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(buf, 8, nv * 3), 3));
@@ -267,7 +270,7 @@ function log(e) {
 let ws = null;
 function send(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
 function connect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws = new WebSocket(`ws://${location.host}/ws?h=${H}`);
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data);
     if (m.type === "schema") { liveSchema = m.schema; if (!replay) applySchema(liveSchema); robotCmdsKey = ""; renderRobotCmds(); }
@@ -292,6 +295,8 @@ function onRobot(m) {
   else if (!d.classList.contains("confirm")) d.textContent = "⟳ Deploy code";
   const changed = m.host !== robot.host || !m.host;
   robot = { host: m.host, addr: m.addr, saved: m.saved || {}, model: m.model, models: m.models || [] };
+  $("health").checked = m.health !== false;
+  $("table").classList.toggle("nohealth", m.health === false);
   const name = Object.keys(robot.saved).find(k => robot.saved[k].host === m.host);
   $("robotbtn").textContent = !m.host ? "choose a robot ▾" : (name ? `${name} · ${m.host} ▾` : `${m.host} ▾`);
   renderSaved();
@@ -302,8 +307,10 @@ function onRobot(m) {
   tableKey = ""; $("table").innerHTML = ""; $("empty").style.display = "";
   robotCmdsKey = movesKey = ""; $("robotcmds").innerHTML = ""; renderMoves(); renderVariant();
   $("scalars").innerHTML = "";
-  if (!m.host) $("robotbox").classList.add("show");
+  if (!m.host && !PARAMS.get("compact")) $("robotbox").classList.add("show");   // /multi: chosen in its menus
 }
+// motor health (temperature, hardware errors, voltage): off, the robot no longer reads it (a sync read once a second)
+$("health").onchange = () => send({ type: "health", on: $("health").checked });
 function connectTo(host, name) {
   if (name) send({ type: "save_robot", name, host });
   send({ type: "connect", host });

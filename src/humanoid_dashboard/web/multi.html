@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four robots</title>
+<style>
+  :root { --bg: #f3f3f0; --panel: #fff; --ink: #1d2126; --muted: #6b7078; --line: #e1e1db; --accent: #d9622b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171a; --panel: #1d2024; --ink: #e8e9eb; --muted: #9aa0a8; --line: #30343a; --accent: #f07a3e; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font: 13px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  h1 { font-size: 15px; margin: 0 6px 0 0; }
+  header label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
+  select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 3px 6px; max-width: 220px; }
+  small { color: var(--muted); }
+  #grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; padding: 6px; }
+  iframe { width: 100%; height: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  @media (max-width: 900px) { #grid { grid-template-columns: 1fr; grid-template-rows: repeat(4, 85vh); } body { height: auto; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Four robots</h1>
+  <span id="pickers"></span>
+  <small>each pane is a full dashboard of its robot (its own em, moves, motors)</small>
+</header>
+<div id="grid"></div>
+<script>
+// four panes, each the dashboard page of one of the server's robots (?h=0..3); the menus connect them to the saved
+// robots (the server's list: saved from any dashboard page)
+const N = 4, grid = document.getElementById("grid"), pickers = document.getElementById("pickers");
+const socks = [], sels = [];
+for (let h = 0; h < N; h++) {
+  const f = document.createElement("iframe"); f.src = `/?h=${h}&compact=1`; f.title = `robot ${h + 1}`; grid.appendChild(f);
+  const lab = document.createElement("label"); lab.textContent = `${h + 1}`;
+  const sel = document.createElement("select"); sel.innerHTML = `<option value="">—</option>`; lab.appendChild(sel); pickers.appendChild(lab);
+  sels.push(sel);
+  sel.onchange = () => { if (sel.value) send(h, { type: "connect", host: sel.value }); };
+  open(h);
+}
+function send(h, m) { const ws = socks[h]; if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+function open(h) {
+  const ws = new WebSocket(`ws://${location.host}/ws?h=${h}`); socks[h] = ws;
+  ws.onmessage = ev => {
+    const m = JSON.parse(ev.data);
+    if (m.type !== "robot") return;
+    const sel = sels[h], saved = Object.entries(m.saved || {}).sort();
+    const opts = [`<option value="">—</option>`].concat(saved.map(([name, r]) =>
+      `<option value="${r.host}">${name.replace(/</g, "&lt;")} · ${r.host}</option>`));
+    if (m.host && !saved.some(([, r]) => r.host === m.host)) opts.push(`<option value="${m.host}">${m.host}</option>`);
+    if (sel.innerHTML !== opts.join("")) sel.innerHTML = opts.join("");
+    sel.value = m.host || "";
+  };
+  ws.onclose = () => setTimeout(() => open(h), 1500);
+}
+</script>
+</body>
+</html>

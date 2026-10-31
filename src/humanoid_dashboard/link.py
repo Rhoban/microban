@@ -10,7 +10,8 @@ only, nothing blocks: meant to be called once per tick of the control loop.
     link.event("overcurrent safety", level="error")
 
 Protocol (UDP, one port on the robot):
-* PC -> robot, JSON: {"op": "hello"} about once a second (subscribes for 3 s); {"op": "cmd", "seq", "name", "args"}.
+* PC -> robot, JSON: {"op": "hello"} about once a second (subscribes for 3 s; "health": false: this PC does not want
+  the motors' health, see wants_health); {"op": "cmd", "seq", "name", "args"}.
 * robot -> PC, JSON: {"op": "schema", "robot", "fields": [[name, [labels]], ...], "meta"} in answer to every hello;
   {"op": "ack", "seq", "ok", "text"}; {"op": "event", "level", "text", "t"}.
 * robot -> PC, binary frame: MAGIC, uint32 schema id, uint32 sequence, float64 robot time, then float32 values in the
@@ -49,6 +50,7 @@ class Link:
         self.sock.bind(("0.0.0.0", port))
         self.sock.setblocking(False)
         self.clients = {}          # address -> last hello (monotonic s)
+        self.health = {}           # address -> whether that PC wants the motors' health (its last hello)
         self.seq = 0
         self._commands = []
 
@@ -79,6 +81,7 @@ class Link:
             op = msg.get("op")
             if op == "hello":
                 self.clients[addr] = time.monotonic()
+                self.health[addr] = msg.get("health", True) is not False
                 self._send(self.schema, addr)
             elif op == "cmd":
                 self.clients[addr] = time.monotonic()
@@ -96,6 +99,11 @@ class Link:
         now = time.monotonic()
         self.clients = {a: t for a, t in self.clients.items() if now - t < SUBSCRIPTION_S}
         return bool(self.clients)
+
+    @property
+    def wants_health(self) -> bool:
+        """A listening PC wants the motors' health (the dashboard's option: off spares the robot its health reads)."""
+        return self.listening and any(self.health.get(a, True) for a in self.clients)
 
     # ---- sending --------------------------------------------------------------------------------------------------
     def _send(self, data: bytes, addr):
