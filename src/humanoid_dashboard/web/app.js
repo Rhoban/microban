@@ -170,7 +170,9 @@ function renderTable(force) {
     for (const j of order) {
       const r = body.insertRow(); r.dataset.j = j; r.onclick = () => select(j);
       for (let i = 0; i < 8; i++) r.insertCell();
-      r.cells[0].textContent = ids[j] ?? ""; r.cells[1].textContent = j;
+      r.cells[0].textContent = ids[j] ?? ""; r.cells[1].title = j;
+      // a /multi pane: right_shoulder_pitch -> R shoulder pitch (the two shoulder joints told apart in a narrow column)
+      r.cells[1].textContent = PARAMS.get("compact") ? j.replace(/^right_/, "R ").replace(/^left_/, "L ").replace(/_/g, " ") : j;
       r.cells[2].className = r.cells[3].className = r.cells[5].className = "num";
       r.cells[4].innerHTML = `<span class="bar"><i></i></span> <span class="cv"></span>`;
     }
