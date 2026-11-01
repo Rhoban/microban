@@ -133,6 +133,20 @@
   body.compact table th:nth-child(4), body.compact table td:nth-child(4) { display: none; }
   body.compact td, body.compact th { padding: 3px 4px; font-size: 11px; }
   body.compact .card h2 { padding: 5px 8px; }
+  /* no horizontal scroll bar in a pane: the moves wrap and shrink, the motors' table fits its column */
+  body.compact #movelist, body.compact #motors .scroll { overflow-x: hidden; }
+  body.compact .mv { max-width: 100%; min-width: 0; }
+  body.compact .mv b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  body.compact .mv small { display: none; }
+  body.compact table { table-layout: fixed; }
+  body.compact th:nth-child(1), body.compact td:nth-child(1) { width: 24px; }
+  body.compact th:nth-child(5), body.compact td:nth-child(5) { width: 54px; white-space: nowrap; }
+  body.compact th:nth-child(6), body.compact td:nth-child(6) { width: 28px; }
+  body.compact th:nth-child(7), body.compact td:nth-child(7) { width: 62px; }
+  body.compact th:nth-child(8), body.compact td:nth-child(8) { width: 64px; }
+  body.compact td { overflow: hidden; text-overflow: ellipsis; }
+  body.compact .bar { display: none; }
+  body.compact td button.small { padding: 1px 4px; font-size: 10px; }
   #robotname { display: none; }
   body.compact #robotname { display: block; position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 6px;
                             background: var(--panel); border: 1px solid var(--line); font: 600 12px ui-monospace, monospace;
