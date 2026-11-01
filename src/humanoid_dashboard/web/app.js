@@ -165,7 +165,7 @@ function renderTable(force) {
   if (force || key !== tableKey) {
     tableKey = key; t.innerHTML = "";
     const h = t.createTHead().insertRow();
-    for (const c of ["ID", "Joint", "Angle °", "Err °", "Current A", "°C", "State", ""]) { const th = document.createElement("th"); th.textContent = c; h.appendChild(th); }
+    for (const c of ["ID", "Joint", "Angle °", "Err °", "Curr. A", "°C", "State", ""]) { const th = document.createElement("th"); th.textContent = c; h.appendChild(th); }
     const body = t.createTBody();
     for (const j of order) {
       const r = body.insertRow(); r.dataset.j = j; r.onclick = () => select(j);
